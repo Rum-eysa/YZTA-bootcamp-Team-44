@@ -1,0 +1,101 @@
+# DEVELOPMENT - api + web + database + cache
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: yzta_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-yzta_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-yzta_password}
+      POSTGRES_DB: ${DB_NAME:-yzta_bootcamp}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-yzta_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yzta_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: yzta_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yzta_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: yzta_api
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-yzta_user}:${DB_PASSWORD:-yzta_password}@postgres:5432/${DB_NAME:-yzta_bootcamp}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-your-dev-secret-key-min-32-chars}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      DEBUG: ${DEBUG:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./apps/api:/app
+      - /app/__pycache__
+    networks:
+      - yzta_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: yzta_web
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      API_INTERNAL_URL: http://api:8000
+    depends_on:
+      - api
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - yzta_network
+    restart: unless-stopped
+
+networks:
+  yzta_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

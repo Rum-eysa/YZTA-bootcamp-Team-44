@@ -1,0 +1,35 @@
+name: Feature Request
+description: Yeni bir ozellik veya iyilestirme oner
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Cozulen Problem
+      description: Bu ozellik hangi ihtiyaci karsiliyor?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Onerilen Cozum
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Degerlendirilen Alternatifler
+    validations:
+      required: false
+  - type: dropdown
+    id: service
+    attributes:
+      label: Etkilenen Servis
+      options:
+        - apps/api (backend)
+        - apps/web (frontend)
+        - infra (docker-compose)
+        - diger
+    validations:
+      required: true

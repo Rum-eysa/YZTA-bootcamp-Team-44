@@ -1,0 +1,124 @@
+"""FastAPI Application - Production Ready"""
+
+import logging
+from contextlib import asynccontextmanager
+from typing import Callable
+
+import uvicorn
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import JSONResponse
+
+from app.config import settings
+from app.exceptions import APIException
+from app.logging_config import setup_logging
+from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.routes import agents, applications, auth, health, users
+
+logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("API starting", environment=settings.ENVIRONMENT)
+    yield
+    logger.info("API shutting down")
+
+
+app = FastAPI(
+    title="YZTA Bootcamp API",
+    description="Yapay zeka destekli staj basvuru platformu",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG else None,
+)
+
+if not settings.DEBUG:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.CORS_ORIGINS.split(","))
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+cors_origins = settings.CORS_ORIGINS.split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    max_age=600,
+)
+
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(LoggingMiddleware)
+
+# Include routers
+app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(applications.router)
+app.include_router(agents.router)
+
+
+@app.exception_handler(APIException)
+async def api_exception_handler(request: Request, exc: APIException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "error_code": exc.error_code,
+            "request_id": getattr(request.state, "request_id", None),
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": "Request validation failed", "errors": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
+    if settings.DEBUG:
+        raise exc
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next: Callable):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "healthy", "service": "YZTA Bootcamp API", "version": "1.0.0"}
+
+
+@app.get("/", tags=["Info"])
+async def root():
+    return {
+        "name": "YZTA Bootcamp API",
+        "version": "1.0.0",
+        "description": "Yapay zeka destekli staj basvuru platformu",
+        "docs": "/docs" if settings.DEBUG else None,
+    }
+
+
+@app.get("/status", tags=["Info"])
+async def status_check():
+    return {"status": "online", "version": "1.0.0", "environment": settings.ENVIRONMENT}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

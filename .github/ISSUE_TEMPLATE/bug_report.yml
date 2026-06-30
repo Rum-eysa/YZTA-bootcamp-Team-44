@@ -1,0 +1,54 @@
+name: Bug Report
+description: Bir hata bildir
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Hatanin Tanimi
+      description: Ne bekliyordun, ne oldu?
+    validations:
+      required: true
+  - type: dropdown
+    id: service
+    attributes:
+      label: Etkilenen Servis
+      options:
+        - apps/api (backend)
+        - apps/web (frontend)
+        - infra (docker-compose)
+        - diger
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Tekrar Etme Adimlari
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Beklenen Davranis
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Loglar / Ekran Goruntusu
+      description: docker-compose logs <servis> ciktisini ekle
+      render: shell
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Ortam
+      placeholder: "OS, Docker versiyonu, branch adi vb."
+    validations:
+      required: false

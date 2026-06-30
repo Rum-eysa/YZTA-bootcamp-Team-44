@@ -1,0 +1,24 @@
+- name: bug
+  color: d73a4a
+  description: Beklenmeyen davranis veya hata
+- name: enhancement
+  color: a2eeef
+  description: Yeni ozellik veya iyilestirme
+- name: needs-triage
+  color: fbca04
+  description: Henuz degerlendirilmedi
+- name: backend
+  color: 0e8a16
+  description: apps/api ile ilgili
+- name: frontend
+  color: 1d76db
+  description: apps/web ile ilgili
+- name: infra
+  color: 5319e7
+  description: Docker / CI / deployment ile ilgili
+- name: documentation
+  color: 0075ca
+  description: Dokumantasyon guncellemesi
+- name: good-first-issue
+  color: 7057ff
+  description: Yeni katkida bulunanlar icin uygun
