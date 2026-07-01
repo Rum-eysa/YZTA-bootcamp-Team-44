@@ -1,9 +1,8 @@
 ﻿"""User repository"""
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
 from app.models import User
 from app.repositories.base import BaseRepository
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UserRepository(BaseRepository[User]):

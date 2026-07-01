@@ -1,9 +1,6 @@
 """Authentication routes"""
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.config import settings
 from app.database import get_db
 from app.schemas.user import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
@@ -14,6 +11,8 @@ from app.services.auth import (
     verify_password,
 )
 from app.services.user import authenticate_user, create_user, get_user_by_email
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

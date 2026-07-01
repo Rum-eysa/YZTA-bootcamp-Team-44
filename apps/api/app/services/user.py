@@ -1,12 +1,11 @@
 ﻿"""User service"""
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models import User
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
 from app.services.auth import get_password_hash, verify_password
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UserService:

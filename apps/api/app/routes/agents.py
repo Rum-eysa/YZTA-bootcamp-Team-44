@@ -1,8 +1,7 @@
 """Agent system routes for future AI agent integration"""
-from fastapi import APIRouter, HTTPException, status
-
 from app.schemas.base import SuccessResponse
 from app.services.agent import agent_service
+from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 

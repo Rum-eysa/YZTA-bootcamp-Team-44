@@ -4,18 +4,17 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Callable
 
+from app.config import settings
+from app.exceptions import APIException
+from app.logging_config import setup_logging
+from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.routes import agents, applications, auth, health, users
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-
-from app.config import settings
-from app.exceptions import APIException
-from app.logging_config import setup_logging
-from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, health, users
 
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 

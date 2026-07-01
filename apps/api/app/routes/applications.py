@@ -1,9 +1,6 @@
 """Application/Staj başvuru routes"""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database import get_db
 from app.schemas.application import (
     AIAnalysisRequest,
@@ -21,6 +18,8 @@ from app.services.application import (
     get_applications_by_user,
     update_application,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
 

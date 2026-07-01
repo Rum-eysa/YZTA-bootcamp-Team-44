@@ -3,10 +3,9 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
+from app.models import Base
 from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-from app.models import Base
 
 
 class AgentTaskStatus(str, Enum):

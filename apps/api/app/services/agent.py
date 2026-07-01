@@ -1,11 +1,11 @@
 ﻿"""Agent service for future AI agent integration"""
-from typing import Any, Dict, Optional
 import json
-import redis.asyncio as redis
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Any, Dict, Optional
 
+import redis.asyncio as redis
 from app.config import settings
 from app.models.agent import AgentTask, AgentTaskStatus, AgentWorkflow
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AgentService:

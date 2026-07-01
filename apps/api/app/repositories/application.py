@@ -1,9 +1,8 @@
 ﻿"""Application repository"""
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
 from app.models import Application
 from app.repositories.base import BaseRepository
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ApplicationRepository(BaseRepository[Application]):

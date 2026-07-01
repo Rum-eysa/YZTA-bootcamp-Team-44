@@ -2,13 +2,12 @@
 import uuid
 from typing import Optional
 
-from google import generativeai as genai
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.config import settings
 from app.models import Application
 from app.repositories.application import ApplicationRepository
 from app.schemas.application import ApplicationCreate, ApplicationUpdate
+from google import generativeai as genai
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ApplicationService:
