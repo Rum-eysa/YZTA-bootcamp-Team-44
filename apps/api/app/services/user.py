@@ -11,19 +11,19 @@ from app.services.auth import get_password_hash, verify_password
 
 class UserService:
     """Service for user business logic"""
-    
+
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repository = UserRepository(session)
-    
+
     async def get_by_email(self, email: str) -> Optional[User]:
         """Get user by email"""
         return await self.repository.get_by_email(email)
-    
+
     async def get_by_id(self, user_id: str) -> Optional[User]:
         """Get user by ID"""
         return await self.repository.get(user_id)
-    
+
     async def create(self, user_data: UserCreate) -> User:
         """Create a new user"""
         hashed_password = get_password_hash(user_data.password)
@@ -33,19 +33,19 @@ class UserService:
             hashed_password=hashed_password,
         )
         return await self.repository.create(db_user)
-    
+
     async def update(self, user_id: str, user_data: UserUpdate) -> Optional[User]:
         """Update user information"""
         db_user = await self.get_by_id(user_id)
         if not db_user:
             return None
-        
+
         update_data = user_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_user, field, value)
-        
+
         return await self.repository.update(user_id, db_user)
-    
+
     async def authenticate(self, email: str, password: str) -> Optional[User]:
         """Authenticate user with email and password"""
         user = await self.get_by_email(email)

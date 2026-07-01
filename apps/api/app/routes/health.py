@@ -11,7 +11,7 @@ router = APIRouter(tags=["Health"], prefix="/health")
 async def health_check() -> dict[str, Any]:
     """
     Application health check endpoint.
-    
+
     Returns:
         dict: Service health status information
     """
@@ -26,7 +26,7 @@ async def health_check() -> dict[str, Any]:
 async def readiness_probe() -> dict[str, str]:
     """
     Readiness probe for Kubernetes / orchestration systems.
-    
+
     Returns:
         dict: Readiness status
     """

@@ -15,7 +15,11 @@ class HealthResponse(BaseModel):
     service: str = Field(..., description="Service name")
     version: str = Field(..., description="Service version")
 
-    model_config = ConfigDict(json_schema_extra={"example": {"status": "healthy", "service": "YZTA API", "version": "1.0.0"}})
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"status": "healthy", "service": "YZTA API", "version": "1.0.0"}
+        }
+    )
 
 
 class ErrorResponse(BaseModel):
@@ -26,7 +30,11 @@ class ErrorResponse(BaseModel):
     request_id: Optional[str] = Field(None, description="Request ID for tracking")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
 
-    model_config = ConfigDict(json_schema_extra={"example": {"detail": "Not found", "error_code": "NOT_FOUND", "request_id": "uuid"}})
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"detail": "Not found", "error_code": "NOT_FOUND", "request_id": "uuid"}
+        }
+    )
 
 
 class PaginatedResponse(BaseModel, Generic[T]):

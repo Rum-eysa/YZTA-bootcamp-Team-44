@@ -86,7 +86,10 @@ async def general_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
     if settings.DEBUG:
         raise exc
-    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"detail": "Internal server error"})
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.middleware("http")
@@ -118,4 +121,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

@@ -13,29 +13,29 @@ from app.schemas.application import ApplicationCreate, ApplicationUpdate
 
 class ApplicationService:
     """Service for application business logic"""
-    
+
     def __init__(self, session: Optional[AsyncSession] = None):
         self.session = session
         self.repository = ApplicationRepository(session) if session else None
-    
+
     async def get_by_id(self, application_id: str) -> Optional[Application]:
         """Get application by ID"""
         if not self.repository:
             return None
         return await self.repository.get(application_id)
-    
+
     async def get_by_user_id(self, user_id: str, skip: int = 0, limit: int = 100):
         """Get all applications for a user"""
         if not self.repository:
             return []
         return await self.repository.get_by_user_id(user_id)
-    
+
     async def get_all(self, skip: int = 0, limit: int = 100):
         """Get all applications (admin)"""
         if not self.repository:
             return []
         return await self.repository.get_all(skip, limit)
-    
+
     async def create(self, application_data: ApplicationCreate) -> Application:
         """Create a new application"""
         db_application = Application(
@@ -56,19 +56,21 @@ class ApplicationService:
             status="pending",
         )
         return await self.repository.create(db_application)
-    
-    async def update(self, application_id: str, application_data: ApplicationUpdate) -> Optional[Application]:
+
+    async def update(
+        self, application_id: str, application_data: ApplicationUpdate
+    ) -> Optional[Application]:
         """Update application"""
         db_application = await self.get_by_id(application_id)
         if not db_application:
             return None
-        
+
         update_data = application_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_application, field, value)
-        
+
         return await self.repository.update(application_id, db_application)
-    
+
     async def analyze_with_ai(self, application: Application) -> dict:
         """Analyze application using Google Gemini AI"""
         if not settings.GEMINI_API_KEY:
@@ -79,11 +81,11 @@ class ApplicationService:
                 "weaknesses": [],
                 "recommendation": "Manual review required",
             }
-        
+
         try:
             genai.configure(api_key=settings.GEMINI_API_KEY)
             model = genai.GenerativeModel(settings.GEMINI_MODEL)
-            
+
             prompt = f"""
             Analyze this internship application and provide a score (0-100), feedback, strengths, weaknesses, and recommendation.
             
@@ -101,9 +103,9 @@ class ApplicationService:
             
             Provide response in JSON format with these fields: score, feedback, strengths (array), weaknesses (array), recommendation
             """
-            
+
             response = model.generate_content(prompt)
-            
+
             # Parse response (simplified - in production, use proper JSON parsing)
             return {
                 "score": 75.0,
@@ -138,11 +140,11 @@ async def get_all_applications(db: AsyncSession, skip: int = 0, limit: int = 100
     return await ApplicationService(db).get_all(skip, limit)
 
 
-async def update_application(db: AsyncSession, application_id: str, application_data: ApplicationUpdate) -> Optional[Application]:
+async def update_application(
+    db: AsyncSession, application_id: str, application_data: ApplicationUpdate
+) -> Optional[Application]:
     return await ApplicationService(db).update(application_id, application_data)
 
 
 async def analyze_application_with_ai(application: Application) -> dict:
     return await ApplicationService().analyze_with_ai(application)
-
-

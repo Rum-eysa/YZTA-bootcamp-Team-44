@@ -27,7 +27,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    
+
     user = await create_user(db, user_data)
     return user
 
@@ -42,19 +42,19 @@ async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
-    
+
     access_token = create_access_token(
         data={"sub": user.id, "email": user.email},
         expires_delta=timedelta(minutes=settings.JWT_EXPIRE_MINUTES),
     )
     refresh_token = create_refresh_token(data={"sub": user.id})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -72,23 +72,23 @@ async def refresh_token(token_data: TokenRefresh, db: AsyncSession = Depends(get
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
-    
+
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
-    
+
     # In a real application, you might want to check if the refresh token is still valid
     # and not revoked. For simplicity, we'll just issue a new access token.
-    
+
     access_token = create_access_token(
         data={"sub": user_id},
         expires_delta=timedelta(minutes=settings.JWT_EXPIRE_MINUTES),
     )
     new_refresh_token = create_refresh_token(data={"sub": user_id})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": new_refresh_token,

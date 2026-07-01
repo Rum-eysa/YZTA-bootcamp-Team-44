@@ -34,7 +34,7 @@ async def create_application_endpoint(
     """Create a new internship application"""
     if user_id:
         application_data.user_id = user_id
-    
+
     application = await create_application(db, application_data)
     return application
 
@@ -53,7 +53,7 @@ async def get_applications(
     else:
         applications = await get_all_applications(db, skip, limit)
         total = len(applications)
-    
+
     return PaginatedResponse(
         data=applications,
         total=total,
@@ -100,9 +100,9 @@ async def analyze_application(application_id: str, db: AsyncSession = Depends(ge
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Application not found",
         )
-    
+
     analysis = await analyze_application_with_ai(application)
-    
+
     # Update application with AI analysis
     await update_application(
         db,
@@ -112,5 +112,5 @@ async def analyze_application(application_id: str, db: AsyncSession = Depends(ge
             ai_feedback=analysis["feedback"],
         ),
     )
-    
+
     return AIAnalysisResponse(application_id=application_id, **analysis)

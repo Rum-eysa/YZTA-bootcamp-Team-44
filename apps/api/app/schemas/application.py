@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ApplicationBase(BaseModel):
     """Base application schema"""
-    
+
     full_name: str = Field(..., min_length=2, max_length=255, description="Applicant full name")
     email: str = Field(..., description="Applicant email")
     phone: str = Field(..., description="Applicant phone number")
@@ -24,13 +24,13 @@ class ApplicationBase(BaseModel):
 
 class ApplicationCreate(ApplicationBase):
     """Schema for creating a new application"""
-    
+
     user_id: Optional[str] = Field(None, description="User ID (if authenticated)")
 
 
 class ApplicationUpdate(BaseModel):
     """Schema for updating an application"""
-    
+
     status: Optional[str] = Field(None, description="Application status")
     ai_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="AI analysis score")
     ai_feedback: Optional[str] = Field(None, description="AI analysis feedback")
@@ -39,7 +39,7 @@ class ApplicationUpdate(BaseModel):
 
 class ApplicationInDB(ApplicationBase):
     """Schema for application in database"""
-    
+
     id: str
     user_id: Optional[str]
     status: str
@@ -54,19 +54,19 @@ class ApplicationInDB(ApplicationBase):
 
 class ApplicationResponse(ApplicationInDB):
     """Schema for application response"""
-    
+
     pass
 
 
 class AIAnalysisRequest(BaseModel):
     """Schema for AI analysis request"""
-    
+
     application_id: str = Field(..., description="Application ID to analyze")
 
 
 class AIAnalysisResponse(BaseModel):
     """Schema for AI analysis response"""
-    
+
     application_id: str
     score: float = Field(..., ge=0.0, le=100.0, description="Analysis score (0-100)")
     feedback: str = Field(..., description="Detailed feedback")

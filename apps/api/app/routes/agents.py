@@ -11,7 +11,7 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 async def create_agent_task(task_type: str, payload: dict):
     """
     Create a new agent task (placeholder for future implementation)
-    
+
     This endpoint is prepared for future agent system integration.
     Currently returns a placeholder response.
     """
@@ -19,10 +19,10 @@ async def create_agent_task(task_type: str, payload: dict):
         task_type=task_type,
         payload=payload,
     )
-    
+
     return SuccessResponse(
         data={"task_id": result.id, "status": "pending"},
-        message="Agent system not yet integrated - task created but not processed"
+        message="Agent system not yet integrated - task created but not processed",
     )
 
 
@@ -30,17 +30,14 @@ async def create_agent_task(task_type: str, payload: dict):
 async def get_agent_task_status(task_id: str):
     """
     Get agent task status (placeholder for future implementation)
-    
+
     This endpoint is prepared for future agent system integration.
     """
     status_info = await agent_service.get_task_status(task_id)
-    
+
     if not status_info:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
     return status_info
 
 
@@ -48,7 +45,7 @@ async def get_agent_task_status(task_id: str):
 async def get_agent_system_status():
     """
     Get agent system status (placeholder for future implementation)
-    
+
     This endpoint is prepared for future agent system integration.
     """
     return {
@@ -59,6 +56,6 @@ async def get_agent_system_status():
             "Multi-agent workflows",
             "Automated application processing",
             "Smart notifications",
-            "Decision support system"
-        ]
+            "Decision support system",
+        ],
     }
