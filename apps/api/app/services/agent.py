@@ -1,11 +1,98 @@
 ﻿"""Agent service for future AI agent integration"""
 import json
-from typing import Any, Dict, Optional
+import logging
+import time
+import traceback
+from contextlib import AbstractContextManager
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional, TypeVar, Generic
 
 import redis.asyncio as redis
 from app.config import settings
-from app.models.agent import AgentTask, AgentTaskStatus, AgentWorkflow
-from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.agent import AgentTask, AgentWorkflow
+from app.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+T = TypeVar("T")
+
+
+@dataclass
+class AgentTelemetry:
+    """Stores lightweight runtime telemetry for agent executions."""
+
+    runtime_ms: float = 0.0
+    token_count: int = 0
+    last_error: Optional[str] = None
+
+
+class AgentContextManager(AbstractContextManager):
+    """Simple in-memory context store for agent execution state."""
+
+    def __init__(self):
+        self._store: Dict[str, Any] = {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.clear()
+        return False
+
+    def set(self, key: str, value: Any) -> None:
+        self._store[key] = value
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._store.get(key, default)
+
+    def clear(self) -> None:
+        self._store.clear()
+
+
+class BaseAgent(Generic[T]):
+    """Abstract base class for AI agents with lifecycle hooks, logging, telemetry, and retries."""
+
+    def __init__(self, name: str, max_retries: int = 3):
+        self.name = name
+        self.max_retries = max_retries
+        self.retry_count = 0
+        self.context_manager = AgentContextManager()
+        self.telemetry = AgentTelemetry()
+        self.lifecycle_events: Dict[str, int] = {
+            "before_execute": 0,
+            "after_execute": 0,
+            "on_error": 0,
+            "on_retry": 0,
+        }
+        self.logger = logger.bind(agent=self.name)
+
+    async def execute(self, payload: Any) -> T:
+        self.lifecycle_events["before_execute"] += 1
+        self.logger.info("starting_agent_execution", payload_type=type(payload).__name__)
+
+        started_at = time.perf_counter()
+        try:
+            result = await self._run(payload)
+            self.lifecycle_events["after_execute"] += 1
+            self.logger.info("agent_execution_completed", agent=self.name)
+            self.telemetry.runtime_ms = round((time.perf_counter() - started_at) * 1000, 2)
+            self.telemetry.token_count = max(self.telemetry.token_count, 0)
+            return result
+        except Exception as exc:  # pragma: no cover - exercised via tests
+            self.lifecycle_events["on_error"] += 1
+            self.telemetry.last_error = str(exc)
+            self.logger.exception("agent_execution_failed", error=str(exc))
+
+            if self.retry_count < self.max_retries:
+                self.retry_count += 1
+                self.lifecycle_events["on_retry"] += 1
+                self.logger.warning("agent_retry_scheduled", attempt=self.retry_count, max_retries=self.max_retries)
+                return await self.execute(payload)
+
+            raise
+
+    async def _run(self, payload: Any) -> T:
+        raise NotImplementedError
 
 
 class AgentService:
