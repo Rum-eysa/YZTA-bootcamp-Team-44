@@ -8,7 +8,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**Enterprise seviyesinde AI destekli staj başvuru yönetim platformu**
+**Kurumsal AI destekli staj başvuru yönetim platformu**
 
 [Özellikler](#-özellikler) • [Hızlı Başlangıç](#-hızlı-başlangıç) • [Mimari](#-mimari) • [API Dokümantasyonu](#-api-dokümantasyonu) • [Katkıda Bulunma](#-katkıda-bulunma)
 
@@ -16,13 +16,13 @@
 
 ---
 
-YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-ready bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş ve ölçeklenebilirlik, güvenlik ve bakım için sektör en iyi uygulamalarını takip eder.
+YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için üretime hazır bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş; ölçeklenebilirlik, güvenlik ve bakım için sektörün en iyi uygulamalarını takip eder.
 
 ## 👥 Takım İsmi
 
 YZTA Bootcamp Team 44
 
-## 🧑‍🤝‍🧑 Takım Elemanları
+## 🧑‍🤝‍🧑 Takım Rolleri
 
 | Rol | Kişi | GitHub |
 |-----|------|--------|
@@ -39,29 +39,29 @@ YZTA Bootcamp - AI Destekli Staj Başvuru Platformu
 
 Bu proje, staj başvurularının daha hızlı, daha adil ve daha verimli bir şekilde değerlendirilmesini sağlamak amacıyla yapay zeka destekli bir çözüm sunar. Adayların başvuru metinlerini analiz ederek, kurumların değerlendirme sürecini kolaylaştırmayı ve insan kaynak süreçlerini desteklemeyi hedefler.
 
-## 💡 Problem Statement
+## 💡 Problem Tanımı
 
-Staj başvuruları genellikle yüksek sayıda başvuru, manuel değerlendirme ve zaman kısıtları nedeniyle verimsiz bir sürece dönüşebilir. Bu proje ile başvuruların içerik analizi yapılarak ön değerlendirme süreci hızlandırılır, adayların uygunluğu daha net şekilde karşılaştırılabilir ve karar alma süreci desteklenir.
+Staj başvuruları genellikle yüksek başvuru sayısı, manuel değerlendirme ve zaman kısıtları nedeniyle verimsiz bir sürece dönüşebilir. Bu proje ile başvuruların içerik analizi yapılarak ön değerlendirme süreci hızlandırılır, adayların uygunluğu daha net şekilde karşılaştırılabilir ve karar alma süreci desteklenir.
 
-## 📈 Business Value
+## 📈 İş Değeri
 
-- Başvuru değerlendirme süresini azaltır
-- Değerlendiricilere daha tutarlı bir ön analiz sunar
-- İnsan kaynak süreçlerini daha verimli hale getirir
-- Aday deneyimini daha şeffaf ve anlaşılır kılar
+- Başvuru değerlendirme süresini azaltır.
+- Değerlendiricilere daha tutarlı bir ön analiz sunar.
+- İnsan kaynak süreçlerini daha verimli hale getirir.
+- Aday deneyimini daha şeffaf ve anlaşılır kılar.
 
 ## ✨ Ürün Özellikleri
 
-- **🤖 AI Destekli Analiz** - Google Gemini AI ile akıllı başvuru değerlendirmesi
-- **🔐 Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme
-- **📝 Başvuru Yönetimi** - Tam staj başvuru yaşam döngüsü yönetimi
-- **⚡ Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme
-- **📊 Gözlemlenebilirlik** - Yapılandırılmış logging ve request tracing
-- **🛡️ Enterprise Güvenlik** - CORS, rate limiting, güvenlik başlıkları ve input validation
-- **🧪 Kapsamlı Testler** - Yüksek coverage ile unit ve integration testleri
-- **🚀 CI/CD Pipeline** - GitHub Actions ile otomatik test ve deployment
-- **🔄 Database Migrations** - Alembic ile versiyon kontrollü şema değişiklikleri
-- **🎨 Modern UI** - TailwindCSS ve Next.js 14 ile responsive arayüz
+- **🤖 AI Destekli Analiz** - Google Gemini ile akıllı başvuru değerlendirmesi.
+- **🔐 Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme.
+- **📝 Başvuru Yönetimi** - Tam staj başvuru yaşam döngüsü yönetimi.
+- **⚡ Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme.
+- **📊 İzlenebilirlik** - Yapılandırılmış loglama ve istek takibi.
+- **🛡️ Kurumsal Güvenlik** - CORS, hız sınırlama, güvenlik başlıkları ve giriş doğrulama.
+- **🧪 Kapsamlı Testler** - Yüksek kapsamlı birim ve entegrasyon testleri.
+- **🚀 Sürekli Entegrasyon / Dağıtım** - GitHub Actions ile otomatik test ve dağıtım.
+- **🔄 Veritabanı Göçleri** - Alembic ile versiyon kontrollü şema değişiklikleri.
+- **🎨 Modern Arayüz** - TailwindCSS ve Next.js 14 ile duyarlı kullanıcı arayüzü.
 
 ## 🎯 Hedef Kitle
 
@@ -70,7 +70,7 @@ Staj başvuruları genellikle yüksek sayıda başvuru, manuel değerlendirme ve
 - Bootcamp ve kariyer geliştirme programları
 - İnsan kaynak ve işe alım ekipleri
 
-## 📋 Product Backlog
+## 📋 Ürün Backlog'u
 
 Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
@@ -91,7 +91,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 ### Sprint 3
 - Performans iyileştirmeleri ve hata düzeltmeleri
-- Kullanıcı geri bildirimlerine göre refinements
+- Kullanıcı geri bildirimlerine göre iyileştirmeler
 - Son kullanıcıya hazır hale getirme çalışmaları
 
 ## 🏗️ Mimari
@@ -99,7 +99,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 ```
 .
 ├── apps/
-│   ├── api/                          # FastAPI Backend Service
+│   ├── api/                         # FastAPI Backend Service
 │   │   ├── app/
 │   │   │   ├── main.py              # Application entry point
 │   │   │   ├── config.py            # Configuration management
@@ -127,7 +127,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │   ├── Dockerfile               # Production image
 │   │   └── alembic.ini              # Alembic config
 │   │
-│   └── web/                          # Next.js Frontend Service
+│   └── web/                         # Next.js Frontend Service
 │       ├── app/                     # App Router
 │       │   ├── page.tsx             # Landing page
 │       │   ├── layout.tsx           # Root layout
@@ -148,9 +148,9 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 ├── docker-compose.yml               # Development environment
 ├── docker-compose.prod.yml          # Production environment
 ├── Makefile                         # Command shortcuts
-├── pyproject.toml                  # Python project config
+├── pyproject.toml                   # Python project config
 ├── .pre-commit-config.yaml          # Pre-commit hooks
-├── .editorconfig                   # Editor settings
+├── .editorconfig                    # Editor settings
 ├── .dockerignore                    # Docker ignore files
 ├── .gitignore                       # Git ignore rules
 ├── LICENSE                          # MIT License
@@ -162,17 +162,17 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 ### Teknoloji Stack
 
 | Katman | Teknoloji | Amaç |
-|-------|-----------|------|
+| --- | --- | --- |
 | **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS | Modern, SEO dostu arayüz |
 | **Backend** | FastAPI, SQLAlchemy 2.0, Pydantic V2 | Yüksek performanslı async API |
-| **Database** | PostgreSQL 15 | Ana veri depolama |
-| **Cache** | Redis 7 | Önbellekleme ve session yönetimi |
-| **AI/ML** | Google Generative AI (Gemini) | Başvuru analizi |
-| **Infrastructure** | Docker, Docker Compose | Container orkestrasyonu |
-| **Testing** | Pytest, pytest-asyncio, Coverage | Kapsamlı testler |
-| **CI/CD** | GitHub Actions | Otomatik workflow'lar |
-| **Code Quality** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
-| **Gelecek** | Agent Sistemi (LangChain/CrewAI) | Otomatik workflow yönetimi |
+| **Veritabanı** | PostgreSQL 15 | Ana veri depolama |
+| **Önbellek** | Redis 7 | Önbellekleme ve oturum yönetimi |
+| **AI/ML** | Google Gemini | Başvuru analizi |
+| **Altyapı** | Docker, Docker Compose | Konteyner orkestrasyonu |
+| **Test** | Pytest, pytest-asyncio, Coverage | Kapsamlı testler |
+| **CI/CD** | GitHub Actions | Otomatik iş akışları |
+| **Kod Kalitesi** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
+| **Gelecek** | Agent Sistemi (LangChain/CrewAI) | Otomatik iş akışı yönetimi |
 
 ## 🚀 Hızlı Başlangıç
 
@@ -244,9 +244,9 @@ cp .env.example .env.local
 - `ENVIRONMENT`: `production` olarak ayarlayın
 - `GEMINI_API_KEY`: Geçerli bir Google Gemini API anahtarı
 
-## 🗄️ Database Yönetimi
+## 🗄️ Veritabanı Yönetimi
 
-Database migration'ları Alembic ile yönetilir:
+Veritabanı göçleri Alembic ile yönetilir:
 
 ```bash
 # Yeni migration oluştur
@@ -274,9 +274,9 @@ docker-compose exec api pytest tests/ --cov=app --cov-report=html
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🔧 Code Quality
+## 🔧 Kod Kalitesi
 
-### Pre-commit Hooks
+### Pre-commit Hookları
 
 ```bash
 pip install pre-commit
@@ -297,66 +297,66 @@ cd apps/web
 npm run lint
 ```
 
-## 🐳 Production Deployment
+## 🐳 Üretim Dağıtımı
 
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Production Kontrol Listesi
+### Üretim Kontrol Listesi
 
-- [ ] Environment değişkenleri yapılandırıldı
-- [ ] `JWT_SECRET` güçlü değerle değiştirildi
+- [ ] Ortam değişkenleri yapılandırıldı
+- [ ] `JWT_SECRET` güçlü bir değerle değiştirildi
 - [ ] `DEBUG` `false` olarak ayarlandı
-- [ ] Database yedeği alındı
-- [ ] Migration'lar uygulandı
+- [ ] Veritabanı yedeği alındı
+- [ ] Göçler uygulandı
 - [ ] Tüm testler geçti
-- [ ] Health check endpoint çalışıyor
+- [ ] Sağlık kontrol endpoint'i çalışıyor
 
 ## 📚 API Endpoint'leri
 
-### Authentication
+### Kimlik Doğrulama
 - `POST /auth/register` - Kullanıcı kaydı
 - `POST /auth/login` - Kullanıcı girişi
 - `POST /auth/refresh` - Token yenileme
 
-### Users
+### Kullanıcılar
 - `GET /users/me` - Mevcut kullanıcı profili
 - `PUT /users/me` - Kullanıcı profili güncelleme
 - `GET /users/{user_id}` - Kullanıcı bilgisi
 
-### Applications
+### Başvurular
 - `POST /applications` - Başvuru oluşturma
 - `GET /applications` - Başvuru listesi
 - `GET /applications/{id}` - Başvuru detayları
 - `PUT /applications/{id}` - Başvuru güncelleme
 - `POST /applications/{id}/analyze` - AI analizi
 
-### Health
+### Sağlık
 - `GET /health` - Health check
 - `GET /health/ready` - Readiness probe
 
-### Agents (Gelecek Entegrasyon)
+### Ajanlar (Gelecek Entegrasyon)
 - `POST /agents/tasks` - Agent görevi oluşturma
 - `GET /agents/tasks/{task_id}` - Görev durumu
 - `GET /agents/status` - Agent sistemi durumu
 
-## � Future: Agent System Integration
+## 🤖 Gelecek: Ajan Sistemi Entegrasyonu
 
-The architecture is designed to support future integration of AI agent systems for automated workflow management:
+Mimari, AI ajan sistemlerinin gelecekte otomatik iş akışı yönetimi için entegre edilmesine uygun şekilde tasarlanmıştır:
 
-**Planned Features:**
-- **LangChain/CrewAI Integration** - Multi-agent workflows
-- **Automated Application Processing** - Intelligent routing and classification
-- **Smart Notifications** - Context-aware alerts
-- **Decision Support** - AI-powered recommendations
-- **Task Automation** - Automated follow-ups and scheduling
+**Planlanan Özellikler:**
+- **LangChain/CrewAI Entegrasyonu** - Çok ajanlı iş akışları
+- **Otomatik Başvuru İşleme** - Akıllı yönlendirme ve sınıflandırma
+- **Akıllı Bildirimler** - Bağlam bilincine sahip uyarılar
+- **Karar Desteği** - AI destekli öneriler
+- **Görev Otomasyonu** - Otomatik takip ve planlama
 
-**Architecture Prepared:**
-- Service layer abstraction for agent integration
-- Event-driven architecture support
-- Async processing capabilities with Redis
-- Modular design for easy agent addition
+**Hazır Mimari Yapı:**
+- Ajan entegrasyonu için servis katmanı soyutlaması
+- Olay tabanlı mimari desteği
+- Redis ile asenkron işleme kapasitesi
+- Ajan eklemeyi kolaylaştıran modüler yapı
 
 ## 🤝 Katkıda Bulunma
 
