@@ -18,7 +18,39 @@
 
 YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-ready bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş ve ölçeklenebilirlik, güvenlik ve bakım için sektör en iyi uygulamalarını takip eder.
 
-## ✨ Özellikler
+## 👥 Takım İsmi
+
+YZTA Bootcamp Team 44
+
+## 🧑‍🤝‍🧑 Takım Elemanları
+
+| Rol | Kişi | GitHub |
+|-----|------|--------|
+| Product Owner | Rum-eysa | [@Rum-eysa](https://github.com/Rum-eysa) |
+| Scrum Master | Serkan0YLDZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+| Developer | zeynepmaidedemir | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+| Developer | lizlavigne | [@lizlavigne](https://github.com/lizlavigne) |
+
+## 📌 Ürün İsmi
+
+YZTA Bootcamp - AI Destekli Staj Başvuru Platformu
+
+## 📝 Ürün Açıklaması
+
+Bu proje, staj başvurularının daha hızlı, daha adil ve daha verimli bir şekilde değerlendirilmesini sağlamak amacıyla yapay zeka destekli bir çözüm sunar. Adayların başvuru metinlerini analiz ederek, kurumların değerlendirme sürecini kolaylaştırmayı ve insan kaynak süreçlerini desteklemeyi hedefler.
+
+## 💡 Problem Statement
+
+Staj başvuruları genellikle yüksek sayıda başvuru, manuel değerlendirme ve zaman kısıtları nedeniyle verimsiz bir sürece dönüşebilir. Bu proje ile başvuruların içerik analizi yapılarak ön değerlendirme süreci hızlandırılır, adayların uygunluğu daha net şekilde karşılaştırılabilir ve karar alma süreci desteklenir.
+
+## 📈 Business Value
+
+- Başvuru değerlendirme süresini azaltır
+- Değerlendiricilere daha tutarlı bir ön analiz sunar
+- İnsan kaynak süreçlerini daha verimli hale getirir
+- Aday deneyimini daha şeffaf ve anlaşılır kılar
+
+## ✨ Ürün Özellikleri
 
 - **🤖 AI Destekli Analiz** - Google Gemini AI ile akıllı başvuru değerlendirmesi
 - **🔐 Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme
@@ -30,6 +62,37 @@ YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-re
 - **🚀 CI/CD Pipeline** - GitHub Actions ile otomatik test ve deployment
 - **🔄 Database Migrations** - Alembic ile versiyon kontrollü şema değişiklikleri
 - **🎨 Modern UI** - TailwindCSS ve Next.js 14 ile responsive arayüz
+
+## 🎯 Hedef Kitle
+
+- Öğrenciler
+- Staj veren şirketler
+- Bootcamp ve kariyer geliştirme programları
+- İnsan kaynak ve işe alım ekipleri
+
+## 📋 Product Backlog
+
+Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
+
+- [GitHub Projects Backlog](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553)
+- Sprint planları ve görev takibi burada güncellenmektedir.
+
+## 🔁 Sprint Planı
+
+### Sprint 1
+- Temel kullanıcı akışları ve sistem mimarisinin kurulması
+- Başvuru oluşturma ve görüntüleme işlevlerinin geliştirilmesi
+- İlk test senaryolarının hazırlanması
+
+### Sprint 2
+- AI destekli analiz akışının entegrasyonu
+- Kullanıcı deneyimini iyileştiren temel arayüz güncellemeleri
+- Geliştirme ve test süreçlerinin güçlendirilmesi
+
+### Sprint 3
+- Performans iyileştirmeleri ve hata düzeltmeleri
+- Kullanıcı geri bildirimlerine göre refinements
+- Son kullanıcıya hazır hale getirme çalışmaları
 
 ## 🏗️ Mimari
 
@@ -140,46 +203,46 @@ make build && make up
 - **API Dokümantasyonu**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## �️ Development
+## 🛠️ Geliştirme
 
-### Available Commands
+### Kullanılabilir Komutlar
 
 ```bash
-# Start services
+# Servisleri başlat
 make up
 
-# View logs
+# Logları görüntüle
 make logs
 
-# Run tests
+# Testleri çalıştır
 make test
 
-# Stop services
+# Servisleri durdur
 make down
 
-# Clean everything
+# Tüm ortamı temizle
 make clean
 
 # Production deployment
 make prod-up
 ```
 
-For more commands, run `make help` or check the [Makefile](./Makefile).
+Daha fazla komut için [Makefile](./Makefile) dosyasını inceleyebilirsiniz.
 
-### Environment Configuration
+### Ortam Yapılandırması
 
-Copy the example environment file:
+Örnek ortam dosyasını kopyalayın:
 
 ```bash
 cp .env.example .env.local
 ```
 
-**Critical Production Settings:**
-- `JWT_SECRET`: Strong secret key (32+ characters)
-- `DB_PASSWORD`: Secure database password
-- `DEBUG`: Set to `false`
-- `ENVIRONMENT`: Set to `production`
-- `GEMINI_API_KEY`: Valid Google Gemini API key
+**Önemli üretim ayarları:**
+- `JWT_SECRET`: Güçlü bir gizli anahtar (32+ karakter)
+- `DB_PASSWORD`: Güvenli veritabanı parolası
+- `DEBUG`: `false` olarak ayarlayın
+- `ENVIRONMENT`: `production` olarak ayarlayın
+- `GEMINI_API_KEY`: Geçerli bir Google Gemini API anahtarı
 
 ## 🗄️ Database Yönetimi
 
