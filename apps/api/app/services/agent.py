@@ -1,11 +1,11 @@
-"""Agent service for future AI agent integration"""
+﻿"""Agent service for future AI agent integration"""
 from typing import Any, Dict, Optional
 import json
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.models.agent import AgentTask, AgentTaskStatus
+from app.models.agent import AgentTask, AgentTaskStatus, AgentWorkflow
 
 
 class AgentService:
@@ -53,7 +53,7 @@ class AgentService:
         if not self.redis_client:
             await self.initialize_redis()
         
-        # Placeholder for Redis queue操作
+        # Placeholder for Redis queueæ“ä½œ
         # await self.redis_client.lpush(f"agent_queue:{task.task_type}", task.id)
         return True
     
@@ -94,3 +94,4 @@ class AgentService:
 
 # Global agent service instance
 agent_service = AgentService()
+
