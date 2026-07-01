@@ -83,7 +83,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-semibold mb-2">Hızlı İşlem</h3>
             <p className="text-gray-600">
-              Modern teknoloji stack'i ile hızlı ve sorunsuz bir kullanıcı deneyimi sunulur.
+              Modern teknoloji stack&apos;i ile hızlı ve sorunsuz bir kullanıcı deneyimi sunulur.
             </p>
           </div>
         </div>
