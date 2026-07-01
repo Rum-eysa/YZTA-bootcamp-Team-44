@@ -8,7 +8,6 @@ from app.services.auth import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    verify_password,
 )
 from app.services.user import authenticate_user, create_user, get_user_by_email
 from fastapi import APIRouter, Depends, HTTPException, status

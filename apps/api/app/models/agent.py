@@ -4,8 +4,8 @@ from datetime import datetime
 from enum import Enum
 
 from app.models import Base
-from sqlalchemy import DateTime, String, Text, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import DateTime, Integer, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class AgentTaskStatus(str, Enum):
@@ -34,9 +34,11 @@ class AgentTask(Base):
 
     # Metadata
     agent_id: Mapped[str] = mapped_column(String(50), nullable=True)
-    priority: Mapped[int] = mapped_column(default=5)  # 1-10, higher is more important
-    retry_count: Mapped[int] = mapped_column(default=0)
-    max_retries: Mapped[int] = mapped_column(default=3)
+    priority: Mapped[int] = mapped_column(Integer, default=5)  # 1-10, higher is more important
+    retry_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_retries: Mapped[int] = mapped_column(Integer, default=3)
+    runtime_ms: Mapped[float] = mapped_column(Integer, nullable=True)
+    token_count: Mapped[int] = mapped_column(Integer, nullable=True)
 
     # Timestamps
     scheduled_at: Mapped[datetime] = mapped_column(
@@ -48,6 +50,22 @@ class AgentTask(Base):
     # Related entities
     application_id: Mapped[str] = mapped_column(String(36), nullable=True, index=True)
     user_id: Mapped[str] = mapped_column(String(36), nullable=True, index=True)
+
+    def mark_started(self) -> None:
+        self.status = AgentTaskStatus.PROCESSING
+        self.started_at = datetime.utcnow()
+
+    def mark_completed(self, result: str, runtime_ms: float | None = None, token_count: int | None = None) -> None:
+        self.status = AgentTaskStatus.COMPLETED
+        self.result = result
+        self.completed_at = datetime.utcnow()
+        self.runtime_ms = int(runtime_ms) if runtime_ms is not None else None
+        self.token_count = token_count
+
+    def mark_failed(self, error_message: str) -> None:
+        self.status = AgentTaskStatus.FAILED
+        self.error_message = error_message
+        self.completed_at = datetime.utcnow()
 
 
 class AgentWorkflow(Base):
@@ -61,12 +79,12 @@ class AgentWorkflow(Base):
 
     # Workflow configuration
     config: Mapped[str] = mapped_column(Text, nullable=False)  # JSON config
-    current_step: Mapped[int] = mapped_column(default=0)
-    total_steps: Mapped[int] = mapped_column(default=1)
+    current_step: Mapped[int] = mapped_column(Integer, default=0)
 
     # Results
     result: Mapped[str] = mapped_column(Text, nullable=True)
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
+    total_steps: Mapped[int] = mapped_column(Integer, default=1)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -76,3 +94,17 @@ class AgentWorkflow(Base):
     # Related entities
     application_id: Mapped[str] = mapped_column(String(36), nullable=True, index=True)
     triggered_by: Mapped[str] = mapped_column(String(36), nullable=True)  # User ID
+
+    def mark_started(self) -> None:
+        self.status = AgentTaskStatus.PROCESSING
+        self.started_at = datetime.utcnow()
+
+    def mark_completed(self, result: str) -> None:
+        self.status = AgentTaskStatus.COMPLETED
+        self.result = result
+        self.completed_at = datetime.utcnow()
+
+    def mark_failed(self, error_message: str) -> None:
+        self.status = AgentTaskStatus.FAILED
+        self.error_message = error_message
+        self.completed_at = datetime.utcnow()

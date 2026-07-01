@@ -1,4 +1,7 @@
 """Agent system routes for future AI agent integration"""
+import json
+from typing import Any
+
 from app.schemas.base import SuccessResponse
 from app.services.agent import agent_service
 from fastapi import APIRouter, HTTPException, status
@@ -7,21 +10,24 @@ router = APIRouter(prefix="/agents", tags=["Agents"])
 
 
 @router.post("/tasks", status_code=status.HTTP_202_ACCEPTED)
-async def create_agent_task(task_type: str, payload: dict):
-    """
-    Create a new agent task (placeholder for future implementation)
+async def create_agent_task(task_type: str, payload: Any = None):
+    """Create a new agent task with a payload that can be provided as JSON or a simple value."""
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except json.JSONDecodeError:
+            payload = {"value": payload}
+    elif payload is None:
+        payload = {}
 
-    This endpoint is prepared for future agent system integration.
-    Currently returns a placeholder response.
-    """
     result = await agent_service.create_task(
         task_type=task_type,
-        payload=payload,
+        payload=payload if isinstance(payload, dict) else {"value": payload},
     )
 
     return SuccessResponse(
-        data={"task_id": result.id, "status": "pending"},
-        message="Agent system not yet integrated - task created but not processed",
+        data={"task_id": result.id, "status": result.status},
+        message="Agent task created successfully",
     )
 
 
@@ -48,13 +54,13 @@ async def get_agent_system_status():
     This endpoint is prepared for future agent system integration.
     """
     return {
-        "status": "not_implemented",
-        "message": "Agent system integration planned for future release",
-        "planned_features": [
-            "LangChain/CrewAI integration",
-            "Multi-agent workflows",
-            "Automated application processing",
-            "Smart notifications",
-            "Decision support system",
+        "status": "operational",
+        "message": "Agent foundation services are available",
+        "features": [
+            "Base agent execution lifecycle",
+            "Structured logging",
+            "Context manager memory",
+            "Retry scaffolding",
+            "Task tracking",
         ],
     }

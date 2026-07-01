@@ -18,5 +18,5 @@ class UserRepository(BaseRepository[User]):
 
     async def get_active_users(self):
         """Get all active users"""
-        result = await self.session.execute(select(User).where(User.is_active == True))
+        result = await self.session.execute(select(User).where(User.is_active))
         return list(result.scalars().all())

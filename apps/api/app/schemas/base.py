@@ -1,7 +1,7 @@
 """Base schemas for common responses"""
 
 from datetime import datetime
-from typing import Any, Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 

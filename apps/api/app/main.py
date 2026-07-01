@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from urllib.parse import urlparse
 
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 
@@ -35,7 +36,13 @@ app = FastAPI(
 )
 
 if not settings.DEBUG:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.CORS_ORIGINS.split(","))
+    allowed_hosts = [
+        host.strip()
+        for origin in settings.CORS_ORIGINS.split(",")
+        if (host := urlparse(origin).netloc) or origin.strip()
+    ]
+    if allowed_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 

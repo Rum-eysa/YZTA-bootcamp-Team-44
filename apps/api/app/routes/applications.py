@@ -3,13 +3,12 @@ from typing import Optional
 
 from app.database import get_db
 from app.schemas.application import (
-    AIAnalysisRequest,
     AIAnalysisResponse,
     ApplicationCreate,
     ApplicationResponse,
     ApplicationUpdate,
 )
-from app.schemas.base import PaginatedResponse, SuccessResponse
+from app.schemas.base import PaginatedResponse
 from app.services.application import (
     analyze_application_with_ai,
     create_application,

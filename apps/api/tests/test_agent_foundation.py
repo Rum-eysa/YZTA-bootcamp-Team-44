@@ -26,6 +26,21 @@ class FailingAgent(BaseAgent):
         return payload.upper()
 
 
+class HookedAgent(BaseAgent):
+    def __init__(self):
+        super().__init__(name="hooked-agent")
+        self.hook_calls = []
+
+    async def _run(self, payload: str) -> str:
+        return payload.upper()
+
+    async def before_execute(self, payload: str) -> None:
+        self.hook_calls.append(("before_execute", payload))
+
+    async def after_execute(self, payload: str, result: str) -> None:
+        self.hook_calls.append(("after_execute", payload, result))
+
+
 @pytest.mark.asyncio
 async def test_base_agent_executes_lifecycle_and_tracks_context():
     agent = SampleAgent()
@@ -59,3 +74,14 @@ def test_context_manager_works_as_a_simple_memory_store():
         assert context.get("answer") == 42
 
     assert context.get("answer") is None
+
+
+@pytest.mark.asyncio
+async def test_base_agent_invokes_optional_lifecycle_hooks():
+    agent = HookedAgent()
+
+    result = await agent.execute("hook")
+
+    assert result == "HOOK"
+    assert agent.hook_calls[0] == ("before_execute", "hook")
+    assert agent.hook_calls[1][0] == "after_execute"

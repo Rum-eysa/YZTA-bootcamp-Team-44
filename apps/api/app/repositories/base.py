@@ -34,7 +34,7 @@ class BaseRepository(Generic[ModelType]):
 
     async def update(self, id: str, obj: ModelType) -> Optional[ModelType]:
         """Update a record"""
-        result = await self.session.execute(
+        await self.session.execute(
             update(self.model).where(self.model.id == id).values(**obj.__dict__)
         )
         await self.session.commit()
