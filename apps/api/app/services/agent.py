@@ -96,7 +96,7 @@ class AgentContextManager(AbstractContextManager):
 
 
 class RetryStrategy:
-   """Retry strategy configuration with exponential backoff"""
+    """Retry strategy configuration with exponential backoff"""
 
     def __init__(self, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
         self.max_retries = max_retries
