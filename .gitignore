@@ -39,3 +39,7 @@ logs/
 # Database
 *.db
 *.sqlite
+
+# Local environment and artifacts
+.venv_ci/
+coverage.xml
