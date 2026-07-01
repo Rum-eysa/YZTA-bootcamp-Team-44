@@ -1,5 +1,4 @@
 """User management routes"""
-from typing import Optional
 
 from app.database import get_db
 from app.schemas.user import UserResponse, UserUpdate

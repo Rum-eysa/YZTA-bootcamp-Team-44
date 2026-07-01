@@ -86,8 +86,9 @@ class ApplicationService:
             model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
             prompt = f"""
-            Analyze this internship application and provide a score (0-100), feedback, strengths, weaknesses, and recommendation.
-            
+            Analyze this internship application and provide a score (0-100), feedback, strengths,
+            weaknesses, and recommendation.
+
             Application Details:
             - Name: {application.full_name}
             - University: {application.university}
@@ -99,18 +100,23 @@ class ApplicationService:
             - Motivation: {application.motivation}
             - GitHub: {application.github_url or 'Not provided'}
             - LinkedIn: {application.linkedin_url or 'Not provided'}
-            
-            Provide response in JSON format with these fields: score, feedback, strengths (array), weaknesses (array), recommendation
-            """
 
+            Provide response in JSON format with these fields: score, feedback, strengths (array),
+            weaknesses (array), recommendation
+            """
             response = model.generate_content(prompt)
 
             # Parse response (simplified - in production, use proper JSON parsing)
             return {
                 "score": 75.0,
                 "feedback": response.text[:500],
-                "strengths": ["Technical skills", "Academic background"],
-                "weaknesses": ["Limited experience"],
+                "strengths": [
+                    "Technical skills",
+                    "Academic background",
+                ],
+                "weaknesses": [
+                    "Limited experience",
+                ],
                 "recommendation": "Consider for interview",
             }
         except Exception as e:
