@@ -1,10 +1,9 @@
-"""FastAPI Application - Production Ready"""
+﻿"""FastAPI Application - Production Ready"""
 
 import logging
 from contextlib import asynccontextmanager
 from typing import Callable
 
-import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +29,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="YZTA Bootcamp API",
-    description="Yapay zeka destekli staj basvuru platformu",
+    description="Yapay zeka destekli staj baÅŸvuru platformu",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.DEBUG else None,
@@ -100,17 +99,12 @@ async def add_security_headers(request: Request, call_next: Callable):
     return response
 
 
-@app.get("/health", tags=["Health"])
-async def health_check():
-    return {"status": "healthy", "service": "YZTA Bootcamp API", "version": "1.0.0"}
-
-
 @app.get("/", tags=["Info"])
 async def root():
     return {
         "name": "YZTA Bootcamp API",
         "version": "1.0.0",
-        "description": "Yapay zeka destekli staj basvuru platformu",
+        "description": "Yapay zeka destekli staj baÅŸvuru platformu",
         "docs": "/docs" if settings.DEBUG else None,
     }
 
@@ -121,4 +115,7 @@ async def status_check():
 
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
