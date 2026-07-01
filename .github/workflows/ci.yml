@@ -49,11 +49,12 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: ./apps/web/package-lock.json
+          # package-lock.json is not committed, so use npm install instead of npm ci
+          cache-dependency-path: ./apps/web/package.json
           
       - name: Install dependencies
         working-directory: ./apps/web
-        run: npm ci
+        run: npm install
         
       - name: Run ESLint
         working-directory: ./apps/web
