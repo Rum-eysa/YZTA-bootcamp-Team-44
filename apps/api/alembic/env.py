@@ -16,8 +16,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the database URL from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"))
+# Migrations senkron sürücüyle çalışır (psycopg2); uygulama runtime'da asyncpg kullanır
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Add your model's MetaData object here
 target_metadata = Base.metadata

@@ -1,8 +1,8 @@
 """Initial migration
 
 Revision ID: 001
-Revises: 
-Create Date: 2024-06-30
+Revises:
+Create Date: 2026-07-01
 
 """
 from alembic import op
@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Create users table
+    # Create users table (profil alanları dahil - ajanların hafıza katmanı için)
     op.create_table(
         'users',
         sa.Column('id', sa.String(36), primary_key=True),
@@ -25,38 +25,64 @@ def upgrade() -> None:
         sa.Column('full_name', sa.String(255), nullable=True),
         sa.Column('hashed_password', sa.String(255), nullable=False),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
+        sa.Column('target_position', sa.String(255), nullable=True),
+        sa.Column('seniority', sa.String(50), nullable=True),
+        sa.Column('experience_years', sa.Float(), nullable=True),
+        sa.Column('skills', sa.Text(), nullable=True),
+        sa.Column('experience_summary', sa.Text(), nullable=True),
+        sa.Column('tone_preference', sa.String(50), nullable=True, server_default='professional'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     )
     op.create_index('ix_users_email', 'users', ['email'])
-    
-    # Create applications table
+
+    # Create job_listings table (Analiz Ajanı çıktısı)
     op.create_table(
-        'applications',
+        'job_listings',
         sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('user_id', sa.String(36), nullable=True),
-        sa.Column('full_name', sa.String(255), nullable=False),
-        sa.Column('email', sa.String(255), nullable=False),
-        sa.Column('phone', sa.String(50), nullable=False),
-        sa.Column('university', sa.String(255), nullable=False),
-        sa.Column('department', sa.String(255), nullable=False),
-        sa.Column('grade', sa.String(10), nullable=False),
-        sa.Column('gpa', sa.Float(), nullable=False),
-        sa.Column('skills', sa.Text(), nullable=False),
-        sa.Column('experience', sa.Text(), nullable=False),
-        sa.Column('motivation', sa.Text(), nullable=False),
-        sa.Column('github_url', sa.String(500), nullable=True),
-        sa.Column('linkedin_url', sa.String(500), nullable=True),
-        sa.Column('status', sa.String(50), nullable=False, server_default='pending'),
-        sa.Column('ai_score', sa.Float(), nullable=True),
-        sa.Column('ai_feedback', sa.Text(), nullable=True),
-        sa.Column('reviewer_notes', sa.Text(), nullable=True),
+        sa.Column('created_by', sa.String(36), sa.ForeignKey('users.id'), nullable=True),
+        sa.Column('title', sa.String(255), nullable=True),
+        sa.Column('company', sa.String(255), nullable=True),
+        sa.Column('raw_text', sa.Text(), nullable=False),
+        sa.Column('required_skills', sa.Text(), nullable=True),
+        sa.Column('nice_to_have_skills', sa.Text(), nullable=True),
+        sa.Column('seniority', sa.String(50), nullable=True),
+        sa.Column('parsed_json', sa.Text(), nullable=True),
+        sa.Column('analysis_status', sa.String(20), nullable=False, server_default='pending'),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     )
-    op.create_index('ix_applications_user_id', 'applications', ['user_id'])
-    
-    # Create agent_tasks table (for future agent system integration)
+    op.create_index('ix_job_listings_created_by', 'job_listings', ['created_by'])
+
+    # Create matches table (Eşleştirme Ajanı çıktısı)
+    op.create_table(
+        'matches',
+        sa.Column('id', sa.String(36), primary_key=True),
+        sa.Column('user_id', sa.String(36), sa.ForeignKey('users.id'), nullable=False),
+        sa.Column('listing_id', sa.String(36), sa.ForeignKey('job_listings.id'), nullable=False),
+        sa.Column('score', sa.Float(), nullable=False),
+        sa.Column('matched_skills', sa.Text(), nullable=True),
+        sa.Column('missing_skills', sa.Text(), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    )
+    op.create_index('ix_matches_user_id', 'matches', ['user_id'])
+    op.create_index('ix_matches_listing_id', 'matches', ['listing_id'])
+
+    # Create documents table (CV / önyazı Üretim Ajanı çıktısı)
+    op.create_table(
+        'documents',
+        sa.Column('id', sa.String(36), primary_key=True),
+        sa.Column('user_id', sa.String(36), sa.ForeignKey('users.id'), nullable=False),
+        sa.Column('listing_id', sa.String(36), sa.ForeignKey('job_listings.id'), nullable=True),
+        sa.Column('doc_type', sa.String(20), nullable=False),
+        sa.Column('cv_url', sa.String(1000), nullable=True),
+        sa.Column('cover_letter_text', sa.Text(), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    )
+    op.create_index('ix_documents_user_id', 'documents', ['user_id'])
+    op.create_index('ix_documents_listing_id', 'documents', ['listing_id'])
+
+    # Create agent_tasks table (agent orkestrasyonu takibi)
     op.create_table(
         'agent_tasks',
         sa.Column('id', sa.String(36), primary_key=True),
@@ -78,8 +104,8 @@ def upgrade() -> None:
     op.create_index('ix_agent_tasks_task_type', 'agent_tasks', ['task_type'])
     op.create_index('ix_agent_tasks_application_id', 'agent_tasks', ['application_id'])
     op.create_index('ix_agent_tasks_user_id', 'agent_tasks', ['user_id'])
-    
-    # Create agent_workflows table (for future multi-agent orchestration)
+
+    # Create agent_workflows table (multi-agent orkestrasyon)
     op.create_table(
         'agent_workflows',
         sa.Column('id', sa.String(36), primary_key=True),
@@ -104,13 +130,22 @@ def downgrade() -> None:
     op.drop_index('ix_agent_workflows_application_id', 'agent_workflows')
     op.drop_index('ix_agent_workflows_workflow_type', 'agent_workflows')
     op.drop_table('agent_workflows')
-    
+
     op.drop_index('ix_agent_tasks_user_id', 'agent_tasks')
     op.drop_index('ix_agent_tasks_application_id', 'agent_tasks')
     op.drop_index('ix_agent_tasks_task_type', 'agent_tasks')
     op.drop_table('agent_tasks')
-    
-    op.drop_index('ix_applications_user_id', 'applications')
-    op.drop_table('applications')
+
+    op.drop_index('ix_documents_listing_id', 'documents')
+    op.drop_index('ix_documents_user_id', 'documents')
+    op.drop_table('documents')
+
+    op.drop_index('ix_matches_listing_id', 'matches')
+    op.drop_index('ix_matches_user_id', 'matches')
+    op.drop_table('matches')
+
+    op.drop_index('ix_job_listings_created_by', 'job_listings')
+    op.drop_table('job_listings')
+
     op.drop_index('ix_users_email', 'users')
     op.drop_table('users')

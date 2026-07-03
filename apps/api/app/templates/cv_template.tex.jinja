@@ -1,0 +1,44 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=1.8cm]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\definecolor{accent}{HTML}{2C3E50}
+\titleformat{\section}{\large\bfseries\color{accent}}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{10pt}{6pt}
+\setlist[itemize]{leftmargin=*, itemsep=2pt, topsep=2pt}
+\pagenumbering{gobble}
+\renewcommand{\familydefault}{\sfdefault}
+
+\begin{document}
+
+{\huge \bfseries \VAR{full_name}}\\[2pt]
+{\large \color{accent} \VAR{target_position}}\\[4pt]
+\VAR{email} \BLOCK{if phone} \textbullet{} \VAR{phone} \BLOCK{endif}
+
+\section*{Özet}
+\VAR{experience_summary}
+
+\section*{Beceriler}
+\BLOCK{if matched_skills}
+\textbf{Bu ilanla eşleşen beceriler:} \VAR{matched_skills | join(', ')}\\
+\BLOCK{endif}
+\BLOCK{if other_skills}
+\textbf{Diğer beceriler:} \VAR{other_skills | join(', ')}
+\BLOCK{endif}
+
+\section*{Deneyim}
+\begin{itemize}
+\BLOCK{for years in [experience_years]}
+\item Toplam \VAR{years} yıl deneyim, \VAR{seniority} seviye
+\BLOCK{endfor}
+\end{itemize}
+
+\BLOCK{if target_company}
+\section*{Neden \VAR{target_company}}
+Bu pozisyon için \VAR{target_position} rolüne uygun beceri setime ve deneyimime dayanarak başvuruyorum.
+\BLOCK{endif}
+
+\end{document}

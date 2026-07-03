@@ -19,9 +19,13 @@ class APIException(Exception):
 
 
 class ValidationException(APIException):
-    def __init__(self, detail: str = "Validation failed", errors: Optional[list] = None):
+    def __init__(
+        self, detail: str = "Validation failed", errors: Optional[list] = None
+    ):
         self.errors = errors or []
-        super().__init__(detail, status.HTTP_422_UNPROCESSABLE_ENTITY, "VALIDATION_ERROR")
+        super().__init__(
+            detail, status.HTTP_422_UNPROCESSABLE_ENTITY, "VALIDATION_ERROR"
+        )
 
 
 class AuthenticationException(APIException):
@@ -35,3 +39,12 @@ class ResourceNotFoundException(APIException):
         if resource_id:
             detail += f" (ID: {resource_id})"
         super().__init__(detail, status.HTTP_404_NOT_FOUND, "NOT_FOUND")
+
+
+class GeminiAPIException(APIException):
+    """Gemini API çağrısı kota/limit/geçici hata nedeniyle başarısız oldu"""
+
+    def __init__(self, detail: str = "AI service temporarily unavailable"):
+        super().__init__(
+            detail, status.HTTP_503_SERVICE_UNAVAILABLE, "GEMINI_API_ERROR"
+        )

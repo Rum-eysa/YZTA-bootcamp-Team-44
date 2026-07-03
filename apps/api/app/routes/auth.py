@@ -1,23 +1,29 @@
 """Authentication routes"""
-from datetime import timedelta
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
+from app.schemas.base import SuccessResponse
 from app.schemas.user import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
 from app.services.auth import (
+    blacklist_token,
     create_access_token,
     create_refresh_token,
     decode_token,
-    verify_password,
 )
 from app.services.user import authenticate_user, create_user, get_user_by_email
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+security = HTTPBearer()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user"""
     existing_user = await get_user_by_email(db, user_data.email)
@@ -94,3 +100,21 @@ async def refresh_token(token_data: TokenRefresh, db: AsyncSession = Depends(get
         "token_type": "bearer",
         "expires_in": settings.JWT_EXPIRE_MINUTES * 60,
     }
+
+
+@router.post("/logout", response_model=SuccessResponse)
+async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Logout: access token'ı kalan ömrü kadar Redis blacklist'e alır"""
+    payload = decode_token(credentials.credentials)
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti and exp:
+        await blacklist_token(jti, datetime.utcfromtimestamp(exp))
+
+    return SuccessResponse(data=None, message="Logged out")

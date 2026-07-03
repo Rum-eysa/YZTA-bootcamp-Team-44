@@ -39,6 +39,27 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
 
+  minio:
+    image: minio/minio:latest
+    container_name: yzta_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-yzta_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-yzta_minio_password}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yzta_network
+    restart: unless-stopped
+
   api:
     build:
       context: ./apps/api
@@ -47,18 +68,26 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-yzta_user}:${DB_PASSWORD:-yzta_password}@postgres:5432/${DB_NAME:-yzta_bootcamp}
+      DATABASE_URL: ${SUPABASE_DB_URL:-postgresql://${DB_USER:-yzta_user}:${DB_PASSWORD:-yzta_password}@postgres:5432/${DB_NAME:-yzta_bootcamp}}
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:-your-dev-secret-key-min-32-chars}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       ENVIRONMENT: ${ENVIRONMENT:-local}
       DEBUG: ${DEBUG:-true}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-yzta_minio}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-yzta_minio_password}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-cv-documents}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://localhost:9000}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     volumes:
       - ./apps/api:/app
@@ -99,3 +128,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  minio_data:

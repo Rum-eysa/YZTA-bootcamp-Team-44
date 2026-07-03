@@ -4,11 +4,6 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Callable
 
-from app.config import settings
-from app.exceptions import APIException
-from app.logging_config import setup_logging
-from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, health, users
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,12 +11,20 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
+from app.config import settings
+from app.exceptions import APIException
+from app.logging_config import setup_logging
+from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.routes import agents, analysis, auth, health, users
+from app.services.storage import get_storage_service
+
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("API starting", environment=settings.ENVIRONMENT)
+    get_storage_service().ensure_bucket()
     yield
     logger.info("API shutting down")
 
@@ -35,7 +38,9 @@ app = FastAPI(
 )
 
 if not settings.DEBUG:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.CORS_ORIGINS.split(","))
+    app.add_middleware(
+        TrustedHostMiddleware, allowed_hosts=settings.CORS_ORIGINS.split(",")
+    )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
@@ -52,12 +57,13 @@ app.add_middleware(
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)
 
-# Include routers
+# Include routers - health hariç hepsi /api altında (Docker healthcheck /health'i
+# doğrudan çağırıyor, o yüzden health prefix'siz kalır)
 app.include_router(health.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(applications.router)
-app.include_router(agents.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(agents.router, prefix="/api")
+app.include_router(analysis.router, prefix="/api")
 
 
 @app.exception_handler(APIException)
@@ -82,7 +88,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
+    logger.error(
+        "Unhandled exception", path=request.url.path, error=str(exc), exc_info=True
+    )
     if settings.DEBUG:
         raise exc
     return JSONResponse(
@@ -97,7 +105,9 @@ async def add_security_headers(request: Request, call_next: Callable):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers[
+        "Strict-Transport-Security"
+    ] = "max-age=31536000; includeSubDomains"
     return response
 
 

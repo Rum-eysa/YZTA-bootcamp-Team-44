@@ -1,11 +1,13 @@
 ﻿"""User service"""
+import json
 from typing import Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
 from app.services.auth import get_password_hash, verify_password
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UserService:
@@ -40,6 +42,8 @@ class UserService:
             return None
 
         update_data = user_data.model_dump(exclude_unset=True)
+        if "skills" in update_data and update_data["skills"] is not None:
+            update_data["skills"] = json.dumps(update_data["skills"])
         for field, value in update_data.items():
             setattr(db_user, field, value)
 
@@ -67,9 +71,13 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
     return await UserService(db).create(user_data)
 
 
-async def update_user(db: AsyncSession, user_id: str, user_data: UserUpdate) -> Optional[User]:
+async def update_user(
+    db: AsyncSession, user_id: str, user_data: UserUpdate
+) -> Optional[User]:
     return await UserService(db).update(user_id, user_data)
 
 
-async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[User]:
+async def authenticate_user(
+    db: AsyncSession, email: str, password: str
+) -> Optional[User]:
     return await UserService(db).authenticate(email, password)

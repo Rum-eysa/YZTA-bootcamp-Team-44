@@ -1,7 +1,7 @@
-﻿"""Base repository for database operations"""
+"""Base repository for database operations"""
 from typing import Generic, List, Optional, Type, TypeVar
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -17,12 +17,16 @@ class BaseRepository(Generic[ModelType]):
 
     async def get(self, id: str) -> Optional[ModelType]:
         """Get a single record by ID"""
-        result = await self.session.execute(select(self.model).where(self.model.id == id))
+        result = await self.session.execute(
+            select(self.model).where(self.model.id == id)  # type: ignore[attr-defined]
+        )
         return result.scalar_one_or_none()
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[ModelType]:
         """Get all records with pagination"""
-        result = await self.session.execute(select(self.model).offset(skip).limit(limit))
+        result = await self.session.execute(
+            select(self.model).offset(skip).limit(limit)
+        )
         return list(result.scalars().all())
 
     async def create(self, obj: ModelType) -> ModelType:
@@ -33,15 +37,16 @@ class BaseRepository(Generic[ModelType]):
         return obj
 
     async def update(self, id: str, obj: ModelType) -> Optional[ModelType]:
-        """Update a record"""
-        result = await self.session.execute(
-            update(self.model).where(self.model.id == id).values(**obj.__dict__)
-        )
+        """Update a record. `obj`, aynı session'dan get() ile alınmış ve alanları
+        çağıran tarafından zaten mutate edilmiş olmalı (bkz. UserService.update)"""
         await self.session.commit()
-        return await self.get(id)
+        await self.session.refresh(obj)
+        return obj
 
     async def delete(self, id: str) -> bool:
         """Delete a record"""
-        result = await self.session.execute(delete(self.model).where(self.model.id == id))
+        result = await self.session.execute(
+            delete(self.model).where(self.model.id == id)  # type: ignore[attr-defined]
+        )
         await self.session.commit()
         return result.rowcount > 0

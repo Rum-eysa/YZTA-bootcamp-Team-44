@@ -1,7 +1,7 @@
 """Base schemas for common responses"""
 
 from datetime import datetime
-from typing import Any, Generic, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,11 +28,17 @@ class ErrorResponse(BaseModel):
     detail: str = Field(..., description="Error message")
     error_code: str = Field(..., description="Error code")
     request_id: Optional[str] = Field(None, description="Request ID for tracking")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="Error timestamp"
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {"detail": "Not found", "error_code": "NOT_FOUND", "request_id": "uuid"}
+            "example": {
+                "detail": "Not found",
+                "error_code": "NOT_FOUND",
+                "request_id": "uuid",
+            }
         }
     )
 
