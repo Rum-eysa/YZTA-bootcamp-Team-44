@@ -2,12 +2,13 @@
 import uuid
 from typing import Optional
 
+from google import generativeai as genai
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.config import settings
 from app.models import Application
 from app.repositories.application import ApplicationRepository
 from app.schemas.application import ApplicationCreate, ApplicationUpdate
-from google import generativeai as genai
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ApplicationService:
@@ -129,15 +130,21 @@ class ApplicationService:
             }
 
 
-async def create_application(db: AsyncSession, application_data: ApplicationCreate) -> Application:
+async def create_application(
+    db: AsyncSession, application_data: ApplicationCreate
+) -> Application:
     return await ApplicationService(db).create(application_data)
 
 
-async def get_application_by_id(db: AsyncSession, application_id: str) -> Optional[Application]:
+async def get_application_by_id(
+    db: AsyncSession, application_id: str
+) -> Optional[Application]:
     return await ApplicationService(db).get_by_id(application_id)
 
 
-async def get_applications_by_user(db: AsyncSession, user_id: str, skip: int = 0, limit: int = 100):
+async def get_applications_by_user(
+    db: AsyncSession, user_id: str, skip: int = 0, limit: int = 100
+):
     return await ApplicationService(db).get_by_user_id(user_id, skip, limit)
 
 

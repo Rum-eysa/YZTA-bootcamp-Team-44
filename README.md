@@ -16,7 +16,7 @@
 
 ---
 
-YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için üretime hazır bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş; ölçeklenebilirlik, güvenlik ve bakım için sektörün en iyi uygulamalarını takip eder.
+YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için üretime hazırtasarlanmı  bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş; ölçeklenebilirlik, güvenlik ve bakım için sektör uygulamalarını takip eder.
 
 ## 👥 Takım İsmi
 
@@ -26,10 +26,10 @@ YZTA Bootcamp Team 44
 
 | Rol | Kişi | GitHub |
 |-----|------|--------|
-| Product Owner | Rum-eysa | [@Rum-eysa](https://github.com/Rum-eysa) |
-| Scrum Master | Serkan0YLDZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
-| Developer | zeynepmaidedemir | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-| Developer | lizlavigne | [@lizlavigne](https://github.com/lizlavigne) |
+| Product Owner | Rumeysa AĞIL| [@Rum-eysa](https://github.com/Rum-eysa) |
+| Scrum Master | Serkan YILDIZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+| Developer | Zeynep Maide DEMİR| [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+| Developer | Filiz Buzkıran | [@lizlavigne](https://github.com/lizlavigne) |
 
 ## 📌 Ürün İsmi
 
@@ -246,7 +246,7 @@ cp .env.example .env.local
 
 ## 🗄️ Veritabanı Yönetimi
 
-Veritabanı göçleri Alembic ile yönetilir:
+Veritabanı migration Alembic ile yönetilir:
 
 ```bash
 # Yeni migration oluştur
@@ -274,9 +274,9 @@ docker-compose exec api pytest tests/ --cov=app --cov-report=html
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🔧 Kod Kalitesi
+## 🔧 Code Quality
 
-### Pre-commit Hookları
+### Pre-commit Hooks
 
 ```bash
 pip install pre-commit
@@ -297,66 +297,66 @@ cd apps/web
 npm run lint
 ```
 
-## 🐳 Üretim Dağıtımı
+## 🐳 Production Deployment
 
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Üretim Kontrol Listesi
+### Production Kontrol Listesi
 
-- [ ] Ortam değişkenleri yapılandırıldı
-- [ ] `JWT_SECRET` güçlü bir değerle değiştirildi
+- [ ] Environment değişkenleri yapılandırıldı
+- [ ] `JWT_SECRET` güçlü değerle değiştirildi
 - [ ] `DEBUG` `false` olarak ayarlandı
-- [ ] Veritabanı yedeği alındı
-- [ ] Göçler uygulandı
+- [ ] Database yedeği alındı
+- [ ] Migration'lar uygulandı
 - [ ] Tüm testler geçti
-- [ ] Sağlık kontrol endpoint'i çalışıyor
+- [ ] Health check endpoint çalışıyor
 
 ## 📚 API Endpoint'leri
 
-### Kimlik Doğrulama
+### Authentication
 - `POST /auth/register` - Kullanıcı kaydı
 - `POST /auth/login` - Kullanıcı girişi
 - `POST /auth/refresh` - Token yenileme
 
-### Kullanıcılar
+### Users
 - `GET /users/me` - Mevcut kullanıcı profili
 - `PUT /users/me` - Kullanıcı profili güncelleme
 - `GET /users/{user_id}` - Kullanıcı bilgisi
 
-### Başvurular
+### Applications
 - `POST /applications` - Başvuru oluşturma
 - `GET /applications` - Başvuru listesi
 - `GET /applications/{id}` - Başvuru detayları
 - `PUT /applications/{id}` - Başvuru güncelleme
 - `POST /applications/{id}/analyze` - AI analizi
 
-### Sağlık
+### Health
 - `GET /health` - Health check
 - `GET /health/ready` - Readiness probe
 
-### Ajanlar (Gelecek Entegrasyon)
+### Agents (Gelecek Entegrasyon)
 - `POST /agents/tasks` - Agent görevi oluşturma
 - `GET /agents/tasks/{task_id}` - Görev durumu
 - `GET /agents/status` - Agent sistemi durumu
 
-## 🤖 Gelecek: Ajan Sistemi Entegrasyonu
+## � Future: Agent System Integration
 
-Mimari, AI ajan sistemlerinin gelecekte otomatik iş akışı yönetimi için entegre edilmesine uygun şekilde tasarlanmıştır:
+The architecture is designed to support future integration of AI agent systems for automated workflow management:
 
-**Planlanan Özellikler:**
-- **LangChain/CrewAI Entegrasyonu** - Çok ajanlı iş akışları
-- **Otomatik Başvuru İşleme** - Akıllı yönlendirme ve sınıflandırma
-- **Akıllı Bildirimler** - Bağlam bilincine sahip uyarılar
-- **Karar Desteği** - AI destekli öneriler
-- **Görev Otomasyonu** - Otomatik takip ve planlama
+**Planned Features:**
+- **LangChain/CrewAI Integration** - Multi-agent workflows
+- **Automated Application Processing** - Intelligent routing and classification
+- **Smart Notifications** - Context-aware alerts
+- **Decision Support** - AI-powered recommendations
+- **Task Automation** - Automated follow-ups and scheduling
 
-**Hazır Mimari Yapı:**
-- Ajan entegrasyonu için servis katmanı soyutlaması
-- Olay tabanlı mimari desteği
-- Redis ile asenkron işleme kapasitesi
-- Ajan eklemeyi kolaylaştıran modüler yapı
+**Architecture Prepared:**
+- Service layer abstraction for agent integration
+- Event-driven architecture support
+- Async processing capabilities with Redis
+- Modular design for easy agent addition
 
 ## 🤝 Katkıda Bulunma
 

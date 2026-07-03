@@ -2,9 +2,10 @@
 import json
 from typing import Any
 
+from fastapi import APIRouter, HTTPException, status
+
 from app.schemas.base import SuccessResponse
 from app.services.agent import agent_service
-from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
@@ -41,7 +42,9 @@ async def get_agent_task_status(task_id: str):
     status_info = await agent_service.get_task_status(task_id)
 
     if not status_info:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
 
     return status_info
 

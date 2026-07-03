@@ -1,19 +1,18 @@
-﻿"""Agent service for future AI agent integration"""
+"""Agent service for future AI agent integration"""
 import asyncio
 import json
-import logging
 import time
-import traceback
 import uuid
 from abc import ABC, abstractmethod
-from contextlib import AbstractContextManager, asynccontextmanager
-from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, TypeVar, Generic, Callable, Awaitable
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 import redis.asyncio as redis
+
 from app.config import settings
-from app.models.agent import AgentTask, AgentWorkflow
 from app.logging_config import get_logger
+from app.models.agent import AgentTask, AgentWorkflow
 
 logger = get_logger(__name__)
 
@@ -98,7 +97,9 @@ class AgentContextManager(AbstractContextManager):
 class RetryStrategy:
     """Retry strategy configuration with exponential backoff"""
 
-    def __init__(self, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
+    def __init__(
+        self, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0
+    ):
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
@@ -115,9 +116,14 @@ class RetryStrategy:
 
 
 class BaseAgent(Generic[T], ABC):
-    """Abstract base class for AI agents with lifecycle hooks, logging, telemetry, and retries."""
+    """Abstract base class for AI agents with lifecycle hooks, telemetry, and retries."""
 
-    def __init__(self, name: str, max_retries: int = 3, retry_strategy: Optional[RetryStrategy] = None):
+    def __init__(
+        self,
+        name: str,
+        max_retries: int = 3,
+        retry_strategy: Optional[RetryStrategy] = None,
+    ):
         self.name = name
         self.retry_strategy = retry_strategy or RetryStrategy(max_retries=max_retries)
         self.retry_count = 0
@@ -136,68 +142,84 @@ class BaseAgent(Generic[T], ABC):
     async def execute(self, payload: Any) -> T:
         """Execute the agent with retry logic and lifecycle hooks"""
         self.lifecycle_events["before_execute"] += 1
-        self.logger.info("starting_agent_execution", payload_type=type(payload).__name__, agent=self.name)
+        self.logger.info(
+            "starting_agent_execution",
+            payload_type=type(payload).__name__,
+            agent=self.name,
+        )
 
         started_at = time.perf_counter()
-        try:
-            # Before execute hook
-            await self._before_execute(payload)
 
-            # Execute the agent logic
-            result = await self._run(payload)
+        # Before execute hooks (internal + optional public override)
+        await self._before_execute(payload)
+        if type(self).before_execute is not BaseAgent.before_execute:
+            await self.before_execute(payload)
 
-            # Calculate runtime
-            runtime_ms = round((time.perf_counter() - started_at) * 1000, 2)
+        while True:
+            try:
+                # Execute the agent logic
+                result = await self._run(payload)
 
-            # Record telemetry
-            self.telemetry.record_success(runtime_ms, self._estimate_token_usage(payload, result))
+                # Calculate runtime
+                runtime_ms = round((time.perf_counter() - started_at) * 1000, 2)
 
-            # After execute hook
-            await self._after_execute(payload, result)
+                # Record telemetry (single success entry)
+                token_count = self._estimate_token_usage(payload, result)
+                self.telemetry.record_success(runtime_ms, token_count)
 
-            self.lifecycle_events["after_execute"] += 1
-            self.lifecycle_events["on_success"] += 1
-            self.logger.info(
-                "agent_execution_completed",
-                agent=self.name,
-                runtime_ms=runtime_ms,
-                token_count=self.telemetry.token_count,
-            )
+                # After execute hooks (internal + optional public override)
+                await self._after_execute(payload, result)
+                has_after_hook = type(self).after_execute is not BaseAgent.after_execute
+                if has_after_hook:
+                    await self.after_execute(payload, result)
 
-            # Reset retry count on success
-            self.retry_count = 0
-            return result
-
-        except Exception as exc:
-            self.lifecycle_events["on_error"] += 1
-            self.telemetry.record_failure(str(exc))
-            self.logger.exception("agent_execution_failed", error=str(exc), agent=self.name)
-
-            # Check if we should retry
-            if self.retry_count < self.retry_strategy.max_retries and not self._is_cancelled:
-                self.retry_count += 1
-                self.lifecycle_events["on_retry"] += 1
-
-                # Wait with exponential backoff
-                delay = self.retry_strategy.get_delay(self.retry_count)
-                self.logger.warning(
-                    "agent_retry_scheduled",
-                    attempt=self.retry_count,
-                    max_retries=self.retry_strategy.max_retries,
-                    delay_s=delay,
+                self.lifecycle_events["after_execute"] += 1
+                self.lifecycle_events["on_success"] += 1
+                self.logger.info(
+                    "agent_execution_completed",
                     agent=self.name,
+                    runtime_ms=runtime_ms,
+                    token_count=self.telemetry.token_count,
                 )
 
-                await self.retry_strategy.wait(self.retry_count)
+                return result
 
-                # Retry hook
-                await self._on_retry(payload, exc, self.retry_count)
+            except Exception as exc:
+                self.logger.exception(
+                    "agent_execution_failed", error=str(exc), agent=self.name
+                )
 
-                return await self.execute(payload)
+                # Check if we should retry
+                if (
+                    self.retry_count < self.retry_strategy.max_retries
+                    and not self._is_cancelled
+                ):
+                    self.retry_count += 1
+                    self.lifecycle_events["on_retry"] += 1
 
-            # On error hook
-            await self._on_error(payload, exc)
-            raise
+                    # Wait with exponential backoff
+                    delay = self.retry_strategy.get_delay(self.retry_count)
+                    self.logger.warning(
+                        "agent_retry_scheduled",
+                        attempt=self.retry_count,
+                        max_retries=self.retry_strategy.max_retries,
+                        delay_s=delay,
+                        agent=self.name,
+                    )
+
+                    await self.retry_strategy.wait(self.retry_count)
+
+                    # Retry hook
+                    await self._on_retry(payload, exc, self.retry_count)
+
+                    # Continue loop (retry)
+                    continue
+
+                # All retries exhausted — record single failure entry and raise
+                self.lifecycle_events["on_error"] += 1
+                self.telemetry.record_failure(str(exc))
+                await self._on_error(payload, exc)
+                raise
 
     @abstractmethod
     async def _run(self, payload: Any) -> T:
@@ -205,14 +227,22 @@ class BaseAgent(Generic[T], ABC):
         raise NotImplementedError("Subclasses must implement _run method")
 
     async def _before_execute(self, payload: Any) -> None:
-        """Lifecycle hook called before execution"""
+        """Internal lifecycle hook called before execution"""
         self.context_manager.set("payload", payload)
         self.context_manager.set("start_time", time.time())
 
+    async def before_execute(self, payload: Any) -> None:
+        """Optional public hook — override in subclasses for custom pre-execution logic"""
+        pass
+
     async def _after_execute(self, payload: Any, result: T) -> None:
-        """Lifecycle hook called after successful execution"""
+        """Internal lifecycle hook called after successful execution"""
         self.context_manager.set("result", result)
         self.context_manager.set("end_time", time.time())
+
+    async def after_execute(self, payload: Any, result: T) -> None:
+        """Optional public hook — override in subclasses for custom post-execution logic"""
+        pass
 
     async def _on_error(self, payload: Any, error: Exception) -> None:
         """Lifecycle hook called on error"""
@@ -225,8 +255,16 @@ class BaseAgent(Generic[T], ABC):
     def _estimate_token_usage(self, payload: Any, result: T) -> int:
         """Estimate token usage based on payload and result size"""
         try:
-            payload_str = json.dumps(payload, default=str) if not isinstance(payload, str) else payload
-            result_str = json.dumps(result, default=str) if not isinstance(result, str) else result
+            payload_str = (
+                json.dumps(payload, default=str)
+                if not isinstance(payload, str)
+                else payload
+            )
+            result_str = (
+                json.dumps(result, default=str)
+                if not isinstance(result, str)
+                else result
+            )
             total_chars = len(payload_str) + len(result_str)
             return total_chars // 4  # Rough estimate: 1 token ≈ 4 characters
         except Exception:
