@@ -23,6 +23,9 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    COMPILER_URL: str = "http://compiler:8080"
+    COMPILER_TIMEOUT_SECONDS: int = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -117,3 +117,17 @@ jobs:
         with:
           file: ./apps/api/coverage.xml
           flags: api
+
+  test-compiler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build compiler image
+        run: docker build -t yzta-compiler ./apps/compiler
+
+      - name: Smoke test
+        run: docker run --rm --entrypoint ./scripts/smoke-test.sh yzta-compiler
+
+      - name: Compiler API tests
+        run: docker run --rm --entrypoint pytest yzta-compiler tests/ -v

@@ -1,4 +1,4 @@
-.PHONY: up down build logs test ps restart clean
+.PHONY: up down build logs test ps restart clean build-compiler compile-test
 
 up:
 	docker-compose up -d
@@ -8,6 +8,12 @@ down:
 
 build:
 	docker-compose up -d --build
+
+build-compiler:
+	docker-compose build compiler
+
+compile-test:
+	docker-compose run --rm --entrypoint ./scripts/smoke-test.sh compiler
 
 logs:
 	docker-compose logs -f

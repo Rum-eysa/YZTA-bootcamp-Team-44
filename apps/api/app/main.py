@@ -8,7 +8,7 @@ from app.config import settings
 from app.exceptions import APIException
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, health, users
+from app.routes import agents, applications, auth, documents, health, users
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,6 +58,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(applications.router)
 app.include_router(agents.router)
+app.include_router(documents.router)
 
 
 @app.exception_handler(APIException)
