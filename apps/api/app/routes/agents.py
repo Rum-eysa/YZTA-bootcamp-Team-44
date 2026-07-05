@@ -3,9 +3,10 @@
 import json
 from typing import Any
 
+from fastapi import APIRouter, HTTPException, status
+
 from app.schemas.base import SuccessResponse
 from app.services.agent import agent_service
-from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
@@ -34,26 +35,20 @@ async def create_agent_task(task_type: str, payload: Any = None):
 
 @router.get("/tasks/{task_id}")
 async def get_agent_task_status(task_id: str):
-    """
-    Get agent task status (placeholder for future implementation)
-
-    This endpoint is prepared for future agent system integration.
-    """
+    """Get agent task status."""
     status_info = await agent_service.get_task_status(task_id)
 
     if not status_info:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
 
     return status_info
 
 
 @router.get("/status")
 async def get_agent_system_status():
-    """
-    Get agent system status (placeholder for future implementation)
-
-    This endpoint is prepared for future agent system integration.
-    """
+    """Get agent system status."""
     return {
         "status": "operational",
         "message": "Agent foundation services are available",

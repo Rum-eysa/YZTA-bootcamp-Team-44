@@ -1,5 +1,5 @@
-﻿"""Repositories initialization"""
+"""Repositories initialization"""
 
-from app.repositories import application, user
+from app.repositories import document, job_listing, match, user
 
-__all__ = ["application", "user"]
+__all__: list[str] = ["document", "job_listing", "match", "user"]

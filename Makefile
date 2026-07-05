@@ -1,4 +1,4 @@
-.PHONY: up down build build-compiler compile-test logs logs-api logs-web test ps restart clean migrate shell-api shell-web help
+.PHONY: up down build logs logs-api logs-web test test-cov ps restart clean migrate seed shell-api shell-web help
 
 ## ─── Local Development ───────────────────────────────────────────────────────
 
@@ -10,12 +10,6 @@ down: ## Tüm servisleri durdur
 
 build: ## Image'ları yeniden build edip başlat
 	docker-compose up -d --build
-
-build-compiler: ## Compiler image'ını build et
-	docker-compose build compiler
-
-compile-test: ## Compiler smoke test'ini çalıştır
-	docker-compose run --rm --entrypoint ./scripts/smoke-test.sh compiler
 
 restart: ## Tüm servisleri yeniden başlat
 	docker-compose restart
@@ -49,6 +43,9 @@ migrate: ## Alembic migration'larını uygula
 
 migrate-create: ## Yeni migration dosyası oluştur (msg= ile kullan)
 	docker-compose exec api alembic revision --autogenerate -m "$(msg)"
+
+seed: ## Demo verisi yükle (US-010)
+	docker-compose exec api python scripts/seed_database.py
 
 ## ─── Shell Access ────────────────────────────────────────────────────────────
 

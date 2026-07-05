@@ -5,11 +5,6 @@ from contextlib import asynccontextmanager
 from typing import Callable
 from urllib.parse import urlparse
 
-from app.config import settings
-from app.exceptions import APIException
-from app.logging_config import setup_logging
-from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, documents, health, users
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,19 +12,28 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
+from app.config import settings
+from app.exceptions import APIException
+from app.logging_config import setup_logging
+from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.routes import agents, analysis, auth, health, profiles, users
+from app.services.storage import get_storage_service
+
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("API starting", environment=settings.ENVIRONMENT)
+    if settings.ENVIRONMENT != "test":
+        get_storage_service().ensure_bucket()
     yield
     logger.info("API shutting down")
 
 
 app = FastAPI(
     title="YZTA Bootcamp API",
-    description="Yapay zeka destekli staj baÅŸvuru platformu",
+    description="Yapay zeka destekli staj başvuru platformu",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.DEBUG else None,
@@ -56,7 +60,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     max_age=600,
 )
@@ -64,13 +68,12 @@ app.add_middleware(
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)
 
-# Include routers
 app.include_router(health.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(applications.router)
-app.include_router(agents.router)
-app.include_router(documents.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(profiles.router, prefix="/api/profiles")
+app.include_router(agents.router, prefix="/api")
+app.include_router(analysis.router, prefix="/api")
 
 
 @app.exception_handler(APIException)
@@ -95,7 +98,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
+    logger.error(
+        "Unhandled exception", path=request.url.path, error=str(exc), exc_info=True
+    )
     if settings.DEBUG:
         raise exc
     return JSONResponse(
@@ -110,7 +115,9 @@ async def add_security_headers(request: Request, call_next: Callable):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers[
+        "Strict-Transport-Security"
+    ] = "max-age=31536000; includeSubDomains"
     return response
 
 
@@ -119,7 +126,7 @@ async def root():
     return {
         "name": "YZTA Bootcamp API",
         "version": "1.0.0",
-        "description": "Yapay zeka destekli staj baÅŸvuru platformu",
+        "description": "Yapay zeka destekli staj başvuru platformu",
         "docs": "/docs" if settings.DEBUG else None,
     }
 

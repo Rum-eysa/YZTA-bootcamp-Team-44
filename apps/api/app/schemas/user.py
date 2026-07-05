@@ -1,9 +1,10 @@
 """User-related schemas"""
 
+import json
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserBase(BaseModel):
@@ -16,10 +17,25 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for user registration"""
 
-    password: str = Field(..., min_length=8, max_length=100, description="User password")
+    password: str = Field(
+        ..., min_length=8, max_length=100, description="User password"
+    )
 
 
-class UserUpdate(BaseModel):
+class UserProfileUpdate(BaseModel):
+    """Schema for updating agent-facing profile fields (skills, ton, seniority...)"""
+
+    target_position: Optional[str] = Field(None, max_length=255)
+    seniority: Optional[str] = Field(None, description="junior/mid/senior")
+    experience_years: Optional[float] = Field(None, ge=0)
+    skills: Optional[List[str]] = Field(None, description="Beceri listesi")
+    experience_summary: Optional[str] = None
+    tone_preference: Optional[str] = Field(
+        None, description="professional/casual/confident"
+    )
+
+
+class UserUpdate(UserProfileUpdate):
     """Schema for user profile update"""
 
     full_name: Optional[str] = Field(None, max_length=255, description="User full name")
@@ -31,10 +47,24 @@ class UserInDB(UserBase):
 
     id: str
     is_active: bool
+    target_position: Optional[str] = None
+    seniority: Optional[str] = None
+    experience_years: Optional[float] = None
+    skills: Optional[List[str]] = None
+    experience_summary: Optional[str] = None
+    tone_preference: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def parse_skills(cls, v):
+        """DB'de skills Text(JSON string) olarak tutulur, API'de List[str] döner"""
+        if isinstance(v, str):
+            return json.loads(v) if v else []
+        return v
 
 
 class UserResponse(UserInDB):
