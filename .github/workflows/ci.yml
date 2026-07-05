@@ -121,12 +121,18 @@ jobs:
         working-directory: ./apps/api
         env:
           PYTHONPATH: .
+          TEST_DATABASE_URL: postgresql://yzta_user:yzta_password@localhost:5432/yzta_test
           DATABASE_URL: postgresql://yzta_user:yzta_password@localhost:5432/yzta_test
           REDIS_URL: redis://localhost:6379/0
           JWT_SECRET: test-secret-key-min-32-characters
           GEMINI_API_KEY: test-key
           ENVIRONMENT: test
           DEBUG: false
+          STORAGE_ENDPOINT: http://localhost:9000
+          STORAGE_ACCESS_KEY: yzta_minio
+          STORAGE_SECRET_KEY: yzta_minio_password
+          STORAGE_BUCKET: cv-documents-test
+          STORAGE_PUBLIC_URL: http://localhost:9000
         run: pytest tests/ -v --cov=app --cov-report=xml
 
       - name: Upload coverage
@@ -134,22 +140,6 @@ jobs:
         with:
           file: ./apps/api/coverage.xml
           flags: api
-
-  test-compiler:
-    name: Test — Compiler (Tectonic)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build compiler image
-        run: docker build -t yzta-compiler ./apps/compiler
-
-      - name: Smoke test
-        run: docker run --rm --entrypoint ./scripts/smoke-test.sh yzta-compiler
-
-      - name: Compiler API tests
-        run: docker run --rm --entrypoint pytest yzta-compiler tests/ -v
 
   # ─────────────────────────────────────────
   # BUILD
@@ -183,7 +173,7 @@ jobs:
     name: Build — Docker Images
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [test-api, test-compiler, build-web]
+    needs: [test-api, build-web]
     steps:
       - uses: actions/checkout@v4
 

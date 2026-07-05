@@ -44,6 +44,24 @@ services:
           cpus: '0.5'
           memory: 256M
 
+  minio:
+    image: minio/minio:latest
+    container_name: yzta_minio_prod
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data_prod:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - yzta_network_prod
+    restart: on-failure
+
   api:
     build:
       context: ./apps/api
@@ -52,7 +70,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-yzta_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-yzta_bootcamp}
+      DATABASE_URL: ${SUPABASE_DB_URL:-postgresql://${DB_USER:-yzta_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-yzta_bootcamp}}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       JWT_SECRET: ${JWT_SECRET}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
@@ -62,13 +80,17 @@ services:
       ENVIRONMENT: production
       DEBUG: false
       LOG_LEVEL: info
-      COMPILER_URL: http://compiler:8080
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-cv-documents}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      compiler:
+      minio:
         condition: service_healthy
     networks:
       - yzta_network_prod
@@ -77,30 +99,6 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-
-  compiler:
-    build:
-      context: ./apps/compiler
-      dockerfile: Dockerfile
-    container_name: yzta_compiler_prod
-    environment:
-      TECTONIC_CACHE_DIR: /cache
-      COMPILE_TIMEOUT_SECONDS: 120
-    volumes:
-      - compiler_cache_prod:/cache
-    networks:
-      - yzta_network_prod
-    restart: on-failure
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 5s
       retries: 3
     deploy:
       resources:
@@ -136,4 +134,4 @@ networks:
 volumes:
   postgres_data_prod:
   redis_data_prod:
-  compiler_cache_prod:
+  minio_data_prod:

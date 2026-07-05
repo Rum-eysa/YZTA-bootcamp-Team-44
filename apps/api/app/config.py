@@ -20,12 +20,15 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 60
 
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_MODEL: str = "gemini-flash-latest"
 
     CORS_ORIGINS: str = "http://localhost:3000"
 
-    COMPILER_URL: str = "http://compiler:8080"
-    COMPILER_TIMEOUT_SECONDS: int = 30
+    STORAGE_ENDPOINT: str = "http://localhost:9000"
+    STORAGE_ACCESS_KEY: str = "yzta_minio"
+    STORAGE_SECRET_KEY: str = "yzta_minio_password"
+    STORAGE_BUCKET: str = "cv-documents"
+    STORAGE_PUBLIC_URL: str = "http://localhost:9000"
 
 
 @lru_cache

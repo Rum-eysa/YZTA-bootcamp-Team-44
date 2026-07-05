@@ -1,0 +1,91 @@
+"""CV Ajanı testleri: LaTeX escape güvenliği + retry mantığı (mock subprocess/Tectonic yok)"""
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from app.agents.cv_generation import (
+    CVGenerationAgent,
+    CVGenerationException,
+    latex_escape,
+)
+from app.exceptions import ValidationException
+
+
+def test_latex_escape_handles_special_characters():
+    """LaTeX'i kırabilecek karakterler (# _ % & { } gibi) kaçışlanmalı"""
+    dangerous = "50% skor & #1 adayım {vurgu} deneyim_yılı"
+    escaped = latex_escape(dangerous)
+
+    assert r"\%" in escaped
+    assert r"\&" in escaped
+    assert r"\#" in escaped
+    assert r"\_" in escaped
+    assert r"\{" in escaped
+    assert r"\}" in escaped
+    # ham özel karakterler tek başına kalmamalı (backslash'siz)
+    assert "50\\% skor \\& \\#1" in escaped
+
+
+def test_latex_escape_handles_none_and_empty():
+    assert latex_escape(None) == ""
+    assert latex_escape("") == ""
+
+
+@pytest.mark.asyncio
+async def test_generate_missing_profile_raises_validation_error():
+    agent = CVGenerationAgent(storage=MagicMock())
+
+    with pytest.raises(ValidationException):
+        await agent.generate({}, {"position_title": "Dev"})
+
+
+@pytest.mark.asyncio
+async def test_compile_retries_once_then_succeeds():
+    """İlk deneme başarısız (dönüş kodu != 0), ikinci deneme başarılı olmalı"""
+    agent = CVGenerationAgent(storage=MagicMock())
+
+    call_count = {"n": 0}
+
+    async def fake_create_subprocess_exec(*args, **kwargs):
+        call_count["n"] += 1
+        proc = MagicMock()
+        if call_count["n"] == 1:
+            proc.communicate = AsyncMock(return_value=(b"", b"fake latex error"))
+            proc.returncode = 1
+        else:
+            # ikinci denemede tectonic --outdir hedefine gerçek bir dosya yazmadığımız
+            # için burada sadece returncode=0 dönüp pdf_path.exists() kontrolünü
+            # geçmesi için gerçek bir dosya oluşturuyoruz
+            import tempfile
+            from pathlib import Path
+
+            outdir = Path(args[3])  # tectonic tex.tex --outdir <dir>
+            (outdir / "cv.pdf").write_bytes(b"%PDF-fake")
+            proc.communicate = AsyncMock(return_value=(b"", b""))
+            proc.returncode = 0
+        return proc
+
+    with patch(
+        "asyncio.create_subprocess_exec", side_effect=fake_create_subprocess_exec
+    ):
+        pdf_bytes = await agent._compile_with_tectonic(
+            "\\documentclass{article}\\begin{document}x\\end{document}"
+        )
+
+    assert pdf_bytes == b"%PDF-fake"
+    assert call_count["n"] == 2
+
+
+@pytest.mark.asyncio
+async def test_compile_raises_clean_exception_after_all_retries_fail():
+    agent = CVGenerationAgent(storage=MagicMock())
+
+    async def always_fail(*args, **kwargs):
+        proc = MagicMock()
+        proc.communicate = AsyncMock(return_value=(b"", b"persistent latex error"))
+        proc.returncode = 1
+        return proc
+
+    with patch("asyncio.create_subprocess_exec", side_effect=always_fail):
+        with pytest.raises(CVGenerationException):
+            await agent._compile_with_tectonic("broken tex", max_retries=2)

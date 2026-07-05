@@ -1,4 +1,4 @@
-﻿"""FastAPI Application - Production Ready"""
+"""FastAPI Application - Production Ready"""
 
 import logging
 from contextlib import asynccontextmanager
@@ -9,7 +9,8 @@ from app.config import settings
 from app.exceptions import APIException
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, documents, health, users
+from app.routes import agents, analysis, auth, health, profiles, users
+from app.services.storage import get_storage_service
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,13 +24,15 @@ logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("API starting", environment=settings.ENVIRONMENT)
+    if settings.ENVIRONMENT != "test":
+        get_storage_service().ensure_bucket()
     yield
     logger.info("API shutting down")
 
 
 app = FastAPI(
     title="YZTA Bootcamp API",
-    description="Yapay zeka destekli staj baÅŸvuru platformu",
+    description="Yapay zeka destekli staj başvuru platformu",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.DEBUG else None,
@@ -56,7 +59,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     max_age=600,
 )
@@ -64,13 +67,12 @@ app.add_middleware(
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(LoggingMiddleware)
 
-# Include routers
 app.include_router(health.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(applications.router)
-app.include_router(agents.router)
-app.include_router(documents.router)
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(profiles.router, prefix="/api/profiles")
+app.include_router(agents.router, prefix="/api")
+app.include_router(analysis.router, prefix="/api")
 
 
 @app.exception_handler(APIException)
@@ -119,7 +121,7 @@ async def root():
     return {
         "name": "YZTA Bootcamp API",
         "version": "1.0.0",
-        "description": "Yapay zeka destekli staj baÅŸvuru platformu",
+        "description": "Yapay zeka destekli staj başvuru platformu",
         "docs": "/docs" if settings.DEBUG else None,
     }
 

@@ -1,4 +1,4 @@
-﻿"""User repository"""
+"""User repository"""
 
 from app.models import User
 from app.repositories.base import BaseRepository

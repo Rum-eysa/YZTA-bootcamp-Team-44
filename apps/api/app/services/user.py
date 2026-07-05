@@ -1,5 +1,6 @@
-﻿"""User service"""
+"""User service"""
 
+import json
 from typing import Optional
 
 from app.models import User
@@ -41,6 +42,8 @@ class UserService:
             return None
 
         update_data = user_data.model_dump(exclude_unset=True)
+        if "skills" in update_data and update_data["skills"] is not None:
+            update_data["skills"] = json.dumps(update_data["skills"])
         for field, value in update_data.items():
             setattr(db_user, field, value)
 

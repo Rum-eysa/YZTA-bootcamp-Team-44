@@ -28,27 +28,23 @@ class AgentTask(Base):
     task_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default=AgentTaskStatus.PENDING, nullable=False)
 
-    # Task payload and results
     payload: Mapped[str] = mapped_column(Text, nullable=False)
     result: Mapped[str] = mapped_column(Text, nullable=True)
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
 
-    # Metadata
     agent_id: Mapped[str] = mapped_column(String(50), nullable=True)
-    priority: Mapped[int] = mapped_column(Integer, default=5)  # 1-10, higher is more important
+    priority: Mapped[int] = mapped_column(Integer, default=5)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, default=3)
     runtime_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
-    # Timestamps
     scheduled_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Related entities
     application_id: Mapped[str] = mapped_column(String(36), nullable=True, index=True)
     user_id: Mapped[str] = mapped_column(String(36), nullable=True, index=True)
 
@@ -83,23 +79,19 @@ class AgentWorkflow(Base):
     workflow_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default=AgentTaskStatus.PENDING, nullable=False)
 
-    # Workflow configuration
-    config: Mapped[str] = mapped_column(Text, nullable=False)  # JSON config
+    config: Mapped[str] = mapped_column(Text, nullable=False)
     current_step: Mapped[int] = mapped_column(Integer, default=0)
 
-    # Results
     result: Mapped[str] = mapped_column(Text, nullable=True)
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
     total_steps: Mapped[int] = mapped_column(Integer, default=1)
 
-    # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Related entities
     application_id: Mapped[str] = mapped_column(String(36), nullable=True, index=True)
-    triggered_by: Mapped[str] = mapped_column(String(36), nullable=True)  # User ID
+    triggered_by: Mapped[str] = mapped_column(String(36), nullable=True)
 
     def mark_started(self) -> None:
         self.status = AgentTaskStatus.PROCESSING
