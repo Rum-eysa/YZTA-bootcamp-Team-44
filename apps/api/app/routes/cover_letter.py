@@ -20,7 +20,7 @@ async def generate_cover_letter(
     agent: CoverLetterAgent = Depends(get_cover_letter_agent),
     db: AsyncSession = Depends(get_db),
 ):
-    """Kullanıcı profili + ilan analizi ile şirkete özel önyazı üretir, documents tablosuna kaydeder"""
+    """Kullanıcı profili + ilan analizi ile şirkete özel önyazı üretir, documents'a kaydeder"""
     user = await get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
