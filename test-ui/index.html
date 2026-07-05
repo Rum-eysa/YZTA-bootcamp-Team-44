@@ -80,7 +80,15 @@
 </div>
 
 <div class="section">
-  <h2>4) Şirkete Özel Önyazı Üret (Gemini çağrısı)</h2>
+  <h2>4) Eşleştirme Skoru (Gemini çağrısı — ilk seferde, sonra cache'den)</h2>
+  <p style="color:#888; font-size:12px">Aynı listing_id'yi kullanır. Aynı ilan için tekrar basarsan cache'den (Gemini'ye gitmeden) döner.</p>
+  <button onclick="matchListing()">Eşleştir</button>
+  <div id="matchStatus"></div>
+  <pre id="matchResult"></pre>
+</div>
+
+<div class="section">
+  <h2>5) Şirkete Özel Önyazı Üret (Gemini çağrısı)</h2>
   <p style="color:#888; font-size:12px">Önce yukarıdaki ilanı analiz etmen gerekiyor — listing_id otomatik doldurulur.</p>
   <label>Listing ID</label>
   <input id="listingId" placeholder="analiz sonrası otomatik dolar" />
@@ -90,7 +98,7 @@
 </div>
 
 <div class="section">
-  <h2>5) CV Üret (LaTeX → PDF, Tectonic — Gemini kullanmaz)</h2>
+  <h2>6) CV Üret (LaTeX → PDF, Tectonic — Gemini kullanmaz)</h2>
   <p style="color:#888; font-size:12px">Aynı listing_id'yi kullanır. PDF MinIO'ya yüklenir, link aşağıda çıkar.</p>
   <button onclick="generateCV()">CV Üret</button>
   <div id="cvStatus"></div>
@@ -190,6 +198,24 @@ async function analyze() {
     showStatus('analyzeStatus', true, 'Analiz tamamlandı.');
   } catch (e) {
     showStatus('analyzeStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+async function matchListing() {
+  try {
+    const res = await fetch(`${API}/api/match`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        listing_id: document.getElementById('listingId').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    document.getElementById('matchResult').textContent = JSON.stringify(data, null, 2);
+    showStatus('matchStatus', true, `Skor: ${data.score}/100${data.cached ? ' (cache\'den)' : ''}`);
+  } catch (e) {
+    showStatus('matchStatus', false, 'Hata: ' + e.message);
   }
 }
 
