@@ -1,4 +1,4 @@
-﻿"""FastAPI Application - Production Ready"""
+"""FastAPI Application - Production Ready"""
 
 import logging
 from contextlib import asynccontextmanager

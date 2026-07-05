@@ -76,6 +76,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-local}
       DEBUG: ${DEBUG:-true}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
+      PYTHONPATH: /app
       STORAGE_ENDPOINT: http://minio:9000
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER:-yzta_minio}
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-yzta_minio_password}

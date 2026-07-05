@@ -30,7 +30,7 @@ COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 COPY --from=tectonic --chown=appuser:appuser /usr/local/bin/tectonic /usr/local/bin/tectonic
 COPY --chown=appuser:appuser . .
 
-ENV PATH=/home/appuser/.local/bin:$PATH PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ENV PATH=/home/appuser/.local/bin:$PATH PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app
 # Tectonic derleme sırasında paket indirir (~/.cache/Tectonic); appuser'ın HOME'u yazılabilir olmalı
 ENV HOME=/home/appuser
 

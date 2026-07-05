@@ -1,4 +1,4 @@
-﻿"""User service"""
+"""User service"""
 
 import json
 from typing import Optional

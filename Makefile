@@ -31,21 +31,21 @@ logs-web: ## Sadece Web log'larını izle
 ## ─── Testing ─────────────────────────────────────────────────────────────────
 
 test: ## API testlerini çalıştır
-	docker-compose exec api pytest tests/ -v
+	docker-compose exec -e PYTHONPATH=/app api pytest tests/ -v
 
 test-cov: ## Testleri coverage raporu ile çalıştır
-	docker-compose exec api pytest tests/ -v --cov=app --cov-report=term-missing
+	docker-compose exec -e PYTHONPATH=/app api pytest tests/ -v --cov=app --cov-report=term-missing
 
 ## ─── Database ────────────────────────────────────────────────────────────────
 
 migrate: ## Alembic migration'larını uygula
-	docker-compose exec api alembic upgrade head
+	docker-compose exec -e PYTHONPATH=/app api alembic upgrade head
 
 migrate-create: ## Yeni migration dosyası oluştur (msg= ile kullan)
-	docker-compose exec api alembic revision --autogenerate -m "$(msg)"
+	docker-compose exec -e PYTHONPATH=/app api alembic revision --autogenerate -m "$(msg)"
 
 seed: ## Demo verisi yükle (US-010)
-	docker-compose exec api python scripts/seed_database.py
+	docker-compose exec -e PYTHONPATH=/app api python scripts/seed_database.py
 
 ## ─── Shell Access ────────────────────────────────────────────────────────────
 
