@@ -35,14 +35,19 @@ app = FastAPI(
     docs_url="/docs" if settings.DEBUG else None,
 )
 
-if not settings.DEBUG:
-    allowed_hosts = [
+allowed_hosts = ["localhost", "127.0.0.1", "test", "testserver"]
+
+if settings.ENVIRONMENT not in ("test",) and not settings.DEBUG:
+    parsed_hosts = [
         host.strip()
         for origin in settings.CORS_ORIGINS.split(",")
         if (host := urlparse(origin).netloc) or origin.strip()
     ]
-    if allowed_hosts:
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+    allowed_hosts.extend(parsed_hosts)
+
+allowed_hosts = list(dict.fromkeys(host for host in allowed_hosts if host))
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 

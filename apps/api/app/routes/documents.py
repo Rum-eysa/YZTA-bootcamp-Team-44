@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from app.services.compiler import compiler_service
-from fastapi import APIRouter, Request, UploadFile
+from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
@@ -13,11 +13,12 @@ async def _collect_uploads(request: Request) -> dict[str, bytes]:
     collected: dict[str, bytes] = {}
     form = await request.form()
     for key, value in form.multi_items():
-        if key not in ("file", "files") or not isinstance(value, UploadFile):
+        if key not in ("file", "files") or not hasattr(value, "read"):
             continue
-        if not value.filename:
+        filename = getattr(value, "filename", None)
+        if not filename:
             continue
-        name = Path(value.filename).name
+        name = Path(filename).name
         if name:
             collected[name] = await value.read()
     return collected
