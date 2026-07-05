@@ -1,16 +1,14 @@
 # Production Dockerfile - standalone output ile optimize
 FROM node:18-alpine AS deps
 WORKDIR /app
-RUN npm install -g pnpm
-COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev
 
 FROM node:18-alpine AS builder
 WORKDIR /app
-RUN npm install -g pnpm
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm run build
+RUN npm run build
 
 FROM node:18-alpine AS runner
 WORKDIR /app

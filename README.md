@@ -8,7 +8,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**Enterprise seviyesinde AI destekli staj başvuru yönetim platformu**
+**Kurumsal AI destekli staj başvuru yönetim platformu**
 
 [Özellikler](#-özellikler) • [Hızlı Başlangıç](#-hızlı-başlangıç) • [Mimari](#-mimari) • [API Dokümantasyonu](#-api-dokümantasyonu) • [Katkıda Bulunma](#-katkıda-bulunma)
 
@@ -16,27 +16,90 @@
 
 ---
 
-YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-ready bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş ve ölçeklenebilirlik, güvenlik ve bakım için sektör en iyi uygulamalarını takip eder.
+YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için üretime hazırtasarlanmı  bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş; ölçeklenebilirlik, güvenlik ve bakım için sektör uygulamalarını takip eder.
 
-## ✨ Özellikler
+## 👥 Takım İsmi
 
-- **🤖 AI Destekli Analiz** - Google Gemini AI ile akıllı başvuru değerlendirmesi
-- **🔐 Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme
-- **📝 Başvuru Yönetimi** - Tam staj başvuru yaşam döngüsü yönetimi
-- **⚡ Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme
-- **📊 Gözlemlenebilirlik** - Yapılandırılmış logging ve request tracing
-- **🛡️ Enterprise Güvenlik** - CORS, rate limiting, güvenlik başlıkları ve input validation
-- **🧪 Kapsamlı Testler** - Yüksek coverage ile unit ve integration testleri
-- **🚀 CI/CD Pipeline** - GitHub Actions ile otomatik test ve deployment
-- **🔄 Database Migrations** - Alembic ile versiyon kontrollü şema değişiklikleri
-- **🎨 Modern UI** - TailwindCSS ve Next.js 14 ile responsive arayüz
+YZTA Bootcamp Team 44
+
+## 🧑‍🤝‍🧑 Takım Rolleri
+
+| Rol | Kişi | GitHub |
+|-----|------|--------|
+| Product Owner | Rumeysa AĞIL| [@Rum-eysa](https://github.com/Rum-eysa) |
+| Scrum Master | Serkan YILDIZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+| Developer | Zeynep Maide DEMİR| [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+| Developer | Filiz Buzkıran | [@lizlavigne](https://github.com/lizlavigne) |
+
+## 📌 Ürün İsmi
+
+YZTA Bootcamp - AI Destekli Staj Başvuru Platformu
+
+## 📝 Ürün Açıklaması
+
+Bu proje, staj başvurularının daha hızlı, daha adil ve daha verimli bir şekilde değerlendirilmesini sağlamak amacıyla yapay zeka destekli bir çözüm sunar. Adayların başvuru metinlerini analiz ederek, kurumların değerlendirme sürecini kolaylaştırmayı ve insan kaynak süreçlerini desteklemeyi hedefler.
+
+## 💡 Problem Tanımı
+
+Staj başvuruları genellikle yüksek başvuru sayısı, manuel değerlendirme ve zaman kısıtları nedeniyle verimsiz bir sürece dönüşebilir. Bu proje ile başvuruların içerik analizi yapılarak ön değerlendirme süreci hızlandırılır, adayların uygunluğu daha net şekilde karşılaştırılabilir ve karar alma süreci desteklenir.
+
+## 📈 İş Değeri
+
+- Başvuru değerlendirme süresini azaltır.
+- Değerlendiricilere daha tutarlı bir ön analiz sunar.
+- İnsan kaynak süreçlerini daha verimli hale getirir.
+- Aday deneyimini daha şeffaf ve anlaşılır kılar.
+
+## ✨ Ürün Özellikleri
+
+- **🤖 AI Destekli Analiz** - Google Gemini ile akıllı başvuru değerlendirmesi.
+- **🔐 Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme.
+- **📝 Başvuru Yönetimi** - Tam staj başvuru yaşam döngüsü yönetimi.
+- **⚡ Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme.
+- **📊 İzlenebilirlik** - Yapılandırılmış loglama ve istek takibi.
+- **🛡️ Kurumsal Güvenlik** - CORS, hız sınırlama, güvenlik başlıkları ve giriş doğrulama.
+- **🧪 Kapsamlı Testler** - Yüksek kapsamlı birim ve entegrasyon testleri.
+- **🚀 Sürekli Entegrasyon / Dağıtım** - GitHub Actions ile otomatik test ve dağıtım.
+- **🔄 Veritabanı Göçleri** - Alembic ile versiyon kontrollü şema değişiklikleri.
+- **🎨 Modern Arayüz** - TailwindCSS ve Next.js 14 ile duyarlı kullanıcı arayüzü.
+
+## 🎯 Hedef Kitle
+
+- Öğrenciler
+- Staj veren şirketler
+- Bootcamp ve kariyer geliştirme programları
+- İnsan kaynak ve işe alım ekipleri
+
+## 📋 Ürün Backlog'u
+
+Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
+
+- [GitHub Projects Backlog](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553)
+- Sprint planları ve görev takibi burada güncellenmektedir.
+
+## 🔁 Sprint Planı
+
+### Sprint 1
+- Temel kullanıcı akışları ve sistem mimarisinin kurulması
+- Başvuru oluşturma ve görüntüleme işlevlerinin geliştirilmesi
+- İlk test senaryolarının hazırlanması
+
+### Sprint 2
+- AI destekli analiz akışının entegrasyonu
+- Kullanıcı deneyimini iyileştiren temel arayüz güncellemeleri
+- Geliştirme ve test süreçlerinin güçlendirilmesi
+
+### Sprint 3
+- Performans iyileştirmeleri ve hata düzeltmeleri
+- Kullanıcı geri bildirimlerine göre iyileştirmeler
+- Son kullanıcıya hazır hale getirme çalışmaları
 
 ## 🏗️ Mimari
 
 ```
 .
 ├── apps/
-│   ├── api/                          # FastAPI Backend Service
+│   ├── api/                         # FastAPI Backend Service
 │   │   ├── app/
 │   │   │   ├── main.py              # Application entry point
 │   │   │   ├── config.py            # Configuration management
@@ -64,7 +127,7 @@ YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-re
 │   │   ├── Dockerfile               # Production image
 │   │   └── alembic.ini              # Alembic config
 │   │
-│   └── web/                          # Next.js Frontend Service
+│   └── web/                         # Next.js Frontend Service
 │       ├── app/                     # App Router
 │       │   ├── page.tsx             # Landing page
 │       │   ├── layout.tsx           # Root layout
@@ -85,9 +148,9 @@ YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-re
 ├── docker-compose.yml               # Development environment
 ├── docker-compose.prod.yml          # Production environment
 ├── Makefile                         # Command shortcuts
-├── pyproject.toml                  # Python project config
+├── pyproject.toml                   # Python project config
 ├── .pre-commit-config.yaml          # Pre-commit hooks
-├── .editorconfig                   # Editor settings
+├── .editorconfig                    # Editor settings
 ├── .dockerignore                    # Docker ignore files
 ├── .gitignore                       # Git ignore rules
 ├── LICENSE                          # MIT License
@@ -99,17 +162,17 @@ YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için production-re
 ### Teknoloji Stack
 
 | Katman | Teknoloji | Amaç |
-|-------|-----------|------|
+| --- | --- | --- |
 | **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS | Modern, SEO dostu arayüz |
 | **Backend** | FastAPI, SQLAlchemy 2.0, Pydantic V2 | Yüksek performanslı async API |
-| **Database** | PostgreSQL 15 | Ana veri depolama |
-| **Cache** | Redis 7 | Önbellekleme ve session yönetimi |
-| **AI/ML** | Google Generative AI (Gemini) | Başvuru analizi |
-| **Infrastructure** | Docker, Docker Compose | Container orkestrasyonu |
-| **Testing** | Pytest, pytest-asyncio, Coverage | Kapsamlı testler |
-| **CI/CD** | GitHub Actions | Otomatik workflow'lar |
-| **Code Quality** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
-| **Gelecek** | Agent Sistemi (LangChain/CrewAI) | Otomatik workflow yönetimi |
+| **Veritabanı** | PostgreSQL 15 | Ana veri depolama |
+| **Önbellek** | Redis 7 | Önbellekleme ve oturum yönetimi |
+| **AI/ML** | Google Gemini | Başvuru analizi |
+| **Altyapı** | Docker, Docker Compose | Konteyner orkestrasyonu |
+| **Test** | Pytest, pytest-asyncio, Coverage | Kapsamlı testler |
+| **CI/CD** | GitHub Actions | Otomatik iş akışları |
+| **Kod Kalitesi** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
+| **Gelecek** | Agent Sistemi (LangChain/CrewAI) | Otomatik iş akışı yönetimi |
 
 ## 🚀 Hızlı Başlangıç
 
@@ -140,50 +203,50 @@ make build && make up
 - **API Dokümantasyonu**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## �️ Development
+## 🛠️ Geliştirme
 
-### Available Commands
+### Kullanılabilir Komutlar
 
 ```bash
-# Start services
+# Servisleri başlat
 make up
 
-# View logs
+# Logları görüntüle
 make logs
 
-# Run tests
+# Testleri çalıştır
 make test
 
-# Stop services
+# Servisleri durdur
 make down
 
-# Clean everything
+# Tüm ortamı temizle
 make clean
 
 # Production deployment
 make prod-up
 ```
 
-For more commands, run `make help` or check the [Makefile](./Makefile).
+Daha fazla komut için [Makefile](./Makefile) dosyasını inceleyebilirsiniz.
 
-### Environment Configuration
+### Ortam Yapılandırması
 
-Copy the example environment file:
+Örnek ortam dosyasını kopyalayın:
 
 ```bash
 cp .env.example .env.local
 ```
 
-**Critical Production Settings:**
-- `JWT_SECRET`: Strong secret key (32+ characters)
-- `DB_PASSWORD`: Secure database password
-- `DEBUG`: Set to `false`
-- `ENVIRONMENT`: Set to `production`
-- `GEMINI_API_KEY`: Valid Google Gemini API key
+**Önemli üretim ayarları:**
+- `JWT_SECRET`: Güçlü bir gizli anahtar (32+ karakter)
+- `DB_PASSWORD`: Güvenli veritabanı parolası
+- `DEBUG`: `false` olarak ayarlayın
+- `ENVIRONMENT`: `production` olarak ayarlayın
+- `GEMINI_API_KEY`: Geçerli bir Google Gemini API anahtarı
 
-## 🗄️ Database Yönetimi
+## 🗄️ Veritabanı Yönetimi
 
-Database migration'ları Alembic ile yönetilir:
+Veritabanı migration Alembic ile yönetilir:
 
 ```bash
 # Yeni migration oluştur

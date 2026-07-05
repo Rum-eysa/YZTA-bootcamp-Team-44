@@ -25,7 +25,9 @@ def setup_logging(log_level: int = logging.INFO) -> structlog.BoundLogger:
         cache_logger_on_first_use=True,
     )
 
-    logging.basicConfig(format="%(message)s", level=log_level, handlers=[logging.StreamHandler()])
+    logging.basicConfig(
+        format="%(message)s", level=log_level, handlers=[logging.StreamHandler()]
+    )
     logging.getLogger("uvicorn").setLevel(log_level)
     logging.getLogger("fastapi").setLevel(log_level)
 
