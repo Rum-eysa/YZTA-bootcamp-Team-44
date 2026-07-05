@@ -1,4 +1,5 @@
 """Authentication tests"""
+
 import pytest
 from httpx import AsyncClient
 
@@ -32,7 +33,7 @@ async def test_register_duplicate_email(client: AsyncClient):
             "full_name": "Test User",
         },
     )
-    
+
     response = await client.post(
         "/auth/register",
         json={
@@ -56,7 +57,7 @@ async def test_login(client: AsyncClient):
             "full_name": "Login User",
         },
     )
-    
+
     # Then login
     response = await client.post(
         "/auth/login",

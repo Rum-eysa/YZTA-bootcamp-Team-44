@@ -1,9 +1,9 @@
 ﻿"""Application repository"""
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Application
 from app.repositories.base import BaseRepository
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ApplicationRepository(BaseRepository[Application]):
@@ -21,7 +21,5 @@ class ApplicationRepository(BaseRepository[Application]):
 
     async def get_by_status(self, status: str):
         """Get applications by status"""
-        result = await self.session.execute(
-            select(Application).where(Application.status == status)
-        )
+        result = await self.session.execute(select(Application).where(Application.status == status))
         return list(result.scalars().all())

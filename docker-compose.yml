@@ -38,6 +38,27 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes
 
+  compiler:
+    build:
+      context: ./apps/compiler
+      dockerfile: Dockerfile
+    container_name: yzta_compiler
+    ports:
+      - "${COMPILER_PORT:-8081}:8080"
+    environment:
+      TECTONIC_CACHE_DIR: /cache
+      COMPILE_TIMEOUT_SECONDS: 120
+    volumes:
+      - compiler_cache:/cache
+    networks:
+      - yzta_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
   api:
     build:
       context: ./apps/api
@@ -51,6 +72,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-dev-secret-key-min-32-chars}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      COMPILER_URL: http://compiler:8080
       ENVIRONMENT: ${ENVIRONMENT:-local}
       DEBUG: ${DEBUG:-true}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
@@ -58,6 +80,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      compiler:
         condition: service_healthy
     volumes:
       - ./apps/api:/app
@@ -104,3 +128,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  compiler_cache:

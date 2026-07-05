@@ -5,18 +5,17 @@ from contextlib import asynccontextmanager
 from typing import Callable
 from urllib.parse import urlparse
 
+from app.config import settings
+from app.exceptions import APIException
+from app.logging_config import setup_logging
+from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.routes import agents, applications, auth, documents, health, users
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-
-from app.config import settings
-from app.exceptions import APIException
-from app.logging_config import setup_logging
-from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, health, users
 
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 
@@ -36,14 +35,19 @@ app = FastAPI(
     docs_url="/docs" if settings.DEBUG else None,
 )
 
-if not settings.DEBUG:
-    allowed_hosts = [
+allowed_hosts = ["localhost", "127.0.0.1", "test", "testserver"]
+
+if settings.ENVIRONMENT not in ("test",) and not settings.DEBUG:
+    parsed_hosts = [
         host.strip()
         for origin in settings.CORS_ORIGINS.split(",")
         if (host := urlparse(origin).netloc) or origin.strip()
     ]
-    if allowed_hosts:
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+    allowed_hosts.extend(parsed_hosts)
+
+allowed_hosts = list(dict.fromkeys(host for host in allowed_hosts if host))
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
@@ -66,6 +70,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(applications.router)
 app.include_router(agents.router)
+app.include_router(documents.router)
 
 
 @app.exception_handler(APIException)
@@ -90,9 +95,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(
-        "Unhandled exception", path=request.url.path, error=str(exc), exc_info=True
-    )
+    logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
     if settings.DEBUG:
         raise exc
     return JSONResponse(
@@ -107,9 +110,7 @@ async def add_security_headers(request: Request, call_next: Callable):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers[
-        "Strict-Transport-Security"
-    ] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 

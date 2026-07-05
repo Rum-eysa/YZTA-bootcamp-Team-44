@@ -1,4 +1,5 @@
 """Agent service for future AI agent integration"""
+
 import asyncio
 import json
 import time
@@ -6,10 +7,10 @@ import uuid
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, TypeVar, cast
 
 import redis.asyncio as redis
-
+import structlog
 from app.config import settings
 from app.logging_config import get_logger
 from app.models.agent import AgentTask, AgentWorkflow
@@ -97,9 +98,7 @@ class AgentContextManager(AbstractContextManager):
 class RetryStrategy:
     """Retry strategy configuration with exponential backoff"""
 
-    def __init__(
-        self, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0
-    ):
+    def __init__(self, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
         self.max_retries = max_retries
         self.base_delay = base_delay
         self.max_delay = max_delay
@@ -136,7 +135,9 @@ class BaseAgent(Generic[T], ABC):
             "on_retry": 0,
             "on_success": 0,
         }
-        self.logger = logger.bind(agent=self.name)
+        self.logger: structlog.BoundLogger = cast(
+            structlog.BoundLogger, logger.bind(agent=self.name)
+        )
         self._is_cancelled = False
 
     async def execute(self, payload: Any) -> T:
@@ -185,15 +186,10 @@ class BaseAgent(Generic[T], ABC):
                 return result
 
             except Exception as exc:
-                self.logger.exception(
-                    "agent_execution_failed", error=str(exc), agent=self.name
-                )
+                self.logger.exception("agent_execution_failed", error=str(exc), agent=self.name)
 
                 # Check if we should retry
-                if (
-                    self.retry_count < self.retry_strategy.max_retries
-                    and not self._is_cancelled
-                ):
+                if self.retry_count < self.retry_strategy.max_retries and not self._is_cancelled:
                     self.retry_count += 1
                     self.lifecycle_events["on_retry"] += 1
 
@@ -256,15 +252,9 @@ class BaseAgent(Generic[T], ABC):
         """Estimate token usage based on payload and result size"""
         try:
             payload_str = (
-                json.dumps(payload, default=str)
-                if not isinstance(payload, str)
-                else payload
+                json.dumps(payload, default=str) if not isinstance(payload, str) else payload
             )
-            result_str = (
-                json.dumps(result, default=str)
-                if not isinstance(result, str)
-                else result
-            )
+            result_str = json.dumps(result, default=str) if not isinstance(result, str) else result
             total_chars = len(payload_str) + len(result_str)
             return total_chars // 4  # Rough estimate: 1 token ≈ 4 characters
         except Exception:

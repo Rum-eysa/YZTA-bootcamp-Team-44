@@ -1,4 +1,4 @@
-.PHONY: up down build logs logs-api logs-web test ps restart clean migrate shell-api shell-web help
+.PHONY: up down build build-compiler compile-test logs logs-api logs-web test ps restart clean migrate shell-api shell-web help
 
 ## ─── Local Development ───────────────────────────────────────────────────────
 
@@ -10,6 +10,12 @@ down: ## Tüm servisleri durdur
 
 build: ## Image'ları yeniden build edip başlat
 	docker-compose up -d --build
+
+build-compiler: ## Compiler image'ını build et
+	docker-compose build compiler
+
+compile-test: ## Compiler smoke test'ini çalıştır
+	docker-compose run --rm --entrypoint ./scripts/smoke-test.sh compiler
 
 restart: ## Tüm servisleri yeniden başlat
 	docker-compose restart

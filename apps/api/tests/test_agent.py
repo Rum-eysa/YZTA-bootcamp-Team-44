@@ -1,10 +1,10 @@
 """Tests for Agent System - BaseAgent, Context Manager, Telemetry, Retry Logic"""
+
 import pytest
-from unittest.mock import Mock, patch
 from app.services.agent import (
-    BaseAgent,
     AgentContextManager,
     AgentTelemetry,
+    BaseAgent,
     RetryStrategy,
     agent_service,
 )
@@ -224,7 +224,7 @@ async def test_agent_service_get_all_agents_status():
     """Test AgentService get all agents status"""
     # Clear existing agents first
     agent_service._agents.clear()
-    
+
     agent1 = MockAgent("agent1", max_retries=3)
     agent2 = MockAgent("agent2", max_retries=3)
 

@@ -62,10 +62,13 @@ services:
       ENVIRONMENT: production
       DEBUG: false
       LOG_LEVEL: info
+      COMPILER_URL: http://compiler:8080
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      compiler:
         condition: service_healthy
     networks:
       - yzta_network_prod
@@ -78,8 +81,32 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 1G
+          cpus: '1'
+          memory: 512M
+
+  compiler:
+    build:
+      context: ./apps/compiler
+      dockerfile: Dockerfile
+    container_name: yzta_compiler_prod
+    environment:
+      TECTONIC_CACHE_DIR: /cache
+      COMPILE_TIMEOUT_SECONDS: 120
+    volumes:
+      - compiler_cache_prod:/cache
+    networks:
+      - yzta_network_prod
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
 
   web:
     build:
@@ -109,3 +136,4 @@ networks:
 volumes:
   postgres_data_prod:
   redis_data_prod:
+  compiler_cache_prod:

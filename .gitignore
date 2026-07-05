@@ -43,3 +43,14 @@ logs/
 # Local environment and artifacts
 .venv_ci/
 coverage.xml
+
+# LaTeX test outputs (local)
+*-output.pdf
+sample-output.pdf
+
+# Local LaTeX sources (not part of pipeline)
+/serkan.tex
+/altacv.cls
+/image.png
+/pubs-num.tex
+/sample.bib

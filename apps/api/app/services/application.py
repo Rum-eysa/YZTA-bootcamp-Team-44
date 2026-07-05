@@ -1,14 +1,14 @@
 ﻿"""Application/Staj baÅŸvuru service"""
+
 import uuid
 from typing import Optional
-
-from google import generativeai as genai
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import Application
 from app.repositories.application import ApplicationRepository
 from app.schemas.application import ApplicationCreate, ApplicationUpdate
+from google import generativeai as genai
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ApplicationService:
@@ -55,6 +55,8 @@ class ApplicationService:
             linkedin_url=application_data.linkedin_url,
             status="pending",
         )
+        if not self.repository:
+            raise RuntimeError("Database session is required to create applications")
         return await self.repository.create(db_application)
 
     async def update(
@@ -69,6 +71,8 @@ class ApplicationService:
         for field, value in update_data.items():
             setattr(db_application, field, value)
 
+        if not self.repository:
+            raise RuntimeError("Database session is required to update applications")
         return await self.repository.update(application_id, db_application)
 
     async def analyze_with_ai(self, application: Application) -> dict:
@@ -130,21 +134,15 @@ class ApplicationService:
             }
 
 
-async def create_application(
-    db: AsyncSession, application_data: ApplicationCreate
-) -> Application:
+async def create_application(db: AsyncSession, application_data: ApplicationCreate) -> Application:
     return await ApplicationService(db).create(application_data)
 
 
-async def get_application_by_id(
-    db: AsyncSession, application_id: str
-) -> Optional[Application]:
+async def get_application_by_id(db: AsyncSession, application_id: str) -> Optional[Application]:
     return await ApplicationService(db).get_by_id(application_id)
 
 
-async def get_applications_by_user(
-    db: AsyncSession, user_id: str, skip: int = 0, limit: int = 100
-):
+async def get_applications_by_user(db: AsyncSession, user_id: str, skip: int = 0, limit: int = 100):
     return await ApplicationService(db).get_by_user_id(user_id, skip, limit)
 
 

@@ -1,8 +1,6 @@
 """Application/Staj başvuru routes"""
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 from app.database import get_db
 from app.schemas.application import (
@@ -20,13 +18,13 @@ from app.services.application import (
     get_applications_by_user,
     update_application,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
 
 
-@router.post(
-    "", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
 async def create_application_endpoint(
     application_data: ApplicationCreate,
     user_id: Optional[str] = Query(None, description="User ID if authenticated"),
@@ -111,6 +109,8 @@ async def analyze_application(application_id: str, db: AsyncSession = Depends(ge
         ApplicationUpdate(
             ai_score=analysis["score"],
             ai_feedback=analysis["feedback"],
+            status=None,
+            reviewer_notes=None,
         ),
     )
 

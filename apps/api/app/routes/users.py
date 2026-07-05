@@ -1,11 +1,10 @@
 """User management routes"""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database import get_db
 from app.schemas.user import UserResponse, UserUpdate
 from app.services.user import get_user_by_id, update_user
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/users", tags=["Users"])
 

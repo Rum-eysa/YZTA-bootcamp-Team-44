@@ -1,21 +1,19 @@
 """Authentication routes"""
-from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import timedelta
 
 from app.config import settings
 from app.database import get_db
 from app.schemas.user import Token, TokenRefresh, UserCreate, UserLogin, UserResponse
 from app.services.auth import create_access_token, create_refresh_token, decode_token
 from app.services.user import authenticate_user, create_user, get_user_by_email
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user"""
     existing_user = await get_user_by_email(db, user_data.email)
