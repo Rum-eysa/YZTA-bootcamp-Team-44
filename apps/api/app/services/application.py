@@ -55,6 +55,8 @@ class ApplicationService:
             linkedin_url=application_data.linkedin_url,
             status="pending",
         )
+        if not self.repository:
+            raise RuntimeError("Database session is required to create applications")
         return await self.repository.create(db_application)
 
     async def update(
@@ -69,6 +71,8 @@ class ApplicationService:
         for field, value in update_data.items():
             setattr(db_application, field, value)
 
+        if not self.repository:
+            raise RuntimeError("Database session is required to update applications")
         return await self.repository.update(application_id, db_application)
 
     async def analyze_with_ai(self, application: Application) -> dict:

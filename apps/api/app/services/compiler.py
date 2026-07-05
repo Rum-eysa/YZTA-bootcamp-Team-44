@@ -29,7 +29,7 @@ class CompilerService:
             ) from exc
 
         if response.status_code == 200:
-            return response.content
+            return bytes(response.content)
 
         detail = response.json().get("detail", "Compilation failed")
         if isinstance(detail, dict):
