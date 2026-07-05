@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>YZTA Ajan Test Arayüzü</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 780px; margin: 40px auto; padding: 0 20px; background: #0f1216; color: #e8e8e8; }
+  h1 { font-size: 20px; }
+  h2 { font-size: 15px; margin-top: 32px; border-bottom: 1px solid #333; padding-bottom: 6px; }
+  label { display: block; margin-top: 10px; font-size: 13px; color: #aaa; }
+  input, textarea, select { width: 100%; box-sizing: border-box; padding: 8px; margin-top: 4px; background: #1a1e24; border: 1px solid #333; color: #eee; border-radius: 4px; font-family: inherit; }
+  textarea { min-height: 90px; }
+  button { margin-top: 12px; padding: 8px 16px; background: #3b82f6; border: none; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  button:hover { background: #2563eb; }
+  button:disabled { background: #444; cursor: not-allowed; }
+  pre { background: #1a1e24; padding: 12px; border-radius: 4px; white-space: pre-wrap; word-break: break-word; font-size: 13px; border: 1px solid #333; }
+  .status { font-size: 12px; padding: 8px; border-radius: 4px; margin-top: 8px; }
+  .ok { background: #14532d; color: #bbf7d0; }
+  .err { background: #7f1d1d; color: #fecaca; }
+  .section { border: 1px solid #2a2e35; border-radius: 6px; padding: 16px; margin-top: 16px; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+</style>
+</head>
+<body>
+
+<h1>YZTA Bootcamp — Ajan Test Arayüzü</h1>
+<p style="color:#888; font-size:13px">API: <code id="apiBase">http://localhost:8000</code> — Gemini kotası sınırlı, gereksiz tekrar tıklama yapma.</p>
+
+<div class="section">
+  <h2>1) Kayıt / Giriş</h2>
+  <label>E-posta</label>
+  <input id="email" value="" placeholder="ornek@test.com" />
+  <label>Şifre (min 8 karakter)</label>
+  <input id="password" type="password" value="TestPass123!" />
+  <label>Ad Soyad</label>
+  <input id="fullName" value="Ayşe Yılmaz" />
+  <div class="row">
+    <div><button onclick="register()">Kayıt Ol</button></div>
+    <div><button onclick="login()">Giriş Yap</button></div>
+  </div>
+  <div id="authStatus"></div>
+</div>
+
+<div class="section">
+  <h2>2) Profil (örnek CV bilgisi)</h2>
+  <label>Hedef Pozisyon</label>
+  <input id="targetPosition" value="Backend Developer" />
+  <label>Seviye</label>
+  <select id="seniority">
+    <option value="junior">junior</option>
+    <option value="mid">mid</option>
+    <option value="senior">senior</option>
+  </select>
+  <label>Deneyim (yıl)</label>
+  <input id="experienceYears" type="number" value="1" />
+  <label>Beceriler (virgülle ayır)</label>
+  <input id="skills" value="Python, FastAPI, SQL, Docker, Git" />
+  <label>Deneyim Özeti</label>
+  <textarea id="experienceSummary">Erzincan BYÜ Bilgisayar Mühendisliği son sınıf öğrencisi. Staj sırasında FastAPI ile REST API geliştirdi, PostgreSQL ile veritabanı şeması tasarladı.</textarea>
+  <label>Ton</label>
+  <select id="tonePreference">
+    <option value="professional">professional</option>
+    <option value="casual">casual</option>
+    <option value="confident">confident</option>
+  </select>
+  <button onclick="saveProfile()">Profili Kaydet</button>
+  <div id="profileStatus"></div>
+</div>
+
+<div class="section">
+  <h2>3) İlan Analizi (Gemini çağrısı)</h2>
+  <label>Şirket Adı</label>
+  <input id="companyName" value="Acme Yazılım A.Ş." />
+  <label>İlan Metni (min 50 karakter)</label>
+  <textarea id="listingText">Acme Yazılım A.Ş. olarak Backend Developer (Junior) arıyoruz. Python, FastAPI ve PostgreSQL deneyimi şart. Docker ve Redis bilgisi artı olarak değerlendirilir. AWS deneyimi tercih sebebidir.</textarea>
+  <button onclick="analyze()">İlanı Analiz Et</button>
+  <div id="analyzeStatus"></div>
+  <pre id="analyzeResult"></pre>
+</div>
+
+<div class="section">
+  <h2>4) Eşleştirme Skoru (Gemini çağrısı — ilk seferde, sonra cache'den)</h2>
+  <p style="color:#888; font-size:12px">Aynı listing_id'yi kullanır. Aynı ilan için tekrar basarsan cache'den (Gemini'ye gitmeden) döner.</p>
+  <button onclick="matchListing()">Eşleştir</button>
+  <div id="matchStatus"></div>
+  <pre id="matchResult"></pre>
+</div>
+
+<div class="section">
+  <h2>5) Şirkete Özel Önyazı Üret (Gemini çağrısı)</h2>
+  <p style="color:#888; font-size:12px">Önce yukarıdaki ilanı analiz etmen gerekiyor — listing_id otomatik doldurulur.</p>
+  <label>Listing ID</label>
+  <input id="listingId" placeholder="analiz sonrası otomatik dolar" />
+  <button onclick="generateCoverLetter()">Önyazı Üret</button>
+  <div id="coverStatus"></div>
+  <pre id="coverResult"></pre>
+</div>
+
+<div class="section">
+  <h2>6) CV Üret (LaTeX → PDF, Tectonic — Gemini kullanmaz)</h2>
+  <p style="color:#888; font-size:12px">Aynı listing_id'yi kullanır. PDF MinIO'ya yüklenir, link aşağıda çıkar.</p>
+  <button onclick="generateCV()">CV Üret</button>
+  <div id="cvStatus"></div>
+  <pre id="cvResult"></pre>
+</div>
+
+<script>
+const API = document.getElementById('apiBase').textContent;
+let token = null;
+
+function showStatus(id, ok, msg) {
+  const el = document.getElementById(id);
+  el.className = 'status ' + (ok ? 'ok' : 'err');
+  el.textContent = msg;
+}
+
+async function register() {
+  try {
+    const res = await fetch(`${API}/api/auth/register`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        full_name: document.getElementById('fullName').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    showStatus('authStatus', true, 'Kayıt başarılı: ' + data.email + ' — şimdi Giriş Yap.');
+  } catch (e) {
+    showStatus('authStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+async function login() {
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    token = data.access_token;
+    showStatus('authStatus', true, 'Giriş başarılı, token alındı.');
+  } catch (e) {
+    showStatus('authStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+function authHeaders() {
+  if (!token) throw new Error('Önce giriş yapmalısın');
+  return {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`};
+}
+
+async function saveProfile() {
+  try {
+    const skills = document.getElementById('skills').value.split(',').map(s => s.trim()).filter(Boolean);
+    const res = await fetch(`${API}/api/profiles/me`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        target_position: document.getElementById('targetPosition').value,
+        seniority: document.getElementById('seniority').value,
+        experience_years: Number(document.getElementById('experienceYears').value),
+        skills,
+        experience_summary: document.getElementById('experienceSummary').value,
+        tone_preference: document.getElementById('tonePreference').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    showStatus('profileStatus', true, 'Profil kaydedildi.');
+  } catch (e) {
+    showStatus('profileStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+async function analyze() {
+  try {
+    const res = await fetch(`${API}/api/analyze`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        listing_text: document.getElementById('listingText').value,
+        company_name: document.getElementById('companyName').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    document.getElementById('analyzeResult').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('listingId').value = data.listing_id;
+    showStatus('analyzeStatus', true, 'Analiz tamamlandı.');
+  } catch (e) {
+    showStatus('analyzeStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+async function matchListing() {
+  try {
+    const res = await fetch(`${API}/api/match`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        listing_id: document.getElementById('listingId').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    document.getElementById('matchResult').textContent = JSON.stringify(data, null, 2);
+    showStatus('matchStatus', true, `Skor: ${data.score}/100${data.cached ? ' (cache\'den)' : ''}`);
+  } catch (e) {
+    showStatus('matchStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+async function generateCoverLetter() {
+  try {
+    const res = await fetch(`${API}/api/generate-cover-letter`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        listing_id: document.getElementById('listingId').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    document.getElementById('coverResult').textContent = data.cover_letter_text;
+    showStatus('coverStatus', true, `Önyazı üretildi (${data.company_name} için).`);
+  } catch (e) {
+    showStatus('coverStatus', false, 'Hata: ' + e.message);
+  }
+}
+
+async function generateCV() {
+  try {
+    const res = await fetch(`${API}/api/generate-cv`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        listing_id: document.getElementById('listingId').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(JSON.stringify(data));
+    document.getElementById('cvResult').innerHTML = `<a href="${data.cv_url}" target="_blank" style="color:#60a5fa">${data.cv_url}</a>`;
+    showStatus('cvStatus', true, 'CV üretildi ve yüklendi.');
+  } catch (e) {
+    showStatus('cvStatus', false, 'Hata: ' + e.message);
+  }
+}
+</script>
+</body>
+</html>

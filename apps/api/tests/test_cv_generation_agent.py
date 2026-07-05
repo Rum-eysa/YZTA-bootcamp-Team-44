@@ -2,10 +2,10 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from app.agents.cv_generation import (
     CVGenerationAgent,
     CVGenerationException,
+    get_cv_generation_agent,
     latex_escape,
 )
 from app.exceptions import ValidationException
@@ -65,9 +65,7 @@ async def test_compile_retries_once_then_succeeds():
             proc.returncode = 0
         return proc
 
-    with patch(
-        "asyncio.create_subprocess_exec", side_effect=fake_create_subprocess_exec
-    ):
+    with patch("asyncio.create_subprocess_exec", side_effect=fake_create_subprocess_exec):
         pdf_bytes = await agent._compile_with_tectonic(
             "\\documentclass{article}\\begin{document}x\\end{document}"
         )
@@ -89,3 +87,34 @@ async def test_compile_raises_clean_exception_after_all_retries_fail():
     with patch("asyncio.create_subprocess_exec", side_effect=always_fail):
         with pytest.raises(CVGenerationException):
             await agent._compile_with_tectonic("broken tex", max_retries=2)
+
+
+@pytest.mark.asyncio
+async def test_generate_and_save_uploads_and_persists_document():
+    storage = MagicMock()
+    storage.upload_cv.return_value = "http://localhost:9000/cv-documents/cv/fake.pdf"
+    agent = CVGenerationAgent(storage=storage)
+    agent.generate = AsyncMock(return_value=b"%PDF-fake")
+    db = MagicMock()
+    db.add = MagicMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    document = await agent.generate_and_save(
+        db=db,
+        user_id="user-1",
+        listing_id="listing-1",
+        user_profile={"full_name": "Ayşe"},
+        job_analysis={"position_title": "Backend Developer"},
+    )
+
+    storage.upload_cv.assert_called_once_with("user-1", b"%PDF-fake")
+    assert document.doc_type == "cv"
+    assert document.cv_url == "http://localhost:9000/cv-documents/cv/fake.pdf"
+    db.add.assert_called_once()
+    db.commit.assert_awaited_once()
+    db.refresh.assert_awaited_once()
+
+
+def test_get_cv_generation_agent_returns_singleton():
+    assert get_cv_generation_agent() is get_cv_generation_agent()

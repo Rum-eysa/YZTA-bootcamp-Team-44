@@ -22,6 +22,7 @@ async def analyze_listing(
 
     listing = JobListing(
         title=result.get("position_title"),
+        company=payload.company_name,
         raw_text=payload.listing_text,
         required_skills=json.dumps(result.get("required_skills") or [], ensure_ascii=False),
         nice_to_have_skills=json.dumps(result.get("nice_to_have_skills") or [], ensure_ascii=False),

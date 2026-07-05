@@ -9,7 +9,17 @@ from app.config import settings
 from app.exceptions import APIException
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, analysis, auth, health, profiles, users
+from app.routes import (
+    agents,
+    analysis,
+    auth,
+    cover_letter,
+    cv_generation,
+    health,
+    match,
+    profiles,
+    users,
+)
 from app.services.storage import get_storage_service
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -73,6 +83,9 @@ app.include_router(users.router, prefix="/api")
 app.include_router(profiles.router, prefix="/api/profiles")
 app.include_router(agents.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
+app.include_router(cover_letter.router, prefix="/api")
+app.include_router(cv_generation.router, prefix="/api")
+app.include_router(match.router, prefix="/api")
 
 
 @app.exception_handler(APIException)
