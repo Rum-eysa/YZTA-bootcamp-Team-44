@@ -28,8 +28,6 @@ async def fetch_listing_text_from_url(url: str) -> str:
         text = response.text.strip()
 
     if len(text) < 50:
-        raise ValidationException(
-            "URL'den çıkarılan metin çok kısa (en az 50 karakter gerekli)"
-        )
+        raise ValidationException("URL'den çıkarılan metin çok kısa (en az 50 karakter gerekli)")
 
     return text[:20_000]

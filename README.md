@@ -10,7 +10,7 @@
 
 **Yapay zeka destekli kişiselleştirilmiş CV ile önyazı oluşturma ve başvuru takip platformu**
 
-[Özellikler](#-özellikler) • [Hızlı Başlangıç](#-hızlı-başlangıç) • [Mimari](#-mimari) • [API Dokümantasyonu](#-api-dokümantasyonu) • [Katkıda Bulunma](#-katkıda-bulunma)
+[Ürün Özellikleri](#ürün-özellikleri) • [Sprint Planı](#sprint-planı) • [Mimari](#mimari) • [Hızlı Başlangıç](#hızlı-başlangıç) • [API Dokümantasyonu](#api-dokümantasyonu) • [Katkıda Bulunma](#katkıda-bulunma)
 
 </div>
 
@@ -93,22 +93,25 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
   ![GitHub Project Board](docs/sprint-1/github-project-board.png)
 
-- **Sprint Puanlaması:** Her user story sabit 10 puan olarak değerlendirilmiştir. Toplam 120 puan (12 story); tamamlanan 120 puan (12 story, %100). Sprint 1 kapsamındaki tüm user story'ler tamamlanmıştır.
+- **Sprint Puanlaması:** Sprint 1 planı (19 Haziran – 5 Temmuz) toplam **62 story point** (12 user story). Story point'ler görev karmaşıklığına göre planlanmıştır (3–8 SP arası). Kod denetimi sonucu: **8 story tamamlandı**, **4 story kısmen tamamlandı** — kazanılan **~54 / 62 SP (%87)**. 
 
-  | Story | Başlık | Durum | Sorumlu |
-  | ----- | ------ | ----- | ------- |
-  | US-001 | Proje Altyapısı Kurulumu | Done | [@Rum-eysa](https://github.com/Rum-eysa) |
-  | US-002 | Supabase Kurulumu | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-003 | Veritabanı Şeması | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-004 | SPIKE: LaTeX → PDF (Tectonic + Docker) | Done | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
-  | US-005 | Authentication Sistemi | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-006 | Frontend: Ana Layout + Header + Sidebar | Done | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
-  | US-007 | Frontend: Login & Register Sayfaları | Done | [@lizlavigne](https://github.com/lizlavigne) |
-  | US-008 | Frontend: Kullanıcı Profil Formu | Done | [@lizlavigne](https://github.com/lizlavigne) |
-  | US-009 | Frontend: İlan Girişi (metin yapıştır / URL) | Done | [@lizlavigne](https://github.com/lizlavigne) |
-  | US-010 | Seed Verisi | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-011 | Temel Agent Sınıfı + Logging Framework | Done | [@Rum-eysa](https://github.com/Rum-eysa) |
-  | US-012 | Gemini API İstemci Wrapper'ı | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | Story | Başlık | SP | Öncelik | Durum | Kazanılan | Eksik (Sprint 2'ye taşınan) | Sorumlu |
+  | ----- | ------ | -- | ------- | ----- | --------- | --------------------------- | ------- |
+  | US-001 | Proje Altyapısı Kurulumu | 8 | must-have | ✅ Tamamlandı | 8 | — | [@Rum-eysa](https://github.com/Rum-eysa) |
+  | US-002 | Supabase Kurulumu | 5 | must-have | ⚠️ Kısmen | 3 | Supabase Auth/Storage yok; yalnızca DB bağlantısı + MinIO | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-003 | Veritabanı Şeması | 5 | must-have | ✅ Tamamlandı | 5 | `agent_tasks` migration drift (minor) | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-004 | SPIKE: LaTeX → PDF (Tectonic + Docker) | 8 | must-have | ✅ Tamamlandı | 8 | — | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+  | US-005 | Authentication Sistemi | 5 | must-have | ✅ Tamamlandı | 5 | `/api/analyze` JWT korumasız (minor) | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-006 | Frontend: Ana Layout + Header + Sidebar | 5 | must-have | ⚠️ Kısmen | 3 | Sidebar, mobil hamburger, dark mode | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+  | US-007 | Frontend: Login & Register Sayfaları | 5 | must-have | ✅ Tamamlandı | 5 | Server logout / token refresh UI (minor) | [@lizlavigne](https://github.com/lizlavigne) |
+  | US-008 | Frontend: Kullanıcı Profil Formu | 5 | high | ⚠️ Kısmen | 3 | `seniority`, `experience_years`, `tone_preference`; deneyim/eğitim CRUD | [@lizlavigne](https://github.com/lizlavigne) |
+  | US-009 | Frontend: İlan Girişi (metin / URL) | 3 | must-have | ⚠️ Kısmen | 2 | URL input gizli; ilan metadata API'ye gitmiyor | [@lizlavigne](https://github.com/lizlavigne) |
+  | US-010 | Seed Verisi | 3 | high | ⚠️ Kısmen | 2 | `matches` / `documents` seed yok | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-011 | Temel Agent Sınıfı + Logging Framework | 5 | high | ✅ Tamamlandı | 5 | — (+ 4 domain agent bonus) | [@Rum-eysa](https://github.com/Rum-eysa) |
+  | US-012 | Gemini API İstemci Wrapper'ı | 5 | must-have | ✅ Tamamlandı | 5 | — | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | | **Toplam** | **62** | | **8 tam · 4 kısmen** | **~54** | **~8 SP borç → Sprint 2** | |
+
+  **Özet:** Planlanan 62 SP'nin ~54'ü kazanıldı. Kısmi story'lerde toplam ~8 SP'lik iş Sprint 2 borç listesine taşındı. Sprint 1 kapsamı dışında erken tamamlanan bonus işler: 4 AI agent modülü, `POST /api/analyze`, MinIO depolama (~62 pytest).
 
 - **Daily Scrum:** Ekip 2 günde bir Slack Huddle üzerinden senkron toplantı yapmıştır. 
 
@@ -130,7 +133,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
   ![Ürün durumu — İlan Ekle](docs/sprint-1/urun-durumu-ilan-ekle.png)
 
-- **Sprint Review:** Sprint 1 hedefleri tamamlanmıştır (120/120 puan). Çıkan ürün testlerde kritik bir sorun göstermemiştir.
+- **Sprint Review:** Sprint 1 hedeflerinin büyük çoğunluğu tamamlandı (**~54 / 62 SP, %87**). Çıkan ürün testlerde kritik bir sorun göstermemiştir. 
 
   **Tamamlananlar:**
   - Monorepo altyapısı: FastAPI + Next.js + Docker Compose (PostgreSQL, Redis, MinIO)
@@ -146,23 +149,20 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
   - İlan analizi sonuçları şimdilik frontend'de sessionStorage ile tutuluyor; kalıcı başvuru takibi Sprint 2'ye planlandı
   - CV/önyazı üretimi backend'de hazır; kullanıcı arayüzüne uçtan uca entegrasyon Sprint 2 kapsamına alındı
 
-- **Sprint Retrospective:**
-  - **İyi giden:** Backend ve agent altyapısı erken tamamlandı; ekip 2 günde bir Slack Huddle ile düzenli ilerleme paylaştı.
-  - **İyileştirme:** Story point'ler sabit 10 puan verildi; Sprint 2'de görev karmaşıklığına göre farklılaştırılmalı.
-  - **İyileştirme:** GitHub Projects board'u sprint sonu kod durumuyla senkron tutulmalı.
-  - **Sprint 2 planı:** Başvuru takip dashboard'u (değerlendirme aşamaları), CV/önyazı üretim akışının UI entegrasyonu, frontend–backend E2E testleri ve analiz sonuçlarının veritabanında kalıcı saklanması.
+- **Sprint Retrospective:** 
+
+  - **İyi giden:** Backend ve agent altyapısı erken tamamlandı.
+  - **İyileştirme:** GitHub Projects board'u sprint sonu koxwd durumuyla senkron tutuldu.
+  - **İyileştirme:** Kısmi story'lerde eksik AC'ler Sprint 2 borç listesine taşındı (~8 SP).
+  - **Sprint 2 planlandı:** Sprint 1 retrospective sonrası Sprint 2 backlog'u revize edildi.
 
 </details>
 
 ### Sprint 2
-- AI destekli analiz akışının entegrasyonu
-- Kullanıcı deneyimini iyileştiren temel arayüz güncellemeleri
-- Geliştirme ve test süreçlerinin güçlendirilmesi
+
 
 ### Sprint 3
-- Performans iyileştirmeleri ve hata düzeltmeleri
-- Kullanıcı geri bildirimlerine göre iyileştirmeler
-- Son kullanıcıya hazır hale getirme çalışmaları
+
 
 ## Mimari
 

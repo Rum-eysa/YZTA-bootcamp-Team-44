@@ -22,6 +22,7 @@ from app.routes import (
 )
 from app.services.storage import get_storage_service
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -104,7 +105,7 @@ async def api_exception_handler(request: Request, exc: APIException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": "Request validation failed", "errors": exc.errors()},
+        content=jsonable_encoder({"detail": "Request validation failed", "errors": exc.errors()}),
     )
 
 
