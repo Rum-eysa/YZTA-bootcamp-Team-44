@@ -1,12 +1,16 @@
 ﻿"""Base repository for database operations"""
 
-from typing import Generic, List, Optional, Type, TypeVar
+from typing import Any, Generic, List, Optional, Protocol, Type, TypeVar
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import DeclarativeBase
 
-ModelType = TypeVar("ModelType", bound=DeclarativeBase)
+
+class HasId(Protocol):
+    id: Any
+
+
+ModelType = TypeVar("ModelType", bound=HasId)
 
 
 class BaseRepository(Generic[ModelType]):

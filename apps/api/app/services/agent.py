@@ -7,9 +7,10 @@ import uuid
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, TypeVar, cast
 
 import redis.asyncio as redis
+import structlog
 from app.config import settings
 from app.logging_config import get_logger
 from app.models.agent import AgentTask, AgentWorkflow
@@ -134,7 +135,9 @@ class BaseAgent(Generic[T], ABC):
             "on_retry": 0,
             "on_success": 0,
         }
-        self.logger = logger.bind(agent=self.name)
+        self.logger: structlog.BoundLogger = cast(
+            structlog.BoundLogger, logger.bind(agent=self.name)
+        )
         self._is_cancelled = False
 
     async def execute(self, payload: Any) -> T:

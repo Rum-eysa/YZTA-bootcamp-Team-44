@@ -109,6 +109,8 @@ async def analyze_application(application_id: str, db: AsyncSession = Depends(ge
         ApplicationUpdate(
             ai_score=analysis["score"],
             ai_feedback=analysis["feedback"],
+            status=None,
+            reviewer_notes=None,
         ),
     )
 

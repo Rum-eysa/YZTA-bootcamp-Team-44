@@ -38,8 +38,8 @@ class AgentTask(Base):
     priority: Mapped[int] = mapped_column(Integer, default=5)  # 1-10, higher is more important
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, default=3)
-    runtime_ms: Mapped[float] = mapped_column(Integer, nullable=True)
-    token_count: Mapped[int] = mapped_column(Integer, nullable=True)
+    runtime_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Timestamps
     scheduled_at: Mapped[datetime] = mapped_column(
