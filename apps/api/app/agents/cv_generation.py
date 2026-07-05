@@ -11,13 +11,12 @@ import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
-from jinja2 import Environment, FileSystemLoader
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.exceptions import APIException, ValidationException
 from app.logging_config import get_logger
 from app.models import Document
 from app.services.storage import StorageService, get_storage_service
+from jinja2 import Environment, FileSystemLoader
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("cv_generation_agent")
 
@@ -83,9 +82,7 @@ class CVGenerationAgent:
         return template.render(
             full_name=latex_escape(user_profile.get("full_name") or "Aday"),
             target_position=latex_escape(
-                job_analysis.get("position_title")
-                or user_profile.get("target_position")
-                or ""
+                job_analysis.get("position_title") or user_profile.get("target_position") or ""
             ),
             email=latex_escape(user_profile.get("email") or ""),
             phone=latex_escape(user_profile.get("phone") or ""),
@@ -94,16 +91,12 @@ class CVGenerationAgent:
             ),
             matched_skills=[latex_escape(s) for s in matched],
             other_skills=[latex_escape(s) for s in other],
-            experience_years=latex_escape(
-                user_profile.get("experience_years") or "belirtilmemiş"
-            ),
+            experience_years=latex_escape(user_profile.get("experience_years") or "belirtilmemiş"),
             seniority=latex_escape(user_profile.get("seniority") or "belirtilmemiş"),
             target_company=latex_escape(job_analysis.get("company") or ""),
         )
 
-    async def _compile_with_tectonic(
-        self, tex_source: str, max_retries: int = 2
-    ) -> bytes:
+    async def _compile_with_tectonic(self, tex_source: str, max_retries: int = 2) -> bytes:
         last_error = ""
         for attempt in range(1, max_retries + 1):
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -120,9 +113,7 @@ class CVGenerationAgent:
                     stderr=asyncio.subprocess.PIPE,
                 )
                 try:
-                    stdout, stderr = await asyncio.wait_for(
-                        proc.communicate(), timeout=60
-                    )
+                    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
                 except asyncio.TimeoutError:
                     proc.kill()
                     last_error = "tectonic timed out after 60s"
@@ -154,9 +145,7 @@ class CVGenerationAgent:
         if not user_profile:
             raise ValidationException("user_profile zorunludur")
 
-        tex_source = self._render_latex(
-            user_profile, job_analysis or {}, matched_skills or []
-        )
+        tex_source = self._render_latex(user_profile, job_analysis or {}, matched_skills or [])
         return await self._compile_with_tectonic(tex_source)
 
     async def generate_and_save(
@@ -171,9 +160,7 @@ class CVGenerationAgent:
         pdf_bytes = await self.generate(user_profile, job_analysis, matched_skills)
         cv_url = self.storage.upload_cv(user_id, pdf_bytes)
 
-        document = Document(
-            user_id=user_id, listing_id=listing_id, doc_type="cv", cv_url=cv_url
-        )
+        document = Document(user_id=user_id, listing_id=listing_id, doc_type="cv", cv_url=cv_url)
         db.add(document)
         await db.commit()
         await db.refresh(document)

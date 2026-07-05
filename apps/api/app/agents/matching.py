@@ -15,12 +15,11 @@ Skor formülü:
 import json
 from typing import Any, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.exceptions import ValidationException
 from app.logging_config import get_logger
 from app.models import Match
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("matching_agent")
 
@@ -47,9 +46,7 @@ def calculate_exact_score(
     missing_required = required_set - user_set
     matched_nice = nice_set & user_set
 
-    required_score = (
-        (len(matched_required) / len(required_set)) * 60 if required_set else 60.0
-    )
+    required_score = (len(matched_required) / len(required_set)) * 60 if required_set else 60.0
     nice_score = (len(matched_nice) / len(nice_set)) * 20 if nice_set else 20.0
 
     user_level = SENIORITY_ORDER.get((user_seniority or "").lower())
@@ -140,9 +137,7 @@ class MatchingAgent:
             listing_seniority=job_analysis.get("seniority"),
         )
 
-        semantic = await self._semantic_boost(
-            user_profile, job_analysis, exact["missing_skills"]
-        )
+        semantic = await self._semantic_boost(user_profile, job_analysis, exact["missing_skills"])
 
         final_score = min(round(exact["score"] + semantic["bonus"], 1), 100.0)
 

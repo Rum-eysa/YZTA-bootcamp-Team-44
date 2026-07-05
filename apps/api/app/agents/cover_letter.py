@@ -8,12 +8,11 @@ import json
 import re
 from typing import Any, Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.exceptions import ValidationException
 from app.logging_config import get_logger
 from app.models import Document
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("cover_letter_agent")
 
@@ -51,9 +50,7 @@ class CoverLetterAgent:
         if not user_profile or not job_analysis:
             raise ValidationException("user_profile ve job_analysis zorunludur")
 
-        tone = TONE_DISPLAY_NAMES.get(
-            tone_preference, TONE_DISPLAY_NAMES["professional"]
-        )
+        tone = TONE_DISPLAY_NAMES.get(tone_preference, TONE_DISPLAY_NAMES["professional"])
 
         prompt = render_prompt(
             "cover_letter",
@@ -74,9 +71,7 @@ class CoverLetterAgent:
                 tone=tone_preference,
             )
 
-        logger.info(
-            "cover_letter_generated", tone=tone_preference, word_count=word_count
-        )
+        logger.info("cover_letter_generated", tone=tone_preference, word_count=word_count)
         return text
 
     async def generate_and_save(
@@ -90,9 +85,7 @@ class CoverLetterAgent:
         tone_preference: str = "professional",
     ) -> Document:
         """Önyazıyı üretir ve `documents` tablosuna kaydeder"""
-        text = await self.generate(
-            user_profile, job_analysis, matching_gaps, tone_preference
-        )
+        text = await self.generate(user_profile, job_analysis, matching_gaps, tone_preference)
 
         document = Document(
             user_id=user_id,

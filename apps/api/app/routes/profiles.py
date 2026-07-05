@@ -1,12 +1,11 @@
 """User profile routes (US-008 alias)"""
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.routes.users import update_current_user
 from app.schemas.user import UserResponse, UserUpdate
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Profiles"])
 

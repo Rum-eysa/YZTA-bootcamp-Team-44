@@ -1,8 +1,7 @@
 """Ortak FastAPI dependency'leri"""
+from app.services.auth import decode_token, is_token_blacklisted
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
-from app.services.auth import decode_token, is_token_blacklisted
 
 security = HTTPBearer()
 

@@ -60,9 +60,7 @@ class AnalyzeListingAgent:
         await self.client.generate_with_tools(prompt, tools=[extract_job_requirements])
 
         if not captured:
-            logger.warning(
-                "listing_analysis_empty_result", listing_preview=listing_text[:120]
-            )
+            logger.warning("listing_analysis_empty_result", listing_preview=listing_text[:120])
             raise GeminiAPIException("Analiz ajanı ilan metninden veri çıkaramadı")
 
         logger.info(

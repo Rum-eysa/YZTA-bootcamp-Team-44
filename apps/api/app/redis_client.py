@@ -1,9 +1,8 @@
 """Async Redis client - token blacklist ve cache için"""
 from functools import lru_cache
 
-from redis.asyncio import Redis, from_url
-
 from app.config import settings
+from redis.asyncio import Redis, from_url
 
 
 @lru_cache

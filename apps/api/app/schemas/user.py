@@ -17,9 +17,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for user registration"""
 
-    password: str = Field(
-        ..., min_length=8, max_length=100, description="User password"
-    )
+    password: str = Field(..., min_length=8, max_length=100, description="User password")
 
 
 class UserProfileUpdate(BaseModel):
@@ -30,9 +28,7 @@ class UserProfileUpdate(BaseModel):
     experience_years: Optional[float] = Field(None, ge=0)
     skills: Optional[List[str]] = Field(None, description="Beceri listesi")
     experience_summary: Optional[str] = None
-    tone_preference: Optional[str] = Field(
-        None, description="professional/casual/confident"
-    )
+    tone_preference: Optional[str] = Field(None, description="professional/casual/confident")
 
 
 class UserUpdate(UserProfileUpdate):

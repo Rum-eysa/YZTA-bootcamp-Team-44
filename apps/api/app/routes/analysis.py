@@ -1,13 +1,12 @@
 """Analiz Ajanı'nı tetikleyen endpoint"""
 import json
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.database import get_db
 from app.models import JobListing
 from app.schemas.analysis import AnalyzeRequest, AnalyzeResponse
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Analysis"])
 
@@ -24,12 +23,8 @@ async def analyze_listing(
     listing = JobListing(
         title=result.get("position_title"),
         raw_text=payload.listing_text,
-        required_skills=json.dumps(
-            result.get("required_skills") or [], ensure_ascii=False
-        ),
-        nice_to_have_skills=json.dumps(
-            result.get("nice_to_have_skills") or [], ensure_ascii=False
-        ),
+        required_skills=json.dumps(result.get("required_skills") or [], ensure_ascii=False),
+        nice_to_have_skills=json.dumps(result.get("nice_to_have_skills") or [], ensure_ascii=False),
         seniority=result.get("seniority"),
         parsed_json=json.dumps(result, ensure_ascii=False),
         analysis_status="completed",

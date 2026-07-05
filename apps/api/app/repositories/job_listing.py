@@ -1,8 +1,7 @@
 """Job listing repository"""
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models import JobListing
 from app.repositories.base import BaseRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class JobListingRepository(BaseRepository[JobListing]):

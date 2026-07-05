@@ -9,16 +9,11 @@ import json
 from typing import Any, Optional
 
 import google.generativeai as genai
-from google.api_core.exceptions import (
-    DeadlineExceeded,
-    ResourceExhausted,
-    ServiceUnavailable,
-)
-
 from app.config import settings
 from app.exceptions import GeminiAPIException
 from app.logging_config import get_logger
 from app.redis_client import get_redis
+from google.api_core.exceptions import DeadlineExceeded, ResourceExhausted, ServiceUnavailable
 
 logger = get_logger("gemini_client")
 
@@ -106,9 +101,7 @@ class GeminiClient:
 
         if minute_count > FREE_TIER_RPM:
             logger.warning("gemini_rate_limited", scope="minute", count=minute_count)
-            raise GeminiAPIException(
-                "AI service rate limit exceeded, please retry shortly"
-            )
+            raise GeminiAPIException("AI service rate limit exceeded, please retry shortly")
         if day_count > FREE_TIER_RPD:
             logger.warning("gemini_rate_limited", scope="day", count=day_count)
             raise GeminiAPIException("Daily AI quota exceeded")
@@ -153,9 +146,7 @@ class GeminiClient:
                 if attempt < max_retries:
                     await asyncio.sleep(delay)
                     delay *= 2
-            except (
-                Exception
-            ) as exc:  # noqa: BLE001 - tüm Gemini hatalarını tekilleştiriyoruz
+            except Exception as exc:  # noqa: BLE001 - tüm Gemini hatalarını tekilleştiriyoruz
                 logger.error("gemini_call_failed", error=str(exc))
                 raise GeminiAPIException(f"Gemini API call failed: {exc}") from exc
 
@@ -219,9 +210,7 @@ class GeminiClient:
             raise GeminiAPIException("AI service temporarily unavailable") from exc
         except Exception as exc:  # noqa: BLE001
             logger.error("gemini_tools_call_failed", error=str(exc))
-            raise GeminiAPIException(
-                f"Gemini function-calling call failed: {exc}"
-            ) from exc
+            raise GeminiAPIException(f"Gemini function-calling call failed: {exc}") from exc
 
         self._log_usage(response, 1)
         return response.text

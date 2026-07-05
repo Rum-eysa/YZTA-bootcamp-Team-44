@@ -3,10 +3,9 @@ import uuid
 from functools import lru_cache
 
 import boto3
+from app.config import settings
 from botocore.client import Config
 from botocore.exceptions import ClientError
-
-from app.config import settings
 
 
 class StorageService:
