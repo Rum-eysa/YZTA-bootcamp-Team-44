@@ -46,6 +46,7 @@ class CoverLetterAgent:
         job_analysis: dict[str, Any],
         matching_gaps: dict[str, Any],
         tone_preference: str = "professional",
+        company_name: Optional[str] = None,
     ) -> str:
         if not user_profile or not job_analysis:
             raise ValidationException("user_profile ve job_analysis zorunludur")
@@ -55,6 +56,7 @@ class CoverLetterAgent:
         prompt = render_prompt(
             "cover_letter",
             tone=tone,
+            company_name=company_name or "belirtilen şirket",
             user_profile=json.dumps(user_profile, ensure_ascii=False),
             job_analysis=json.dumps(job_analysis, ensure_ascii=False),
             matching_gaps=json.dumps(matching_gaps, ensure_ascii=False),
@@ -83,9 +85,12 @@ class CoverLetterAgent:
         job_analysis: dict[str, Any],
         matching_gaps: dict[str, Any],
         tone_preference: str = "professional",
+        company_name: Optional[str] = None,
     ) -> Document:
         """Önyazıyı üretir ve `documents` tablosuna kaydeder"""
-        text = await self.generate(user_profile, job_analysis, matching_gaps, tone_preference)
+        text = await self.generate(
+            user_profile, job_analysis, matching_gaps, tone_preference, company_name
+        )
 
         document = Document(
             user_id=user_id,

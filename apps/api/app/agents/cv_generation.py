@@ -72,11 +72,8 @@ class CVGenerationAgent:
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
-        matched_skills: list[str],
     ) -> str:
-        skills = set(user_profile.get("skills") or [])
-        matched = sorted(skills & set(matched_skills)) if matched_skills else []
-        other = sorted(skills - set(matched))
+        skills = sorted(set(user_profile.get("skills") or []))
 
         template = _jinja_env.get_template("cv_template.tex.jinja")
         return template.render(
@@ -89,11 +86,9 @@ class CVGenerationAgent:
             experience_summary=latex_escape(
                 user_profile.get("experience_summary") or "Deneyim özeti eklenmedi."
             ),
-            matched_skills=[latex_escape(s) for s in matched],
-            other_skills=[latex_escape(s) for s in other],
+            all_skills=[latex_escape(s) for s in skills],
             experience_years=latex_escape(user_profile.get("experience_years") or "belirtilmemiş"),
             seniority=latex_escape(user_profile.get("seniority") or "belirtilmemiş"),
-            target_company=latex_escape(job_analysis.get("company") or ""),
         )
 
     async def _compile_with_tectonic(self, tex_source: str, max_retries: int = 2) -> bytes:
@@ -140,12 +135,11 @@ class CVGenerationAgent:
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
-        matched_skills: Optional[list[str]] = None,
     ) -> bytes:
         if not user_profile:
             raise ValidationException("user_profile zorunludur")
 
-        tex_source = self._render_latex(user_profile, job_analysis or {}, matched_skills or [])
+        tex_source = self._render_latex(user_profile, job_analysis or {})
         return await self._compile_with_tectonic(tex_source)
 
     async def generate_and_save(
@@ -155,9 +149,8 @@ class CVGenerationAgent:
         listing_id: Optional[str],
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
-        matched_skills: Optional[list[str]] = None,
     ) -> Document:
-        pdf_bytes = await self.generate(user_profile, job_analysis, matched_skills)
+        pdf_bytes = await self.generate(user_profile, job_analysis)
         cv_url = self.storage.upload_cv(user_id, pdf_bytes)
 
         document = Document(user_id=user_id, listing_id=listing_id, doc_type="cv", cv_url=cv_url)

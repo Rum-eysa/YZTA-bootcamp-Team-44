@@ -48,9 +48,14 @@ PROMPT_TEMPLATES: dict[str, str] = {
     ),
     "cover_letter": (
         "Aşağıdaki bilgilerle {tone} tonda, 300-500 kelimelik bir önyazı yaz.\n\n"
+        "Başvurulan şirket: {company_name}\n"
         "Aday profili: {user_profile}\nİlan analizi: {job_analysis}\n"
         "Eşleştirme eksikleri: {matching_gaps}\n\n"
         "Kurallar:\n"
+        "- Bu önyazı SADECE {company_name} için yazılıyor. Şirket adını en az bir kez "
+        "açıkça geçir ve ilan analizindeki pozisyona/gereksinimlere özel referanslar ver.\n"
+        "- Başka herhangi bir şirkete de gönderilebilecek genel/şablon ifadelerden kaçın; "
+        "her cümle bu ilana ve bu şirkete özel olmalı.\n"
         "- Adayın eşleşen becerilerini somut örneklerle vurgula.\n"
         "- Eksik becerileri gizleme ama öğrenmeye açık/ilgili deneyimle telafi ederek yumuşat.\n"
         "- Panoya kopyalanıp doğrudan gönderilecek, o yüzden markdown, başlık, yıldız "

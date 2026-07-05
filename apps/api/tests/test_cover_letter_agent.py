@@ -91,6 +91,28 @@ async def test_markdown_artifacts_are_stripped():
 
 
 @pytest.mark.asyncio
+async def test_company_name_reaches_prompt():
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+
+    await agent.generate(
+        USER_PROFILE, JOB_ANALYSIS, MATCHING_GAPS, company_name="Acme Yazılım"
+    )
+
+    assert "Acme Yazılım" in client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_missing_company_name_falls_back_to_placeholder():
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+
+    await agent.generate(USER_PROFILE, JOB_ANALYSIS, MATCHING_GAPS)
+
+    assert "belirtilen şirket" in client.last_prompt
+
+
+@pytest.mark.asyncio
 async def test_missing_profile_raises_validation_error():
     client = FakeGeminiClient(_words(350))
     agent = CoverLetterAgent(client=client)
