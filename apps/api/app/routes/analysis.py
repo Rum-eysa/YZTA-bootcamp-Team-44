@@ -5,6 +5,7 @@ from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysi
 from app.database import get_db
 from app.models import JobListing
 from app.schemas.analysis import AnalyzeRequest, AnalyzeResponse
+from app.services.listing_fetch import fetch_listing_text_from_url
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,13 +18,17 @@ async def analyze_listing(
     agent: AnalyzeListingAgent = Depends(get_listing_analysis_agent),
     db: AsyncSession = Depends(get_db),
 ):
-    """İlan metnini Analiz Ajanı ile ayrıştırır, job_listings tablosuna kaydeder"""
-    result = await agent.analyze(payload.listing_text)
+    """İlan metnini veya URL'sini Analiz Ajanı ile ayrıştırır, job_listings tablosuna kaydeder"""
+    listing_text = (payload.listing_text or "").strip()
+    if not listing_text and payload.listing_url:
+        listing_text = await fetch_listing_text_from_url(str(payload.listing_url))
+
+    result = await agent.analyze(listing_text)
 
     listing = JobListing(
         title=result.get("position_title"),
         company=payload.company_name,
-        raw_text=payload.listing_text,
+        raw_text=listing_text,
         required_skills=json.dumps(result.get("required_skills") or [], ensure_ascii=False),
         nice_to_have_skills=json.dumps(result.get("nice_to_have_skills") or [], ensure_ascii=False),
         seniority=result.get("seniority"),

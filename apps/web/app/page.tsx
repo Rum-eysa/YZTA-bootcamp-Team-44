@@ -1,93 +1,73 @@
 import Link from "next/link";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { AuthAwareLink } from "@/components/common/AuthAwareLink";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">YZTA Bootcamp</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/login" className="text-gray-700 hover:text-gray-900">
-                Giriş Yap
-              </Link>
-              <Link
-                href="/register"
-                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Kayıt Ol
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-surface-bright">
+      <AppHeader />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center">
-          <h2 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">
-            Yapay Zeka Destekli Staj Başvuru Platformu
-          </h2>
-          <p className="mt-4 text-xl text-gray-600">
-            YZTA Bootcamp ile kariyerinize başlayın. AI destekli değerlendirme sistemi ile başvurunuz
-            profesyonelce analiz edilir.
+      <main className="max-w-container-max mx-auto px-margin-mobile md:px-lg py-16">
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="text-headline-lg md:text-[48px] md:leading-[56px] font-bold text-on-surface">
+            Yapay Zeka Destekli Kariyer Platformu
+          </h1>
+          <p className="mt-4 text-body-lg text-on-surface-variant">
+            CareerTrack ile profilinizi oluşturun, iş ilanlarını analiz edin ve başvurularınızı
+            profesyonelce yönetin.
           </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <Link
-              href="/apply"
-              className="bg-primary-600 text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-primary-700 transition-colors"
-            >
-              Başvuru Yap
-            </Link>
-            <Link
-              href="/about"
-              className="bg-white text-gray-900 px-8 py-3 rounded-lg text-lg font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              Daha Fazla Bilgi
-            </Link>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <AuthAwareLink href="/apply" className="btn-primary px-8 py-3 text-lg">
+              İlan Ekle
+            </AuthAwareLink>
+            <AuthAwareLink href="/profile" className="btn-outline px-8 py-3 text-lg">
+              Profilimi Düzenle
+            </AuthAwareLink>
           </div>
         </div>
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="card">
-            <div className="text-primary-600 mb-4">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">AI Destekli Analiz</h3>
-            <p className="text-gray-600">
-              Google Gemini AI ile başvurunuz otomatik olarak analiz edilir ve size geri bildirim
-              sağlanır.
+            <h3 className="text-title-md font-semibold mb-2 text-primary">Profil Yönetimi</h3>
+            <p className="text-body-sm text-on-surface-variant">
+              Ad, e-posta, bio, beceriler ve ton tercihinizi kaydedin. AI ajanları profilinizi
+              hafızada tutar.
             </p>
+            <AuthAwareLink
+              href="/profile"
+              className="inline-block mt-4 text-primary text-body-sm font-semibold hover:underline"
+            >
+              Profile git →
+            </AuthAwareLink>
           </div>
 
           <div className="card">
-            <div className="text-primary-600 mb-4">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Güvenli Sistem</h3>
-            <p className="text-gray-600">
+            <h3 className="text-title-md font-semibold mb-2 text-primary">İlan Ekleme</h3>
+            <p className="text-body-sm text-on-surface-variant">
+              Şirket ve pozisyon bilgilerini girin, ilan metnini ekleyin ve AI analizini başlatın.
+            </p>
+            <AuthAwareLink
+              href="/apply"
+              className="inline-block mt-4 text-primary text-body-sm font-semibold hover:underline"
+            >
+              İlan ekle →
+            </AuthAwareLink>
+          </div>
+
+          <div className="card">
+            <h3 className="text-title-md font-semibold mb-2 text-primary">Güvenli Sistem</h3>
+            <p className="text-body-sm text-on-surface-variant">
               JWT tabanlı kimlik doğrulama ve modern güvenlik önlemleri ile verileriniz güvende.
             </p>
-          </div>
-
-          <div className="card">
-            <div className="text-primary-600 mb-4">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Hızlı İşlem</h3>
-            <p className="text-gray-600">
-              Modern teknoloji stack&apos;i ile hızlı ve sorunsuz bir kullanıcı deneyimi sunulur.
-            </p>
+            <Link
+              href="/register"
+              className="inline-block mt-4 text-primary text-body-sm font-semibold hover:underline"
+            >
+              Kayıt ol →
+            </Link>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

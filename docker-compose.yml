@@ -72,7 +72,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-dev-secret-key-min-32-chars}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       ENVIRONMENT: ${ENVIRONMENT:-local}
       DEBUG: ${DEBUG:-true}
       LOG_LEVEL: ${LOG_LEVEL:-debug}

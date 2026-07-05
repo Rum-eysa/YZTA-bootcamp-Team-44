@@ -22,6 +22,7 @@ from app.routes import (
 )
 from app.services.storage import get_storage_service
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -64,7 +65,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-cors_origins = settings.CORS_ORIGINS.split(",")
+cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -104,18 +105,19 @@ async def api_exception_handler(request: Request, exc: APIException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": "Request validation failed", "errors": exc.errors()},
+        content=jsonable_encoder({"detail": "Request validation failed", "errors": exc.errors()}),
     )
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
+    content: dict = {"detail": "Internal server error"}
     if settings.DEBUG:
-        raise exc
+        content["error"] = str(exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error"},
+        content=content,
     )
 
 

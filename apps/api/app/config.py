@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-flash-latest"
 
-    CORS_ORIGINS: str = "http://localhost:3000"
+    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     STORAGE_ENDPOINT: str = "http://localhost:9000"
     STORAGE_ACCESS_KEY: str = "yzta_minio"
