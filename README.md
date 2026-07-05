@@ -8,7 +8,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**Kurumsal AI destekli staj başvuru yönetim platformu**
+**Yapay zeka destekli kişiselleştirilmiş CV ile önyazı oluşturma ve başvuru takip platformu**
 
 [Özellikler](#-özellikler) • [Hızlı Başlangıç](#-hızlı-başlangıç) • [Mimari](#-mimari) • [API Dokümantasyonu](#-api-dokümantasyonu) • [Katkıda Bulunma](#-katkıda-bulunma)
 
@@ -16,13 +16,13 @@
 
 ---
 
-YZTA Bootcamp, yapay zeka destekli akıllı başvuru analizi için üretime hazırtasarlanmı  bir staj başvuru platformudur. Modern teknolojilerle inşa edilmiş; ölçeklenebilirlik, güvenlik ve bakım için sektör uygulamalarını takip eder.
+Projede, birden fazla iş ilanına başvuran adaylar için yapay zeka destekli bir kariyer platformudur. Her ilanın farklı beklentilerini analiz ederek kullanıcının CV'sini o ilana göre günceller, önyazısını oluşturur ve tüm başvurularını tek bir yerden takip etmesini sağlar.
 
-## 👥 Takım İsmi
+## Takım İsmi
 
-YZTA Bootcamp Team 44
+Takım 44
 
-## 🧑‍🤝‍🧑 Takım Rolleri
+## Takım Rolleri
 
 | Rol | Kişi | GitHub |
 |-----|------|--------|
@@ -31,58 +31,128 @@ YZTA Bootcamp Team 44
 | Developer | Zeynep Maide DEMİR| [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
 | Developer | Filiz Buzkıran | [@lizlavigne](https://github.com/lizlavigne) |
 
-## 📌 Ürün İsmi
+## Ürün İsmi
 
-YZTA Bootcamp - AI Destekli Staj Başvuru Platformu
+CareerTrack - AI destekli kişiselleştirilmiş CV ile önyazı oluşturma ve başvuru takip platformu
 
-## 📝 Ürün Açıklaması
+## Ürün Açıklaması
 
-Bu proje, staj başvurularının daha hızlı, daha adil ve daha verimli bir şekilde değerlendirilmesini sağlamak amacıyla yapay zeka destekli bir çözüm sunar. Adayların başvuru metinlerini analiz ederek, kurumların değerlendirme sürecini kolaylaştırmayı ve insan kaynak süreçlerini desteklemeyi hedefler.
+Kullanıcılar farklı şirketlere ve pozisyonlara aynı anda başvurabilir; ancak her iş ilanı farklı beceri ve deneyim beklentisi içerir. Platform, ilan metnini yapay zeka ile inceleyerek hangi özelliklerin arandığını çıkarır, kullanıcının o ilanda öne çıkması için CV'sini ilana özel şekilde günceller ve önyazısını oluşturur. Başvurulan tüm ilanlar da platform üzerinden takip edilebilir.
 
-## 💡 Problem Tanımı
+## Problem Tanımı
 
-Staj başvuruları genellikle yüksek başvuru sayısı, manuel değerlendirme ve zaman kısıtları nedeniyle verimsiz bir sürece dönüşebilir. Bu proje ile başvuruların içerik analizi yapılarak ön değerlendirme süreci hızlandırılır, adayların uygunluğu daha net şekilde karşılaştırılabilir ve karar alma süreci desteklenir.
+Birçok iş ilanına başvuran adaylar, her pozisyonun farklı gereksinimleri nedeniyle CV ve önyazılarını tek tek uyarlamak zorunda kalır. Bu süreç zaman alıcıdır ve başvuruların takibi dağınık hale gelebilir. Platform, ilanlardaki beklentileri otomatik analiz ederek adayın her başvuruya uygun dokümanları hazırlamasına ve tüm süreci merkezi olarak yönetmesine yardımcı olur.
 
-## 📈 İş Değeri
+## İş Değeri
 
-- Başvuru değerlendirme süresini azaltır.
-- Değerlendiricilere daha tutarlı bir ön analiz sunar.
-- İnsan kaynak süreçlerini daha verimli hale getirir.
-- Aday deneyimini daha şeffaf ve anlaşılır kılar.
+- Her iş ilanı için CV ve önyazıyı kişiselleştirir.
+- İlanda aranan beceri ve deneyimleri net şekilde ortaya çıkarır.
+- Adayın ilana uygunluğunu puanlayarak hangi başvurulara öncelik verileceğini gösterir.
+- Tüm başvuruları tek platformda takip ederek süreci düzenli hale getirir.
 
-## ✨ Ürün Özellikleri
+## Ürün Özellikleri
 
-- **🤖 AI Destekli Analiz** - Google Gemini ile akıllı başvuru değerlendirmesi.
-- **🔐 Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme.
-- **📝 Başvuru Yönetimi** - Tam staj başvuru yaşam döngüsü yönetimi.
-- **⚡ Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme.
-- **📊 İzlenebilirlik** - Yapılandırılmış loglama ve istek takibi.
-- **🛡️ Kurumsal Güvenlik** - CORS, hız sınırlama, güvenlik başlıkları ve giriş doğrulama.
-- **🧪 Kapsamlı Testler** - Yüksek kapsamlı birim ve entegrasyon testleri.
-- **🚀 Sürekli Entegrasyon / Dağıtım** - GitHub Actions ile otomatik test ve dağıtım.
-- **🔄 Veritabanı Göçleri** - Alembic ile versiyon kontrollü şema değişiklikleri.
-- **🎨 Modern Arayüz** - TailwindCSS ve Next.js 14 ile duyarlı kullanıcı arayüzü.
+- **AI Destekli İlan Analizi** - Google Gemini ile iş ilanındaki beceri ve deneyim beklentilerini çıkarma.
+- **Kişiselleştirilmiş CV Üretimi** - Her ilana özel, öne çıkmayı hedefleyen CV güncellemesi.
+- **Otomatik Önyazı** - İlan ve profil bilgisine göre önyazı oluşturma.
+- **Başvuru Takibi** - Başvurulan tüm iş ilanlarını aşama ve durum bazında izleme.
+- **Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme.
+- **Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme.
+- **İzlenebilirlik** - Yapılandırılmış loglama ve istek takibi.
+- **Kurumsal Güvenlik** - CORS, hız sınırlama, güvenlik başlıkları ve giriş doğrulama.
+- **Kapsamlı Testler** - Yüksek kapsamlı birim ve entegrasyon testleri.
+- **Sürekli Entegrasyon / Dağıtım** - GitHub Actions ile otomatik test ve dağıtım.
+- **Veritabanı Göçleri** - Alembic ile versiyon kontrollü şema değişiklikleri.
+- **Modern Arayüz** - TailwindCSS ve Next.js ile duyarlı kullanıcı arayüzü.
 
-## 🎯 Hedef Kitle
+## Hedef Kitle
 
-- Öğrenciler
-- Staj veren şirketler
-- Bootcamp ve kariyer geliştirme programları
-- İnsan kaynak ve işe alım ekipleri
+- Staj ve iş arayan öğrenciler
+- Birden fazla pozisyona eş zamanlı başvuran adaylar
+- Bootcamp ve kariyer geliştirme programı katılımcıları
+- CV ve önyazısını her ilana göre uyarlamak isteyen kullanıcılar
 
-## 📋 Ürün Backlog'u
+## Ürün Backlog'u
 
 Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 - [GitHub Projects Backlog](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553)
-- Sprint planları ve görev takibi burada güncellenmektedir.
+- Sprint planları ve görev takibi burada güncellenmektedir
+- Sprint 1 detayları için [Sprint 1](#sprint-1) bölümüne bakınız
 
-## 🔁 Sprint Planı
+## Sprint Planı
 
 ### Sprint 1
-- Temel kullanıcı akışları ve sistem mimarisinin kurulması
-- Başvuru oluşturma ve görüntüleme işlevlerinin geliştirilmesi
-- İlk test senaryolarının hazırlanması
+
+<details id="sprint-1">
+<summary><strong>Sprint 1 detayları için tıklayın</strong></summary>
+
+<br>
+
+- **Product Backlog:** Backlog ve sprint görevleri [GitHub Projects](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553) üzerinden yönetilmektedir. User story'ler `[US-00X]` formatında tanımlanmış; Status sütununda Todo, In Progress ve Done durumları takip edilmektedir.
+
+  ![GitHub Project Board](docs/sprint-1/github-project-board.png)
+
+- **Sprint Puanlaması:** Her user story sabit 10 puan olarak değerlendirilmiştir. Toplam 120 puan (12 story); tamamlanan 120 puan (12 story, %100). Sprint 1 kapsamındaki tüm user story'ler tamamlanmıştır.
+
+  | Story | Başlık | Durum | Sorumlu |
+  | ----- | ------ | ----- | ------- |
+  | US-001 | Proje Altyapısı Kurulumu | Done | [@Rum-eysa](https://github.com/Rum-eysa) |
+  | US-002 | Supabase Kurulumu | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-003 | Veritabanı Şeması | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-004 | SPIKE: LaTeX → PDF (Tectonic + Docker) | Done | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+  | US-005 | Authentication Sistemi | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-006 | Frontend: Ana Layout + Header + Sidebar | Done | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
+  | US-007 | Frontend: Login & Register Sayfaları | Done | [@lizlavigne](https://github.com/lizlavigne) |
+  | US-008 | Frontend: Kullanıcı Profil Formu | Done | [@lizlavigne](https://github.com/lizlavigne) |
+  | US-009 | Frontend: İlan Girişi (metin yapıştır / URL) | Done | [@lizlavigne](https://github.com/lizlavigne) |
+  | US-010 | Seed Verisi | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+  | US-011 | Temel Agent Sınıfı + Logging Framework | Done | [@Rum-eysa](https://github.com/Rum-eysa) |
+  | US-012 | Gemini API İstemci Wrapper'ı | Done | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
+
+- **Daily Scrum:** Ekip 2 günde bir Slack Huddle üzerinden senkron toplantı yapmıştır. 
+
+  *AI / Backend ilerleme paylaşımı — Zeynep'in agent sunumu:*
+
+  ![Daily Scrum — Agent sunumu](docs/sprint-1/daily-scrum-agent-sunumu.png)
+
+  *Frontend ilerleme paylaşımı — Serkan'ın UI prototip sunumu:*
+
+  ![Daily Scrum — Frontend sunumu](docs/sprint-1/daily-scrum-frontend-sunumu.png)
+
+- **Ürün Geliştirme Durumu:** Backend ve AI tarafında ilan analizi, aday uygunluk puanlama, kişiselleştirilmiş CV ve önyazı üretimi çalışır durumdadır (`POST /api/analyze`, Gemini client, agent framework, MinIO PDF depolama). Frontend tarafında CareerTrack arayüzünün profil ve ilan ekleme ekranları hazırlanmıştır; Next.js'te temel sayfalar mevcuttur (`login`, `register`, `profile`, `apply`).
+
+  *Profil sayfası — kullanıcı bilgileri, özet ve beceriler:*
+
+  ![Ürün durumu — Profil](docs/sprint-1/urun-durumu-profil.png)
+
+  *İlan ekleme sayfası — şirket, pozisyon ve ilan detayları:*
+
+  ![Ürün durumu — İlan Ekle](docs/sprint-1/urun-durumu-ilan-ekle.png)
+
+- **Sprint Review:** Sprint 1 hedefleri tamamlanmıştır (120/120 puan). Çıkan ürün testlerde kritik bir sorun göstermemiştir.
+
+  **Tamamlananlar:**
+  - Monorepo altyapısı: FastAPI + Next.js + Docker Compose (PostgreSQL, Redis, MinIO)
+  - Supabase/PostgreSQL şeması: `users`, `job_listings`, `matches`, `documents`
+  - JWT authentication, Redis token blacklist, seed verisi (`make seed`)
+  - AI agent katmanı: ilan analizi, eşleştirme, CV üretimi (Tectonic PDF), önyazı üretimi
+  - `POST /api/analyze`, `PATCH /api/profiles/me`, Gemini client (rate limit, token tracking)
+  - CareerTrack frontend: layout, login/register, profil ve ilan ekleme sayfaları; ilan analizi API entegrasyonu
+
+  **Alınan kararlar:**
+  - US-004: Standalone compiler kaldırıldı; Tectonic API Docker image içine gömüldü
+  - `applications` CRUD yerine agent odaklı veri modeli benimsendi
+  - İlan analizi sonuçları şimdilik frontend'de sessionStorage ile tutuluyor; kalıcı başvuru takibi Sprint 2'ye planlandı
+  - CV/önyazı üretimi backend'de hazır; kullanıcı arayüzüne uçtan uca entegrasyon Sprint 2 kapsamına alındı
+
+- **Sprint Retrospective:**
+  - **İyi giden:** Backend ve agent altyapısı erken tamamlandı; ekip 2 günde bir Slack Huddle ile düzenli ilerleme paylaştı.
+  - **İyileştirme:** Story point'ler sabit 10 puan verildi; Sprint 2'de görev karmaşıklığına göre farklılaştırılmalı.
+  - **İyileştirme:** GitHub Projects board'u sprint sonu kod durumuyla senkron tutulmalı.
+  - **Sprint 2 planı:** Başvuru takip dashboard'u (değerlendirme aşamaları), CV/önyazı üretim akışının UI entegrasyonu, frontend–backend E2E testleri ve analiz sonuçlarının veritabanında kalıcı saklanması.
+
+</details>
 
 ### Sprint 2
 - AI destekli analiz akışının entegrasyonu
@@ -94,7 +164,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 - Kullanıcı geri bildirimlerine göre iyileştirmeler
 - Son kullanıcıya hazır hale getirme çalışmaları
 
-## 🏗️ Mimari
+## Mimari
 
 ```
 .
@@ -103,78 +173,72 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │   ├── app/
 │   │   │   ├── main.py              # Application entry point
 │   │   │   ├── config.py            # Configuration management
-│   │   │   ├── models.py            # SQLAlchemy ORM models
 │   │   │   ├── database.py          # Database connection
-│   │   │   ├── exceptions.py        # Custom exceptions
-│   │   │   ├── middleware.py        # Custom middleware
-│   │   │   ├── logging_config.py    # Logging configuration
+│   │   │   ├── models/              # SQLAlchemy ORM (User, JobListing, Match, Document)
 │   │   │   ├── routes/              # API endpoints
-│   │   │   │   ├── auth.py          # Authentication endpoints
-│   │   │   │   ├── users.py         # User management
-│   │   │   │   ├── applications.py  # Application CRUD
-│   │   │   │   └── health.py        # Health checks
+│   │   │   │   ├── auth.py          # Authentication (/api/auth)
+│   │   │   │   ├── users.py         # User management (/api/users)
+│   │   │   │   ├── profiles.py      # Profile update (/api/profiles)
+│   │   │   │   ├── analysis.py      # İlan analizi (/api/analyze)
+│   │   │   │   ├── agents.py        # Agent task API (/api/agents)
+│   │   │   │   └── health.py        # Health checks (/health)
 │   │   │   ├── services/            # Business logic layer
-│   │   │   │   ├── auth.py          # Authentication service
+│   │   │   │   ├── auth.py          # JWT, token blacklist
 │   │   │   │   ├── user.py          # User service
-│   │   │   │   └── application.py   # Application service
-│   │   │   └── schemas/             # Pydantic schemas
-│   │   │       ├── user.py
-│   │   │       ├── application.py
-│   │   │       └── base.py
+│   │   │   │   ├── agent.py         # Agent task orchestration
+│   │   │   │   ├── gemini_client.py # Google Gemini wrapper
+│   │   │   │   ├── storage.py       # MinIO PDF depolama
+│   │   │   │   └── listing_fetch.py # URL'den ilan metni çekme
+│   │   │   ├── agents/              # AI agent modülleri
+│   │   │   │   ├── listing_analysis.py
+│   │   │   │   ├── matching.py
+│   │   │   │   ├── cv_generation.py
+│   │   │   │   └── cover_letter.py
+│   │   │   ├── repositories/        # Veritabanı erişim katmanı
+│   │   │   └── schemas/             # Pydantic request/response modelleri
+│   │   ├── scripts/
+│   │   │   └── seed_database.py     # Demo verisi (US-010)
 │   │   ├── tests/                   # Test suite
 │   │   ├── alembic/                 # Database migrations
-│   │   ├── requirements.txt         # Python dependencies
-│   │   ├── Dockerfile               # Production image
-│   │   └── alembic.ini              # Alembic config
+│   │   └── Dockerfile
 │   │
 │   └── web/                         # Next.js Frontend Service
 │       ├── app/                     # App Router
 │       │   ├── page.tsx             # Landing page
-│       │   ├── layout.tsx           # Root layout
-│       │   └── globals.css          # Global styles
-│       ├── lib/                     # Utilities
-│       │   ├── api.ts               # API client
-│       │   └── utils.ts             # Helper functions
-│       ├── components/              # React components (future)
-│       ├── public/                  # Static assets
-│       ├── package.json             # Node dependencies
-│       ├── tailwind.config.ts       # Tailwind config
-│       └── Dockerfile               # Production image
+│       │   ├── login/               # Giriş
+│       │   ├── register/            # Kayıt
+│       │   ├── profile/             # Profil formu
+│       │   ├── apply/               # İlan girişi
+│       │   └── analyze/[id]/      # Analiz sonuçları
+│       ├── components/              # UI ve layout bileşenleri
+│       ├── lib/                     # API client, validations
+│       └── Dockerfile
 │
-├── .github/                         # GitHub configuration
-│   └── workflows/                   # CI/CD pipelines
-│       └── ci.yml                   # Main CI workflow
-│
-├── docker-compose.yml               # Development environment
+├── docs/sprint-1/                   # Sprint dokümantasyon görselleri
+├── .github/workflows/ci.yml         # CI/CD pipeline
+├── docker-compose.yml               # Development (postgres, redis, minio, api, web)
 ├── docker-compose.prod.yml          # Production environment
 ├── Makefile                         # Command shortcuts
-├── pyproject.toml                   # Python project config
-├── .pre-commit-config.yaml          # Pre-commit hooks
-├── .editorconfig                    # Editor settings
-├── .dockerignore                    # Docker ignore files
-├── .gitignore                       # Git ignore rules
-├── LICENSE                          # MIT License
-├── README.md                        # This file
-├── CHANGELOG.md                     # Version history
-└── CONTRIBUTING.md                  # Contribution guidelines
+└── ...
 ```
 
 ### Teknoloji Stack
 
 | Katman | Teknoloji | Amaç |
 | --- | --- | --- |
-| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS | Modern, SEO dostu arayüz |
+| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS | Duyarlı kullanıcı arayüzü |
 | **Backend** | FastAPI, SQLAlchemy 2.0, Pydantic V2 | Yüksek performanslı async API |
-| **Veritabanı** | PostgreSQL 15 | Ana veri depolama |
-| **Önbellek** | Redis 7 | Önbellekleme ve oturum yönetimi |
-| **AI/ML** | Google Gemini | Başvuru analizi |
+| **Veritabanı** | PostgreSQL 15 / Supabase | Ana veri depolama |
+| **Önbellek** | Redis 7 | Token blacklist ve önbellekleme |
+| **Depolama** | MinIO (S3 uyumlu) | CV PDF dosya depolama |
+| **AI/ML** | Google Gemini | İlan analizi, eşleştirme, CV ve önyazı üretimi |
+| **PDF** | Tectonic (API image içinde) | LaTeX → PDF derleme |
 | **Altyapı** | Docker, Docker Compose | Konteyner orkestrasyonu |
-| **Test** | Pytest, pytest-asyncio, Coverage | Kapsamlı testler |
-| **CI/CD** | GitHub Actions | Otomatik iş akışları |
+| **Test** | Pytest, pytest-asyncio, Coverage | Birim ve entegrasyon testleri |
+| **CI/CD** | GitHub Actions | Otomatik test ve build |
 | **Kod Kalitesi** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
-| **Gelecek** | Agent Sistemi (LangChain/CrewAI) | Otomatik iş akışı yönetimi |
 
-## 🚀 Hızlı Başlangıç
+## Hızlı Başlangıç
 
 ### Gereksinimler
 
@@ -190,7 +254,7 @@ git clone https://github.com/Rum-eysa/YZTA-bootcamp-Team-44
 cd YZTA-bootcamp-Team-44
 
 # Environment değişkenlerini yapılandır
-cp .env.example .env.local
+cp .env.example .env
 
 # Tüm servisleri başlat
 make build && make up
@@ -202,8 +266,9 @@ make build && make up
 - **Backend API**: http://localhost:8000
 - **API Dokümantasyonu**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
+- **MinIO Console**: http://localhost:9001
 
-## 🛠️ Geliştirme
+## Geliştirme
 
 ### Kullanılabilir Komutlar
 
@@ -234,17 +299,18 @@ Daha fazla komut için [Makefile](./Makefile) dosyasını inceleyebilirsiniz.
 Örnek ortam dosyasını kopyalayın:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 **Önemli üretim ayarları:**
 - `JWT_SECRET`: Güçlü bir gizli anahtar (32+ karakter)
-- `DB_PASSWORD`: Güvenli veritabanı parolası
+- `SUPABASE_DB_URL` veya `DB_PASSWORD`: Veritabanı bağlantısı
+- `GEMINI_API_KEY`: Geçerli bir Google Gemini API anahtarı
+- `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD`: MinIO kimlik bilgileri
 - `DEBUG`: `false` olarak ayarlayın
 - `ENVIRONMENT`: `production` olarak ayarlayın
-- `GEMINI_API_KEY`: Geçerli bir Google Gemini API anahtarı
 
-## 🗄️ Veritabanı Yönetimi
+## Veritabanı Yönetimi
 
 Veritabanı migration Alembic ile yönetilir:
 
@@ -259,7 +325,7 @@ docker-compose exec api alembic upgrade head
 docker-compose exec api alembic downgrade -1
 ```
 
-## 🧪 Testler
+## Testler
 
 ```bash
 # Tüm testleri çalıştır
@@ -269,12 +335,12 @@ make test
 docker-compose exec api pytest tests/ --cov=app --cov-report=html
 ```
 
-## 📝 API Dokümantasyonu
+## API Dokümantasyonu
 
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🔧 Code Quality
+## Code Quality
 
 ### Pre-commit Hooks
 
@@ -286,7 +352,8 @@ pre-commit install
 ### Manuel Linting
 
 ```bash
-# Python
+# Python (apps/api dizininde)
+cd apps/api
 black app/
 isort app/
 flake8 app/
@@ -297,7 +364,7 @@ cd apps/web
 npm run lint
 ```
 
-## 🐳 Production Deployment
+## Production Deployment
 
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
@@ -313,60 +380,56 @@ docker-compose -f docker-compose.prod.yml up -d
 - [ ] Tüm testler geçti
 - [ ] Health check endpoint çalışıyor
 
-## 📚 API Endpoint'leri
+## API Endpoint'leri
+
+Tüm API route'ları `/api` prefix'i altında tanımlıdır (health hariç).
 
 ### Authentication
-- `POST /auth/register` - Kullanıcı kaydı
-- `POST /auth/login` - Kullanıcı girişi
-- `POST /auth/refresh` - Token yenileme
+- `POST /api/auth/register` - Kullanıcı kaydı
+- `POST /api/auth/login` - Kullanıcı girişi (JWT)
+- `POST /api/auth/refresh` - Token yenileme
+- `POST /api/auth/logout` - Çıkış (Redis token blacklist)
 
 ### Users
-- `GET /users/me` - Mevcut kullanıcı profili
-- `PUT /users/me` - Kullanıcı profili güncelleme
-- `GET /users/{user_id}` - Kullanıcı bilgisi
+- `GET /api/users/me` - Mevcut kullanıcı profili
+- `PUT /api/users/me` - Kullanıcı profili güncelleme
+- `GET /api/users/{user_id}` - Kullanıcı bilgisi
 
-### Applications
-- `POST /applications` - Başvuru oluşturma
-- `GET /applications` - Başvuru listesi
-- `GET /applications/{id}` - Başvuru detayları
-- `PUT /applications/{id}` - Başvuru güncelleme
-- `POST /applications/{id}/analyze` - AI analizi
+### Profiles
+- `PATCH /api/profiles/me` - Profil güncelleme (US-008)
+
+### Analysis
+- `POST /api/analyze` - İlan metni veya URL analizi (AI)
+
+### Agents
+- `POST /api/agents/tasks` - Agent görevi oluşturma
+- `GET /api/agents/tasks/{task_id}` - Görev durumu
+- `GET /api/agents/status` - Agent sistemi durumu
 
 ### Health
 - `GET /health` - Health check
 - `GET /health/ready` - Readiness probe
 
-### Agents (Gelecek Entegrasyon)
-- `POST /agents/tasks` - Agent görevi oluşturma
-- `GET /agents/tasks/{task_id}` - Görev durumu
-- `GET /agents/status` - Agent sistemi durumu
+## Agent Sistemi
 
-## � Future: Agent System Integration
+Sprint 1'de temel agent altyapısı ve dört AI modülü devreye alınmıştır:
 
-The architecture is designed to support future integration of AI agent systems for automated workflow management:
+- **İlan Analizi** — İş ilanındaki beceri ve deneyim beklentilerini çıkarır
+- **Eşleştirme** — Aday profili ile ilan arasında uygunluk puanı hesaplar
+- **CV Üretimi** — İlana özel CV oluşturur ve PDF olarak MinIO'ya kaydeder
+- **Önyazı Üretimi** — Profil ve ilan bilgisine göre önyazı metni üretir
 
-**Planned Features:**
-- **LangChain/CrewAI Integration** - Multi-agent workflows
-- **Automated Application Processing** - Intelligent routing and classification
-- **Smart Notifications** - Context-aware alerts
-- **Decision Support** - AI-powered recommendations
-- **Task Automation** - Automated follow-ups and scheduling
+Agent görevleri `POST /api/agents/tasks` üzerinden tetiklenebilir; Gemini client rate limiting ve token tracking ile çalışır.
 
-**Architecture Prepared:**
-- Service layer abstraction for agent integration
-- Event-driven architecture support
-- Async processing capabilities with Redis
-- Modular design for easy agent addition
-
-## 🤝 Katkıda Bulunma
+## Katkıda Bulunma
 
 Katkılarınızı bekliyoruz! Lütfen yönergeler için [CONTRIBUTING.md](./CONTRIBUTING.md) dosyasını okuyun.
 
-## 📜 Lisans
+## Lisans
 
 Bu proje MIT Lisansı altında lisanslanmıştır - detaylar için [LICENSE](./LICENSE) dosyasına bakın.
 
-## 📞 Destek
+## Destek
 
 Sorularınız ve desteğiniz için GitHub'da issue açabilirsiniz.
 

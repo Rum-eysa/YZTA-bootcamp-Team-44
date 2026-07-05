@@ -28,6 +28,9 @@ class UserProfileUpdate(BaseModel):
     experience_years: Optional[float] = Field(None, ge=0)
     skills: Optional[List[str]] = Field(None, description="Beceri listesi")
     experience_summary: Optional[str] = None
+    phone: Optional[str] = Field(None, max_length=50)
+    location: Optional[str] = Field(None, max_length=255)
+    birth_year: Optional[int] = Field(None, ge=1900, le=2100)
     tone_preference: Optional[str] = Field(None, description="professional/casual/confident")
 
 
@@ -48,6 +51,9 @@ class UserInDB(UserBase):
     experience_years: Optional[float] = None
     skills: Optional[List[str]] = None
     experience_summary: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
+    birth_year: Optional[int] = None
     tone_preference: Optional[str] = None
     created_at: datetime
     updated_at: datetime

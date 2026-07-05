@@ -26,6 +26,9 @@ class User(Base):
     experience_years: Mapped[float] = mapped_column(Float, nullable=True)
     skills: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array (string)
     experience_summary: Mapped[str] = mapped_column(Text, nullable=True)
+    phone: Mapped[str] = mapped_column(String(50), nullable=True)
+    location: Mapped[str] = mapped_column(String(255), nullable=True)
+    birth_year: Mapped[int] = mapped_column(nullable=True)
     tone_preference: Mapped[str] = mapped_column(
         String(50), nullable=True, default="professional"
     )  # professional/casual/confident
