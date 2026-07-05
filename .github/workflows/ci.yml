@@ -120,6 +120,7 @@ jobs:
       - name: Run tests
         working-directory: ./apps/api
         env:
+          PYTHONPATH: .
           DATABASE_URL: postgresql://yzta_user:yzta_password@localhost:5432/yzta_test
           REDIS_URL: redis://localhost:6379/0
           JWT_SECRET: test-secret-key-min-32-characters
