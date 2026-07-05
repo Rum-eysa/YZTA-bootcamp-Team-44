@@ -1,7 +1,6 @@
 """Document compilation proxy to the compiler service."""
 
 import httpx
-
 from app.config import settings
 from app.exceptions import APIException
 

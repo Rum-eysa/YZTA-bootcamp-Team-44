@@ -21,7 +21,8 @@ COPY --from=tectonic /usr/local/bin/tectonic /usr/local/bin/tectonic
 
 ENV TECTONIC_CACHE_DIR=/cache \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app
 
 WORKDIR /app
 
@@ -40,6 +41,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY fixtures/ ./fixtures/
 COPY scripts/ ./scripts/
+COPY tests/ ./tests/
 RUN chmod +x scripts/smoke-test.sh
 
 RUN mkdir -p /cache /tmp/prime \

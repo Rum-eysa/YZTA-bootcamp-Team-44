@@ -30,7 +30,10 @@ async def test_compile_multiple_files(client: AsyncClient):
         response = await client.post(
             "/documents/compile?main=serkan.tex",
             files=[
-                ("files", ("serkan.tex", r"\documentclass{altacv}", "application/x-tex")),
+                (
+                    "files",
+                    ("serkan.tex", r"\documentclass{altacv}", "application/x-tex"),
+                ),
                 ("files", ("altacv.cls", r"\ProvidesClass{altacv}", "text/plain")),
             ],
         )

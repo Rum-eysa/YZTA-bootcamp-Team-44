@@ -1,10 +1,10 @@
 """Authentication service"""
+
 from datetime import datetime, timedelta
 
+from app.config import settings
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-
-from app.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -27,9 +27,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 
@@ -38,18 +36,14 @@ def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=7)
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 
 def decode_token(token: str) -> dict | None:
     """Decode and validate JWT token"""
     try:
-        payload = jwt.decode(
-            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         return payload
     except JWTError:
         return None

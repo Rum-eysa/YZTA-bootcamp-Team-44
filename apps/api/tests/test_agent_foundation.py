@@ -1,6 +1,5 @@
 import pytest
-
-from app.services.agent import BaseAgent, AgentContextManager
+from app.services.agent import AgentContextManager, BaseAgent
 
 
 class SampleAgent(BaseAgent):

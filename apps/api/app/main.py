@@ -5,18 +5,17 @@ from contextlib import asynccontextmanager
 from typing import Callable
 from urllib.parse import urlparse
 
+from app.config import settings
+from app.exceptions import APIException
+from app.logging_config import setup_logging
+from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.routes import agents, applications, auth, documents, health, users
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-
-from app.config import settings
-from app.exceptions import APIException
-from app.logging_config import setup_logging
-from app.middleware import LoggingMiddleware, RequestIDMiddleware
-from app.routes import agents, applications, auth, documents, health, users
 
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 
@@ -91,9 +90,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(
-        "Unhandled exception", path=request.url.path, error=str(exc), exc_info=True
-    )
+    logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
     if settings.DEBUG:
         raise exc
     return JSONResponse(
@@ -108,9 +105,7 @@ async def add_security_headers(request: Request, call_next: Callable):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers[
-        "Strict-Transport-Security"
-    ] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 

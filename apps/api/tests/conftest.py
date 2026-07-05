@@ -3,13 +3,11 @@ import os
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import create_async_engine
-
 from app.config import settings
 from app.main import app
 from app.models import Base
-
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import create_async_engine
 
 DATABASE_URL = os.environ.get("DATABASE_URL", settings.DATABASE_URL)
 ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
@@ -38,4 +36,3 @@ async def prepare_database():
 async def client():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
-

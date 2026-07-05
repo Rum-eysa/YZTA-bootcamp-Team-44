@@ -1,4 +1,5 @@
 """Application/Staj başvuru schemas"""
+
 from datetime import datetime
 from typing import Optional
 
@@ -8,9 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ApplicationBase(BaseModel):
     """Base application schema"""
 
-    full_name: str = Field(
-        ..., min_length=2, max_length=255, description="Applicant full name"
-    )
+    full_name: str = Field(..., min_length=2, max_length=255, description="Applicant full name")
     email: str = Field(..., description="Applicant email")
     phone: str = Field(..., description="Applicant phone number")
     university: str = Field(..., description="University name")
@@ -34,9 +33,7 @@ class ApplicationUpdate(BaseModel):
     """Schema for updating an application"""
 
     status: Optional[str] = Field(None, description="Application status")
-    ai_score: Optional[float] = Field(
-        None, ge=0.0, le=100.0, description="AI analysis score"
-    )
+    ai_score: Optional[float] = Field(None, ge=0.0, le=100.0, description="AI analysis score")
     ai_feedback: Optional[str] = Field(None, description="AI analysis feedback")
     reviewer_notes: Optional[str] = Field(None, description="Reviewer notes")
 
@@ -74,10 +71,6 @@ class AIAnalysisResponse(BaseModel):
     application_id: str
     score: float = Field(..., ge=0.0, le=100.0, description="Analysis score (0-100)")
     feedback: str = Field(..., description="Detailed feedback")
-    strengths: list[str] = Field(
-        default_factory=list, description="Identified strengths"
-    )
-    weaknesses: list[str] = Field(
-        default_factory=list, description="Identified weaknesses"
-    )
+    strengths: list[str] = Field(default_factory=list, description="Identified strengths")
+    weaknesses: list[str] = Field(default_factory=list, description="Identified weaknesses")
     recommendation: str = Field(..., description="Overall recommendation")

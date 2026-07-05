@@ -1,4 +1,5 @@
 """Application tests"""
+
 import pytest
 from httpx import AsyncClient
 
@@ -61,7 +62,7 @@ async def test_get_application_by_id(client: AsyncClient):
         },
     )
     application_id = create_response.json()["id"]
-    
+
     # Get the application
     response = await client.get(f"/applications/{application_id}")
     assert response.status_code == 200
