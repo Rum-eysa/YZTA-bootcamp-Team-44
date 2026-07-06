@@ -81,6 +81,7 @@ function ApplyContent() {
       const result = await analyzeListing({
         listing_text: data.listing_text?.trim() || undefined,
         listing_url: data.listing_url?.trim() || undefined,
+        company_name: companyName.trim() || undefined,
       });
       saveAnalysisResult(result);
       router.push(`/analyze/${result.listing_id}`);

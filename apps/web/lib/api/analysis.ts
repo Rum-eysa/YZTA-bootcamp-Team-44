@@ -11,6 +11,9 @@ export async function analyzeListing(
   if (payload.listing_url?.trim()) {
     body.listing_url = payload.listing_url.trim();
   }
+  if (payload.company_name?.trim()) {
+    body.company_name = payload.company_name.trim();
+  }
   const { data } = await api.post<AnalyzeResponse>("/api/analyze", body);
   return data;
 }

@@ -160,6 +160,30 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 ### Sprint 2
 
+<details id="sprint-2">
+<summary><strong>Sprint 2 ilerleme durumu için tıklayın</strong></summary>
+
+<br>
+
+**Backend — tamamlanan (PR #50 + sonrası):**
+- `POST /api/match` — eşleştirme skoru (deterministik formül + Gemini semantik bonus, cache'li; Gemini erişilemezse deterministik skora düşer)
+- `POST /api/generate-cover-letter` — şirkete özel önyazı (ilanın `company_name`'i prompt'a işlenir)
+- `POST /api/generate-cv` — LaTeX/Tectonic ile PDF CV, MinIO'ya yüklenir
+- `POST /api/analyze` — URL'den ilan çekme desteği eklendi
+- Supabase RLS + sahiplik politikaları (migration 003)
+- Ajan birim test kapsamı %89 (81 test, CI yeşil)
+- Seed: matches/documents demo kayıtları eklendi
+
+**Frontend — tamamlanan:**
+- CareerTrack arayüzü: landing, login/register, profil, ilan girişi (metin + URL)
+- Sonuç sayfası: analiz çıktısı + **uygunluk skoru göstergesi** + eşleşen/eksik beceri karşılaştırması + **önyazı üret/kopyala** + **CV üret/indir** bölümleri (`/analyze/[id]`)
+
+**Devam eden / Sprint 3'e kalan:**
+- İş deneyimi & proje şeması + CRUD (US-013/019/020)
+- Orkestratör + hafıza katmanı (US-030, US-017)
+- E2E entegrasyon testleri, Sentry, staging deploy
+
+</details>
 
 ### Sprint 3
 
@@ -406,6 +430,11 @@ Tüm API route'ları `/api` prefix'i altında tanımlıdır (health hariç).
 
 ### Analysis
 - `POST /api/analyze` - İlan metni veya URL analizi (AI)
+
+### Matching & Documents (Sprint 2)
+- `POST /api/match` - Profil ↔ ilan eşleştirme skoru (cache'li)
+- `POST /api/generate-cover-letter` - Şirkete özel önyazı üretimi (AI)
+- `POST /api/generate-cv` - İlana özel PDF CV üretimi (LaTeX/Tectonic)
 
 ### Agents
 - `POST /api/agents/tasks` - Agent görevi oluşturma

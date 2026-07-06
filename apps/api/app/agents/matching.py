@@ -137,7 +137,15 @@ class MatchingAgent:
             listing_seniority=job_analysis.get("seniority"),
         )
 
-        semantic = await self._semantic_boost(user_profile, job_analysis, exact["missing_skills"])
+        # Gemini kotası/bağlantısı yoksa deterministik skor tek başına yeterli -
+        # semantik bonus opsiyonel bir iyileştirme, hatası eşleştirmeyi düşürmemeli
+        try:
+            semantic = await self._semantic_boost(
+                user_profile, job_analysis, exact["missing_skills"]
+            )
+        except Exception as exc:  # noqa: BLE001 - LLM hatası ne olursa olsun fallback
+            logger.warning("matching_semantic_boost_failed", error=str(exc))
+            semantic = {"bonus": 0.0, "readiness_summary": "", "semantic_matches": []}
 
         final_score = min(round(exact["score"] + semantic["bonus"], 1), 100.0)
 
