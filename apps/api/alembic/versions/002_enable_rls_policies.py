@@ -13,15 +13,16 @@ requests via anon key still can't match auth.uid() to our rows - the
 net effect is anon/authenticated are denied by default (defense in
 depth), while service_role (used by the backend) is unaffected.
 
-Revision ID: 002
-Revises: 001
+Revision ID: 003
+Revises: 002
 Create Date: 2026-07-06
 
 """
 from alembic import op
+import sqlalchemy as sa
 
-revision = '002'
-down_revision = '001'
+revision = '003'
+down_revision = '002'
 branch_labels = None
 depends_on = None
 
@@ -29,6 +30,14 @@ TABLES = ['users', 'job_listings', 'matches', 'documents', 'agent_tasks', 'agent
 
 
 def upgrade() -> None:
+    # Supabase auth şeması yoksa (yerel Docker Postgres) RLS atlanır
+    conn = op.get_bind()
+    has_auth_schema = conn.execute(
+        sa.text("SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth'")
+    ).scalar()
+    if not has_auth_schema:
+        return
+
     for table in TABLES:
         op.execute(f'ALTER TABLE {table} ENABLE ROW LEVEL SECURITY')
 
@@ -63,6 +72,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    conn = op.get_bind()
+    has_auth_schema = conn.execute(
+        sa.text("SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth'")
+    ).scalar()
+    if not has_auth_schema:
+        return
+
     op.execute('DROP POLICY IF EXISTS documents_owner_select ON documents')
     op.execute('DROP POLICY IF EXISTS matches_owner_select ON matches')
     op.execute('DROP POLICY IF EXISTS job_listings_owner_select ON job_listings')
