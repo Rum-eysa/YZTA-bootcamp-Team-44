@@ -258,6 +258,12 @@ cp .env.example .env
 
 # Tüm servisleri başlat
 make build && make up
+
+# Veritabanı tablolarını oluştur
+make migrate
+
+# (İsteğe bağlı) Demo kullanıcıları yükle
+make seed
 ```
 
 ### Erişim Noktaları

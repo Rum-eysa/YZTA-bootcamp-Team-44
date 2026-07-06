@@ -32,6 +32,18 @@ from fastapi.responses import JSONResponse
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
 
 
+def _cors_headers(request: Request) -> dict[str, str]:
+    origin = request.headers.get("origin")
+    allowed = {o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()}
+    if origin and origin in allowed:
+        return {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Vary": "Origin",
+        }
+    return {}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("API starting", environment=settings.ENVIRONMENT)
@@ -98,6 +110,7 @@ async def api_exception_handler(request: Request, exc: APIException):
             "error_code": exc.error_code,
             "request_id": getattr(request.state, "request_id", None),
         },
+        headers=_cors_headers(request),
     )
 
 
@@ -106,6 +119,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=jsonable_encoder({"detail": "Request validation failed", "errors": exc.errors()}),
+        headers=_cors_headers(request),
     )
 
 
@@ -118,6 +132,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=content,
+        headers=_cors_headers(request),
     )
 
 
