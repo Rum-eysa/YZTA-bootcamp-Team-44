@@ -24,14 +24,14 @@ from app.repositories.project import ProjectRepository
 from app.repositories.reference import ReferenceRepository
 from app.repositories.social_link import SocialLinkRepository
 from app.routes.users import update_current_user
+from app.schemas.certificate import CertificateCreate, CertificateResponse, CertificateUpdate
+from app.schemas.education import EducationCreate, EducationResponse, EducationUpdate
+from app.schemas.exam import ExamCreate, ExamResponse, ExamUpdate
 from app.schemas.experience import (
     WorkExperienceCreate,
     WorkExperienceResponse,
     WorkExperienceUpdate,
 )
-from app.schemas.education import EducationCreate, EducationResponse, EducationUpdate
-from app.schemas.certificate import CertificateCreate, CertificateResponse, CertificateUpdate
-from app.schemas.exam import ExamCreate, ExamResponse, ExamUpdate
 from app.schemas.language import LanguageCreate, LanguageResponse, LanguageUpdate
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.schemas.reference import ReferenceCreate, ReferenceResponse, ReferenceUpdate
@@ -93,9 +93,7 @@ async def update_experience(
     repo = WorkExperienceRepository(db)
     experience = await repo.get(experience_id)
     if not experience or experience.user_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found")
 
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(experience, field, value)
@@ -112,9 +110,7 @@ async def delete_experience(
     repo = WorkExperienceRepository(db)
     experience = await repo.get(experience_id)
     if not experience or experience.user_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Experience not found")
     await repo.delete(experience_id)
 
 

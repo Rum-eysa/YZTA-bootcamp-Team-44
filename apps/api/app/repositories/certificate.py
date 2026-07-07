@@ -19,4 +19,3 @@ class CertificateRepository(BaseRepository[Certificate]):
             .order_by(Certificate.issue_date.desc().nullslast())
         )
         return list(result.scalars().all())
-

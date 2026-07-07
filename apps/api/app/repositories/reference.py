@@ -19,4 +19,3 @@ class ReferenceRepository(BaseRepository[Reference]):
             .order_by(Reference.created_at.desc())
         )
         return list(result.scalars().all())
-

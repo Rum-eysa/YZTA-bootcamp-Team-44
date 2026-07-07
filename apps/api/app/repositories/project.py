@@ -17,8 +17,6 @@ class ProjectRepository(BaseRepository[Project]):
     async def list_by_user(self, user_id: str) -> List[Project]:
         """Bir kullanıcıya ait tüm projeler (yeniden eskiye)"""
         result = await self.session.execute(
-            select(Project)
-            .where(Project.user_id == user_id)
-            .order_by(Project.created_at.desc())
+            select(Project).where(Project.user_id == user_id).order_by(Project.created_at.desc())
         )
         return list(result.scalars().all())

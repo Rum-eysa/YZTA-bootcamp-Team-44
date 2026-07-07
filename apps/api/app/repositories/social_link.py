@@ -19,4 +19,3 @@ class SocialLinkRepository(BaseRepository[SocialLink]):
             .order_by(SocialLink.created_at.desc())
         )
         return list(result.scalars().all())
-

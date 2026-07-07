@@ -17,4 +17,3 @@ class LanguageRepository(BaseRepository[Language]):
             select(Language).where(Language.user_id == user_id).order_by(Language.created_at.desc())
         )
         return list(result.scalars().all())
-

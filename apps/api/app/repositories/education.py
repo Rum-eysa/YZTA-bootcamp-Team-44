@@ -19,4 +19,3 @@ class EducationRepository(BaseRepository[EducationRecord]):
             .order_by(EducationRecord.start_date.desc().nullslast())
         )
         return list(result.scalars().all())
-

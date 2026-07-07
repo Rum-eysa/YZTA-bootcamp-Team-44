@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
-from app.models import Document, JobListing, Match
+from app.models import Document, JobListing
 from app.repositories.job_listing import JobListingRepository
 from app.repositories.match import MatchRepository
 from app.schemas.listing import (
@@ -89,9 +89,7 @@ async def get_listing(
     match = await match_repo.get_by_user_and_listing(user_id, listing.id)
 
     docs_result = await db.execute(
-        select(Document).where(
-            Document.listing_id == listing.id, Document.user_id == user_id
-        )
+        select(Document).where(Document.listing_id == listing.id, Document.user_id == user_id)
     )
     documents = [
         ListingDocument(

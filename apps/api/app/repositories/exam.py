@@ -17,4 +17,3 @@ class ExamRepository(BaseRepository[Exam]):
             select(Exam).where(Exam.user_id == user_id).order_by(Exam.exam_date.desc().nullslast())
         )
         return list(result.scalars().all())
-
