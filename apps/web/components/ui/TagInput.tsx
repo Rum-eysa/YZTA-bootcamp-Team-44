@@ -55,13 +55,13 @@ export function TagInput({
         {value.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 bg-primary-fixed/20 text-primary px-2 py-1 rounded-full text-label-md"
+            className="inline-flex items-center gap-1 bg-primary-fixed/20 text-primary px-2 py-1 rounded-full text-label-md max-w-full"
           >
-            {tag}
+            <span className="break-all min-w-0">{tag}</span>
             <button
               type="button"
               onClick={() => removeTag(tag)}
-              className="hover:text-error transition-colors"
+              className="hover:text-error transition-colors shrink-0"
               aria-label={`${tag} kaldır`}
             >
               <X className="w-3 h-3" />

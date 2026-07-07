@@ -1,12 +1,13 @@
 "use client";
 
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AuthGuard } from "@/components/auth/AuthGuard";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
-import { SectionEditButton } from "@/components/ui/SectionEditButton";
+import { TagInput } from "@/components/ui/TagInput";
+import { useAuth } from "@/hooks/useAuth";
 import { analyzeListing, saveAnalysisResult } from "@/lib/api/analysis";
+import { patchProfile } from "@/lib/api/profiles";
 import { analysisSchema, type AnalysisFormData } from "@/lib/validations/analysis";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Building2, ImagePlus, PlusCircle, X } from "lucide-react";
@@ -15,27 +16,32 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
-const CITIES = ["İl Seçiniz", "İstanbul", "Ankara", "İzmir", "Bursa", "Antalya"];
-const DISTRICTS = ["İlçe Seçiniz", "Kadıköy", "Beşiktaş", "Çankaya", "Konak", "Nilüfer"];
+const TONE_OPTIONS = [
+  { value: "professional", label: "Profesyonel" },
+  { value: "casual", label: "Samimi" },
+  { value: "confident", label: "Kendinden Emin" },
+];
 
 function ApplyContent() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isFemale = user?.gender === "Kadın";
   const [apiError, setApiError] = useState<string>();
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [position, setPosition] = useState("");
-  const [city, setCity] = useState(CITIES[0]);
-  const [district, setDistrict] = useState(DISTRICTS[0]);
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
   const [companyAbout, setCompanyAbout] = useState("");
   const [extraNotes, setExtraNotes] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("Seçiniz");
   const [educationLevel, setEducationLevel] = useState("Seçiniz");
   const [militaryStatus, setMilitaryStatus] = useState("Seçiniz");
-  const [language, setLanguage] = useState("Seçiniz");
+  const [languages, setLanguages] = useState<string[]>([]);
   const [driverLicense, setDriverLicense] = useState("Seçiniz");
-  const [benefits, setBenefits] = useState<string[]>(["Yemek Kartı", "Özel Sağlık Sigortası"]);
+  const [benefits, setBenefits] = useState<string[]>([]);
   const [benefitInput, setBenefitInput] = useState("");
-  const [sectionSaved, setSectionSaved] = useState<string | null>(null);
+  const [tonePreference, setTonePreference] = useState(TONE_OPTIONS[0].value);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -50,11 +56,6 @@ function ApplyContent() {
   });
 
   const listingText = watch("listing_text") || "";
-
-  const showSaved = (key: string) => {
-    setSectionSaved(key);
-    setTimeout(() => setSectionSaved(null), 2000);
-  };
 
   const addBenefit = () => {
     const trimmed = benefitInput.trim();
@@ -78,12 +79,32 @@ function ApplyContent() {
   const onSubmit = async (data: AnalysisFormData) => {
     setApiError(undefined);
     try {
+      await patchProfile({ tone_preference: tonePreference });
+      const location = [city.trim(), district.trim()].filter(Boolean).join(", ");
+      const clean = (v: string) => {
+        const t = v.trim();
+        return t && t !== "Seçiniz" ? t : undefined;
+      };
       const result = await analyzeListing({
         listing_text: data.listing_text?.trim() || undefined,
         listing_url: data.listing_url?.trim() || undefined,
+        company_name: clean(companyName),
+        position_title: clean(position),
+        location: location || undefined,
+        company_about: clean(companyAbout),
+        extra_notes: clean(extraNotes),
+        benefits: benefits.length > 0 ? benefits : undefined,
+        experience_level: clean(experienceLevel),
+        education_level: clean(educationLevel),
+        military_status: isFemale ? undefined : clean(militaryStatus),
+        languages: languages.length > 0 ? languages : undefined,
+        driver_license: clean(driverLicense),
       });
       saveAnalysisResult(result);
-      router.push(`/analyze/${result.listing_id}`);
+      if (companyLogo) {
+        localStorage.setItem(`listing-logo:${result.listing_id}`, companyLogo);
+      }
+      router.push("/listings");
     } catch (err: unknown) {
       const response = (err as { response?: { status?: number; data?: { detail?: string } } })
         ?.response;
@@ -162,28 +183,18 @@ function ApplyContent() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-sm mt-md">
-              <select
+              <input
                 className="input-field py-1.5"
+                placeholder="Şehir"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-              >
-                {CITIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-              <select
+              />
+              <input
                 className="input-field py-1.5"
+                placeholder="İlçe"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-              >
-                {DISTRICTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
         </div>
@@ -194,18 +205,7 @@ function ApplyContent() {
           <div className="space-y-lg">
             <FormError message={apiError} />
 
-            <Card
-              title="Şirket Hakkında"
-              action={
-                <SectionEditButton
-                  label="Şirket Bilgisini Kaydet"
-                  onClick={() => showSaved("company")}
-                />
-              }
-            >
-              {sectionSaved === "company" && (
-                <p className="text-body-sm text-primary mb-2">Şirket bilgisi kaydedildi.</p>
-              )}
+            <Card title="Şirket Hakkında">
               <textarea
                 className="w-full h-40 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                 placeholder="Şirket kültürü, vizyonu ve çalışma ortamı hakkında bilgi veriniz..."
@@ -214,18 +214,7 @@ function ApplyContent() {
               />
             </Card>
 
-            <Card
-              title="İş İlanı Hakkında"
-              action={
-                <SectionEditButton
-                  label="İlan Hakkında Metnini Kaydet"
-                  onClick={() => showSaved("listing")}
-                />
-              }
-            >
-              {sectionSaved === "listing" && (
-                <p className="text-body-sm text-primary mb-2">İlan metni kaydedildi.</p>
-              )}
+            <Card title="İş İlanı Hakkında">
               <textarea
                 className="w-full h-48 bg-transparent border border-outline-variant rounded-lg p-4 text-body-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                 placeholder="İş tanımı ve beklentileri buraya yazınız..."
@@ -238,15 +227,7 @@ function ApplyContent() {
               <input type="hidden" {...register("listing_url")} />
             </Card>
 
-            <Card
-              title="Ekstra Notlar"
-              action={
-                <SectionEditButton label="Notları Kaydet" onClick={() => showSaved("notes")} />
-              }
-            >
-              {sectionSaved === "notes" && (
-                <p className="text-body-sm text-primary mb-2">Notlar kaydedildi.</p>
-              )}
+            <Card title="Ekstra Notlar">
               <textarea
                 className="w-full h-24 bg-transparent border border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
                 placeholder="Adaylara iletmek istediğiniz ek notlar..."
@@ -257,6 +238,32 @@ function ApplyContent() {
           </div>
 
           <div className="space-y-lg">
+            <Card title="Önyazı Tercihi">
+              <div className="space-y-1">
+                <label
+                  htmlFor="tone-preference"
+                  className="text-label-md text-on-surface-variant"
+                >
+                  Önyazı Tonu
+                </label>
+                <select
+                  id="tone-preference"
+                  className="input-field"
+                  value={tonePreference}
+                  onChange={(e) => setTonePreference(e.target.value)}
+                >
+                  {TONE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-body-sm text-on-surface-variant">
+                  Oluşturulacak önyazının üslubu bu tercihe göre belirlenir.
+                </p>
+              </div>
+            </Card>
+
             <Card title="Aday Kriterleri">
               <div className="space-y-md">
                 <div className="space-y-1">
@@ -278,34 +285,34 @@ function ApplyContent() {
                     value={educationLevel}
                     onChange={(e) => setEducationLevel(e.target.value)}
                   >
-                    {["Seçiniz", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => (
+                    {["Seçiniz", "Lise", "Lisans", "Yüksek Lisans", "Doktora"].map((o) => (
                       <option key={o}>{o}</option>
                     ))}
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-label-md text-on-surface-variant">Askerlik Durumu</label>
-                  <select
-                    className="input-field"
-                    value={militaryStatus}
-                    onChange={(e) => setMilitaryStatus(e.target.value)}
-                  >
-                    {["Seçiniz", "Yapıldı", "Muaf", "Tecilli"].map((o) => (
-                      <option key={o}>{o}</option>
-                    ))}
-                  </select>
-                </div>
+                {!isFemale && (
+                  <div className="space-y-1">
+                    <label className="text-label-md text-on-surface-variant">
+                      Askerlik Durumu
+                    </label>
+                    <select
+                      className="input-field"
+                      value={militaryStatus}
+                      onChange={(e) => setMilitaryStatus(e.target.value)}
+                    >
+                      {["Seçiniz", "Yapıldı", "Muaf", "Tecilli"].map((o) => (
+                        <option key={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <label className="text-label-md text-on-surface-variant">Yabancı Dil</label>
-                  <select
-                    className="input-field"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                  >
-                    {["Seçiniz", "İngilizce", "Almanca", "Fransızca"].map((o) => (
-                      <option key={o}>{o}</option>
-                    ))}
-                  </select>
+                  <TagInput
+                    value={languages}
+                    onChange={setLanguages}
+                    placeholder="Dil ekleyip Enter'a basın"
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-label-md text-on-surface-variant">Sürücü Belgesi</label>
@@ -378,11 +385,8 @@ function ApplyContent() {
 
 export default function ApplyPage() {
   return (
-    <div className="min-h-screen bg-surface-bright">
-      <AppHeader />
-      <AuthGuard>
-        <ApplyContent />
-      </AuthGuard>
-    </div>
+    <AppLayout>
+      <ApplyContent />
+    </AppLayout>
   );
 }

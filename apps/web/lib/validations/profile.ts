@@ -4,17 +4,42 @@ export const headerSchema = z.object({
   full_name: z
     .string()
     .min(1, "Ad alanı zorunludur")
-    .max(255, "Ad en fazla 255 karakter olabilir"),
+    .max(50, "Ad en fazla 50 karakter olabilir"),
   email: z.string().email("Geçerli bir e-posta adresi giriniz"),
   target_position: z
     .string()
     .min(1, "İş unvanı zorunludur")
-    .max(255, "İş unvanı en fazla 255 karakter olabilir"),
-  phone: z.string().max(50, "Telefon en fazla 50 karakter olabilir").optional().or(z.literal("")),
-  location: z.string().max(255, "Konum en fazla 255 karakter olabilir").optional().or(z.literal("")),
+    .max(50, "İş unvanı en fazla 50 karakter olabilir"),
+  seniority: z
+    .union([z.literal(""), z.enum(["junior", "mid", "senior"])])
+    .optional()
+    .or(z.literal("")),
+  experience_years: z
+    .union([
+      z.literal(""),
+      z.coerce
+        .number()
+        .min(0, "Deneyim yılı 0 veya daha büyük olmalıdır")
+        .max(60, "Deneyim yılı 60'tan büyük olamaz"),
+    ])
+    .optional(),
+  phone: z
+    .string()
+    .max(50, "Telefon en fazla 50 karakter olabilir")
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^\+90 \(\d{3}\) \d{3} \d{2} \d{2}$/.test(v),
+      "Telefon formatı geçersiz. Örn: +90 (555) 123 45 67"
+    ),
+  location: z.string().max(50, "Konum en fazla 50 karakter olabilir").optional().or(z.literal("")),
   birth_year: z.union([
     z.literal(""),
-    z.coerce.number().int().min(1900, "Geçerli bir doğum yılı giriniz").max(2100, "Geçerli bir doğum yılı giriniz"),
+    z.coerce
+      .number()
+      .int()
+      .min(1900, "Geçerli bir doğum yılı giriniz")
+      .max(new Date().getFullYear(), "Gelecek bir yıl seçemezsiniz"),
   ]).optional(),
 });
 
