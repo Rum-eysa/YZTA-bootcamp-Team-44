@@ -11,7 +11,7 @@ class UserBase(BaseModel):
     """Base user schema"""
 
     email: EmailStr = Field(..., description="User email address")
-    full_name: Optional[str] = Field(None, max_length=255, description="User full name")
+    full_name: Optional[str] = Field(None, max_length=50, description="User full name")
 
 
 class UserCreate(UserBase):
@@ -23,21 +23,25 @@ class UserCreate(UserBase):
 class UserProfileUpdate(BaseModel):
     """Schema for updating agent-facing profile fields (skills, ton, seniority...)"""
 
-    target_position: Optional[str] = Field(None, max_length=255)
+    target_position: Optional[str] = Field(None, max_length=50)
     seniority: Optional[str] = Field(None, description="junior/mid/senior")
     experience_years: Optional[float] = Field(None, ge=0)
     skills: Optional[List[str]] = Field(None, description="Beceri listesi")
     experience_summary: Optional[str] = None
     phone: Optional[str] = Field(None, max_length=50)
-    location: Optional[str] = Field(None, max_length=255)
+    location: Optional[str] = Field(None, max_length=50)
     birth_year: Optional[int] = Field(None, ge=1900, le=2100)
     tone_preference: Optional[str] = Field(None, description="professional/casual/confident")
+    gender: Optional[str] = Field(None, description="Cinsiyet")
+    nationality: Optional[str] = Field(None, description="Uyruk")
+    driver_license: Optional[str] = Field(None, description="Sürücü belgesi")
+    military_status: Optional[str] = Field(None, description="Askerlik durumu")
 
 
 class UserUpdate(UserProfileUpdate):
     """Schema for user profile update"""
 
-    full_name: Optional[str] = Field(None, max_length=255, description="User full name")
+    full_name: Optional[str] = Field(None, max_length=50, description="User full name")
     email: Optional[EmailStr] = Field(None, description="User email address")
 
 
@@ -55,6 +59,10 @@ class UserInDB(UserBase):
     location: Optional[str] = None
     birth_year: Optional[int] = None
     tone_preference: Optional[str] = None
+    gender: Optional[str] = None
+    nationality: Optional[str] = None
+    driver_license: Optional[str] = None
+    military_status: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

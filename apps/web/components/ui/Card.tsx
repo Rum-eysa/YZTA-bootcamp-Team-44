@@ -16,9 +16,9 @@ export function Card({ className, title, action, children, ...props }: CardProps
       {...props}
     >
       {(title || action) && (
-        <div className={cn("flex items-center mb-4", title ? "justify-between" : "justify-end")}>
-          {title && <h2 className="section-title">{title}</h2>}
-          {action}
+        <div className={cn("flex items-center gap-2 mb-4", title ? "justify-between" : "justify-end")}>
+          {title && <h2 className="section-title min-w-0 break-words">{title}</h2>}
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
       {children}

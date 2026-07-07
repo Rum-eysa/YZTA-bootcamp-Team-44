@@ -1,5 +1,31 @@
 """Repositories initialization"""
 
-from app.repositories import document, job_listing, match, user
+from app.repositories import (
+    certificate,
+    document,
+    education,
+    exam,
+    experience,
+    job_listing,
+    language,
+    match,
+    project,
+    reference,
+    social_link,
+    user,
+)
 
-__all__: list[str] = ["document", "job_listing", "match", "user"]
+__all__: list[str] = [
+    "certificate",
+    "document",
+    "education",
+    "exam",
+    "experience",
+    "job_listing",
+    "language",
+    "match",
+    "project",
+    "reference",
+    "social_link",
+    "user",
+]

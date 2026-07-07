@@ -12,6 +12,10 @@ export interface UserResponse {
   location: string | null;
   birth_year: number | null;
   tone_preference: string | null;
+  gender: string | null;
+  nationality: string | null;
+  driver_license: string | null;
+  military_status: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +32,10 @@ export interface UserUpdate {
   location?: string;
   birth_year?: number;
   tone_preference?: string;
+  gender?: string;
+  nationality?: string;
+  driver_license?: string;
+  military_status?: string;
 }
 
 export interface UserCreate {

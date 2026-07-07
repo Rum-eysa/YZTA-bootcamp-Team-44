@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User } from "lucide-react";
+import { LogOut, Menu, User } from "lucide-react";
 
 const navItems = [
   { href: "/profile", label: "Profil" },
   { href: "/apply", label: "İlan Ekle" },
+  { href: "/listings", label: "Başvurulan İlanlar" },
 ];
 
 function getInitials(name: string | null | undefined, email: string) {
@@ -23,7 +24,7 @@ function getInitials(name: string | null | undefined, email: string) {
   return email[0]?.toUpperCase() || "U";
 }
 
-export function AppHeader() {
+export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const { isAuthenticated, user, loading, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -44,7 +45,17 @@ export function AppHeader() {
   return (
     <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-50 w-full">
       <div className="flex justify-between items-center w-full px-margin-mobile md:px-lg max-w-container-max mx-auto h-16">
-        <div className="flex items-center gap-md">
+        <div className="flex items-center gap-sm md:gap-md">
+          {isAuthenticated && onMenuClick && (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              className="md:hidden p-1 -ml-1 text-on-surface-variant hover:text-primary transition-colors"
+              aria-label="Menüyü aç"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          )}
           <Link
             href="/"
             className="font-headline-lg text-headline-lg-mobile md:text-headline-lg font-bold text-primary"
@@ -55,20 +66,25 @@ export function AppHeader() {
 
         {isAuthenticated && (
           <nav className="hidden md:flex gap-lg items-center">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "font-title-md text-title-md transition-colors",
-                  pathname === item.href
-                    ? "text-primary"
-                    : "text-on-surface-variant hover:text-primary"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "font-title-md text-title-md transition-colors",
+                    active
+                      ? "text-primary font-semibold"
+                      : "text-on-surface-variant hover:text-primary"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         )}
 
