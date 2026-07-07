@@ -15,6 +15,9 @@ export async function analyzeListing(
   } else {
     delete body.listing_url;
   }
+  if (payload.company_name?.trim()) {
+    body.company_name = payload.company_name.trim();
+  }
   const { data } = await api.post<AnalyzeResponse>("/api/analyze", body);
   return data;
 }
