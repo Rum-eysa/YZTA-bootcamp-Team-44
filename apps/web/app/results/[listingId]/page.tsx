@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 
 function AnalyzeResultContent() {
   const params = useParams();
-  const listingId = params.id as string;
+  const listingId = params.listingId as string;
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(true);
 

@@ -3,10 +3,12 @@
 import { Button } from "@/components/ui/Button";
 import { FormError } from "@/components/ui/FormError";
 import { Input } from "@/components/ui/Input";
+import { MarkdownEditor } from "@/components/ui/MarkdownEditor";
 import { Modal } from "@/components/ui/Modal";
+import { Select } from "@/components/ui/Select";
 import { TagInput } from "@/components/ui/TagInput";
-import { Textarea } from "@/components/ui/Textarea";
 import { patchProfile } from "@/lib/api/profiles";
+import { formatTRPhone } from "@/lib/phone";
 import {
   COMING_SOON_SECTIONS,
   headerSchema,
@@ -31,11 +33,25 @@ interface ProfileEditModalProps {
   onSaved: (user: UserResponse) => void;
 }
 
+const SENIORITY_OPTIONS = [
+  { value: "", label: "Seçiniz" },
+  { value: "junior", label: "Junior" },
+  { value: "mid", label: "Mid" },
+  { value: "senior", label: "Senior" },
+];
+
 function normalizeHeaderPayload(data: HeaderFormData): UserUpdate {
   return {
     full_name: data.full_name,
     email: data.email,
     target_position: data.target_position,
+    seniority: data.seniority ? data.seniority : undefined,
+    experience_years:
+      data.experience_years === "" ||
+      data.experience_years === undefined ||
+      data.experience_years === null
+        ? undefined
+        : Number(data.experience_years),
     phone: data.phone?.trim() || undefined,
     location: data.location?.trim() || undefined,
     birth_year:
@@ -54,6 +70,7 @@ export function ProfileEditModal({
   onSaved,
 }: ProfileEditModalProps) {
   const [apiError, setApiError] = useState<string>();
+  const currentYear = new Date().getFullYear();
 
   const headerForm = useForm<HeaderFormData>({
     resolver: zodResolver(headerSchema),
@@ -61,6 +78,8 @@ export function ProfileEditModal({
       full_name: "",
       email: "",
       target_position: "",
+      seniority: "",
+      experience_years: "",
       phone: "",
       location: "",
       birth_year: "",
@@ -85,6 +104,8 @@ export function ProfileEditModal({
         full_name: profile.full_name || "",
         email: profile.email,
         target_position: profile.target_position || "",
+        seniority: (profile.seniority as HeaderFormData["seniority"]) || "",
+        experience_years: profile.experience_years ?? "",
         phone: profile.phone || "",
         location: profile.location || "",
         birth_year: profile.birth_year ?? "",
@@ -146,21 +167,48 @@ export function ProfileEditModal({
           className="space-y-4"
         >
           <FormError message={apiError} />
-          <Input label="Ad Soyad" error={errors.full_name?.message} {...register("full_name")} />
-          <Input label="E-posta" type="email" error={errors.email?.message} {...register("email")} />
+          <Input label="Ad Soyad" maxLength={50} error={errors.full_name?.message} {...register("full_name")} />
+          <Input label="E-posta" type="email" maxLength={255} error={errors.email?.message} {...register("email")} />
           <Input
             label="İş Unvanı"
+            maxLength={50}
             error={errors.target_position?.message}
             {...register("target_position")}
           />
-          <Input label="Telefon" placeholder="+90 500 000 00 00" error={errors.phone?.message} {...register("phone")} />
-          <Input label="Konum" placeholder="İstanbul, Türkiye" error={errors.location?.message} {...register("location")} />
+          <Select
+            label="Deneyim Seviyesi"
+            options={SENIORITY_OPTIONS}
+            error={errors.seniority?.message}
+            {...register("seniority")}
+          />
+          <Input
+            label="Deneyim Yılı"
+            type="number"
+            placeholder="3"
+            min="0"
+            max="60"
+            step="0.5"
+            error={errors.experience_years?.message}
+            {...register("experience_years")}
+          />
+          <Input
+            label="Telefon"
+            placeholder="+90 (555) 123 45 67"
+            inputMode="tel"
+            error={errors.phone?.message}
+            {...register("phone", {
+              onChange: (e) => {
+                headerForm.setValue("phone", formatTRPhone(e.target.value), { shouldValidate: true });
+              },
+            })}
+          />
+          <Input label="Konum" placeholder="İstanbul, Türkiye" maxLength={50} error={errors.location?.message} {...register("location")} />
           <Input
             label="Doğum Yılı"
             type="number"
             placeholder="2003"
             min="1900"
-            max="2100"
+            max={String(currentYear)}
             error={errors.birth_year?.message}
             {...register("birth_year")}
           />
@@ -169,15 +217,21 @@ export function ProfileEditModal({
     }
 
     if (section === "summary") {
-      const { register, handleSubmit, formState: { errors } } = summaryForm;
+      const {
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors },
+      } = summaryForm;
       return (
         <form id="profile-edit-form" onSubmit={handleSubmit(submitUpdate)} className="space-y-4">
           <FormError message={apiError} />
-          <Textarea
+          <MarkdownEditor
             label="Özgeçmiş Özeti"
-            className="min-h-[160px]"
+            value={watch("experience_summary") || ""}
+            onChange={(v) => setValue("experience_summary", v, { shouldValidate: true })}
             error={errors.experience_summary?.message}
-            {...register("experience_summary")}
+            placeholder="Madde eklemek için '-' ile başlayabilirsiniz. Kalın için **metin**"
           />
         </form>
       );
@@ -193,10 +247,11 @@ export function ProfileEditModal({
             control={control}
             render={({ field }) => (
               <TagInput
-                label="Beceriler"
+                label="Yetenekler"
                 value={field.value}
                 onChange={field.onChange}
                 error={errors.skills?.message}
+                placeholder="Yetenek ekleyip Enter'a basın"
               />
             )}
           />
