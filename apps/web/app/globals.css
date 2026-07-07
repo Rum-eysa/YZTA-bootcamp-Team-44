@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "@uiw/react-md-editor/markdown-editor.css";
-@import "@uiw/react-markdown-preview/markdown.css";
-
 @layer base {
   body {
     @apply bg-surface-bright text-on-surface;
