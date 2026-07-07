@@ -66,6 +66,20 @@ class JobListing(Base):
         String(20), default="pending"
     )  # pending/completed/failed
 
+    # US-053†: İlan detay/düzenleme ek alanları (kullanıcı tarafından düzenlenebilir)
+    location: Mapped[str] = mapped_column(String(255), nullable=True)
+    employment_type: Mapped[str] = mapped_column(String(100), nullable=True)  # Tam Zamanlı/...
+    company_about: Mapped[str] = mapped_column(Text, nullable=True)
+    extra_notes: Mapped[str] = mapped_column(Text, nullable=True)
+    benefits: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array (string)
+    experience_level: Mapped[str] = mapped_column(String(50), nullable=True)
+    education_level: Mapped[str] = mapped_column(String(50), nullable=True)
+    military_status: Mapped[str] = mapped_column(String(50), nullable=True)
+    languages: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array (string)
+    driver_license: Mapped[str] = mapped_column(String(50), nullable=True)
+    # Başvuru aşaması: review/interview/technical_test/offer/rejected
+    application_stage: Mapped[str] = mapped_column(String(30), default="review")
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

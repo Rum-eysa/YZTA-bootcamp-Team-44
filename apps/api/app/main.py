@@ -16,6 +16,7 @@ from app.routes import (
     cover_letter,
     cv_generation,
     health,
+    listings,
     match,
     profiles,
     users,
@@ -96,6 +97,7 @@ app.include_router(users.router, prefix="/api")
 app.include_router(profiles.router, prefix="/api/profiles")
 app.include_router(agents.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
+app.include_router(listings.router, prefix="/api/listings")
 app.include_router(cover_letter.router, prefix="/api")
 app.include_router(cv_generation.router, prefix="/api")
 app.include_router(match.router, prefix="/api")

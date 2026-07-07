@@ -1,7 +1,6 @@
 "use client";
 
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AuthGuard } from "@/components/auth/AuthGuard";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { AboutDetailsModal } from "@/components/profile/AboutDetailsModal";
 import { CertificateModal } from "@/components/profile/CertificateModal";
 import { EducationModal } from "@/components/profile/EducationModal";
@@ -1089,11 +1088,8 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <div className="min-h-screen bg-surface-bright">
-      <AppHeader />
-      <AuthGuard>
-        <ProfileContent />
-      </AuthGuard>
-    </div>
+    <AppLayout>
+      <ProfileContent />
+    </AppLayout>
   );
 }

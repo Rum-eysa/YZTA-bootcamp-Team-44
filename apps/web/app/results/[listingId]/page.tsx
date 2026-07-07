@@ -1,13 +1,28 @@
 "use client";
 
-import { AppHeader } from "@/components/layout/AppHeader";
-import { AuthGuard } from "@/components/auth/AuthGuard";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { FormError } from "@/components/ui/FormError";
 import { Spinner } from "@/components/ui/Spinner";
 import { getAnalysisResult } from "@/lib/api/analysis";
+import { generateCoverLetter } from "@/lib/api/coverLetter";
+import { generateCv } from "@/lib/api/cvGeneration";
+import { matchListing } from "@/lib/api/match";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import type { AnalyzeResponse } from "@/types/analysis";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import type { CoverLetterResponse } from "@/types/coverLetter";
+import type { CVGenerationResponse } from "@/types/cvGeneration";
+import type { MatchResponse } from "@/types/match";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Copy,
+  Download,
+  FileText,
+  Sparkles,
+  Target,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,11 +33,93 @@ function AnalyzeResultContent() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [matchResult, setMatchResult] = useState<MatchResponse | null>(null);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchError, setMatchError] = useState<string>();
+
+  const [cvResult, setCvResult] = useState<CVGenerationResponse | null>(null);
+  const [cvLoading, setCvLoading] = useState(false);
+  const [cvError, setCvError] = useState<string>();
+
+  const [coverLetterResult, setCoverLetterResult] = useState<CoverLetterResponse | null>(null);
+  const [coverLetterLoading, setCoverLetterLoading] = useState(false);
+  const [coverLetterError, setCoverLetterError] = useState<string>();
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
     const data = getAnalysisResult(listingId);
     setResult(data);
     setLoading(false);
   }, [listingId]);
+
+  async function handleMatch() {
+    setMatchError(undefined);
+    setMatchLoading(true);
+    try {
+      const data = await matchListing({ listing_id: listingId });
+      setMatchResult(data);
+    } catch (err: unknown) {
+      setMatchError(
+        getApiErrorMessage(
+          err,
+          "Uygunluk hesaplanamadı. Lütfen profilinizi kontrol edip tekrar deneyin."
+        )
+      );
+    } finally {
+      setMatchLoading(false);
+    }
+  }
+
+  async function handleGenerateCv() {
+    setCvError(undefined);
+    setCvLoading(true);
+    try {
+      const data = await generateCv({ listing_id: listingId });
+      setCvResult(data);
+    } catch (err: unknown) {
+      setCvError(
+        getApiErrorMessage(err, "CV oluşturulamadı. Lütfen tekrar deneyin.", {
+          serviceUnavailable:
+            "CV oluşturma servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+        })
+      );
+    } finally {
+      setCvLoading(false);
+    }
+  }
+
+  async function handleGenerateCoverLetter() {
+    setCoverLetterError(undefined);
+    setCoverLetterLoading(true);
+    try {
+      const data = await generateCoverLetter({ listing_id: listingId });
+      setCoverLetterResult(data);
+    } catch (err: unknown) {
+      setCoverLetterError(
+        getApiErrorMessage(
+          err,
+          "Önyazı oluşturulamadı. Lütfen tekrar deneyin.",
+          {
+            serviceUnavailable:
+              "Önyazı servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+          }
+        )
+      );
+    } finally {
+      setCoverLetterLoading(false);
+    }
+  }
+
+  async function handleCopyCoverLetter() {
+    if (!coverLetterResult?.cover_letter_text) return;
+    try {
+      await navigator.clipboard.writeText(coverLetterResult.cover_letter_text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCoverLetterError("Önyazı panoya kopyalanamadı.");
+    }
+  }
 
   if (loading) {
     return (
@@ -106,6 +203,138 @@ function AnalyzeResultContent() {
         </Card>
       </div>
 
+      <Card title="Başvuru Araçları">
+        <p className="text-body-sm text-on-surface-variant mb-4">
+          Analiz tamamlandı. Profilinize göre uygunluk skorunu hesaplayabilir, ilana özel CV ve
+          önyazı oluşturabilirsiniz.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-lg border border-outline-variant p-4 space-y-3">
+            <div className="flex items-center gap-2 text-primary">
+              <Target className="w-4 h-4" />
+              <span className="text-label-md font-semibold">Uygunluk</span>
+            </div>
+            <p className="text-body-sm text-on-surface-variant">
+              Profiliniz ile ilan arasındaki eşleşme skorunu hesaplar.
+            </p>
+            <Button onClick={handleMatch} loading={matchLoading} className="w-full">
+              Uygunluğumu Hesapla
+            </Button>
+            <FormError message={matchError} />
+          </div>
+
+          <div className="rounded-lg border border-outline-variant p-4 space-y-3">
+            <div className="flex items-center gap-2 text-primary">
+              <FileText className="w-4 h-4" />
+              <span className="text-label-md font-semibold">CV</span>
+            </div>
+            <p className="text-body-sm text-on-surface-variant">
+              İlana özel PDF CV oluşturur ve indirme linki sunar.
+            </p>
+            <Button onClick={handleGenerateCv} loading={cvLoading} className="w-full">
+              CV Oluştur
+            </Button>
+            <FormError message={cvError} />
+          </div>
+
+          <div className="rounded-lg border border-outline-variant p-4 space-y-3">
+            <div className="flex items-center gap-2 text-primary">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-label-md font-semibold">Önyazı</span>
+            </div>
+            <p className="text-body-sm text-on-surface-variant">
+              Şirkete özel önyazı metni üretir.
+            </p>
+            <Button onClick={handleGenerateCoverLetter} loading={coverLetterLoading} className="w-full">
+              Önyazı Oluştur
+            </Button>
+            <FormError message={coverLetterError} />
+          </div>
+        </div>
+      </Card>
+
+      {matchResult && (
+        <Card title="Uygunluk Sonucu">
+          <div className="flex flex-wrap items-center gap-3 mb-4">
+            <span className="text-headline-md font-semibold text-primary">
+              {Math.round(matchResult.score)} / 100
+            </span>
+            {matchResult.cached && (
+              <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-label-md">
+                Önbellekten
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+            <div>
+              <h3 className="text-label-md font-semibold text-on-surface mb-2">Eşleşen Beceriler</h3>
+              <div className="flex flex-wrap gap-2">
+                {matchResult.matched_skills.length > 0 ? (
+                  matchResult.matched_skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="bg-primary-fixed/20 text-primary px-2 py-1 rounded font-label-md"
+                    >
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-body-sm text-on-surface-variant">Eşleşen beceri bulunamadı</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-label-md font-semibold text-on-surface mb-2">Eksik Beceriler</h3>
+              <div className="flex flex-wrap gap-2">
+                {matchResult.missing_skills.length > 0 ? (
+                  matchResult.missing_skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="bg-error-container text-on-error-container px-2 py-1 rounded font-label-md"
+                    >
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-body-sm text-on-surface-variant">Eksik beceri yok</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {cvResult && (
+        <Card title="CV Hazır">
+          <p className="text-body-sm text-on-surface-variant mb-4">
+            CV başarıyla oluşturuldu. Aşağıdaki bağlantıdan indirebilirsiniz.
+          </p>
+          <a href={cvResult.cv_url} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline">
+              <Download className="w-4 h-4" />
+              CV&apos;yi İndir
+            </Button>
+          </a>
+        </Card>
+      )}
+
+      {coverLetterResult && (
+        <Card title={`Önyazı — ${coverLetterResult.company_name}`}>
+          <div className="flex justify-end mb-3">
+            <Button variant="outline" onClick={handleCopyCoverLetter}>
+              <Copy className="w-4 h-4" />
+              {copied ? "Kopyalandı" : "Panoya Kopyala"}
+            </Button>
+          </div>
+          <div className="rounded-lg bg-surface-container-low p-4 whitespace-pre-wrap text-body-sm text-on-surface">
+            {coverLetterResult.cover_letter_text}
+          </div>
+        </Card>
+      )}
+
       <div className="flex gap-3">
         <Link href="/apply">
           <Button variant="outline">
@@ -123,11 +352,8 @@ function AnalyzeResultContent() {
 
 export default function AnalyzeResultPage() {
   return (
-    <div className="min-h-screen bg-surface-bright">
-      <AppHeader />
-      <AuthGuard>
-        <AnalyzeResultContent />
-      </AuthGuard>
-    </div>
+    <AppLayout>
+      <AnalyzeResultContent />
+    </AppLayout>
   );
 }
