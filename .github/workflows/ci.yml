@@ -101,6 +101,21 @@ jobs:
         ports:
           - 6379:6379
 
+      minio:
+        image: minio/minio:latest
+        env:
+          MINIO_ROOT_USER: yzta_minio
+          MINIO_ROOT_PASSWORD: yzta_minio_password
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 9000:9000
+          - 9001:9001
+        command: server /data --console-address ":9001"
+
     steps:
       - uses: actions/checkout@v4
 
