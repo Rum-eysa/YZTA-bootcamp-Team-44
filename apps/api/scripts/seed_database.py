@@ -126,7 +126,27 @@ async def seed() -> None:
 
         await session.commit()
 
-        print(f"Seeded {len(users)} users, {len(listings)} listings")
+        # Demo eşleştirme + doküman kayıtları (US-010 borcu: matches/documents seed)
+        demo_match = Match(
+            user_id=users[0].id,
+            listing_id=listings[0].id,
+            score=72.5,
+            matched_skills=json.dumps(["python", "sql", "git"], ensure_ascii=False),
+            missing_skills=json.dumps(["docker"], ensure_ascii=False),
+        )
+        demo_doc = Document(
+            user_id=users[0].id,
+            listing_id=listings[0].id,
+            doc_type="cover_letter",
+            cover_letter_text=(
+                "Sayın Yetkili, ilanınızda aradığınız Python ve SQL becerilerine "
+                "üniversite projelerimde edindiğim deneyimle sahibim... (demo verisi)"
+            ),
+        )
+        session.add_all([demo_match, demo_doc])
+        await session.commit()
+
+        print(f"Seeded {len(users)} users, {len(listings)} listings, 1 match, 1 document")
         for u in users:
             print(f"  - {u.email} ({u.seniority})")
 
