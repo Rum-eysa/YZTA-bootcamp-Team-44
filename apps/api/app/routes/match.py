@@ -4,7 +4,7 @@ import json
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
-from app.models import JobListing, WorkExperience, Project
+from app.models import JobListing, Project, WorkExperience
 from app.repositories.match import MatchRepository
 from app.schemas.match import MatchRequest, MatchResponse
 from app.services.user import get_user_by_id
@@ -57,9 +57,7 @@ async def match_listing(
         for exp in work_experiences_result.scalars().all()
     ]
 
-    projects_result = await db.execute(
-        select(Project).where(Project.user_id == user_id)
-    )
+    projects_result = await db.execute(select(Project).where(Project.user_id == user_id))
     projects = [
         {
             "title": proj.title,
