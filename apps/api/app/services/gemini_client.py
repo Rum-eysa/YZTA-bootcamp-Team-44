@@ -51,6 +51,7 @@ PROMPT_TEMPLATES: dict[str, str] = {
         "Başvurulan şirket: {company_name}\n"
         "Aday profili: {user_profile}\nİlan analizi: {job_analysis}\n"
         "Eşleştirme eksikleri: {matching_gaps}\n\n"
+        "Strateji: {strategy}\n\n"
         "Kurallar:\n"
         "- Bu önyazı SADECE {company_name} için yazılıyor. Şirket adını en az bir kez "
         "açıkça geçir ve ilan analizindeki pozisyona/gereksinimlere özel referanslar ver.\n"

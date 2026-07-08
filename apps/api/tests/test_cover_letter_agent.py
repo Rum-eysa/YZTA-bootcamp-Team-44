@@ -102,6 +102,40 @@ async def test_missing_company_name_falls_back_to_placeholder():
 
 
 @pytest.mark.asyncio
+async def test_low_score_uses_potential_strategy():
+    """Skor < 40 ise prompt'a potansiyel vurgusu stratejisi giriyor"""
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+
+    await agent.generate(USER_PROFILE, JOB_ANALYSIS, {"missing_skills": ["Docker"], "score": 35})
+
+    assert "POTANSİYEL vurgusu" in client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_high_score_uses_standard_strategy():
+    """Skor >= 40 ise standart strateji kullanılıyor, potansiyel vurgusu yok"""
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+
+    await agent.generate(USER_PROFILE, JOB_ANALYSIS, {"missing_skills": ["Docker"], "score": 82})
+
+    assert "POTANSİYEL vurgusu" not in client.last_prompt
+    assert "eşleşen güçlü yönlerini" in client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_missing_score_defaults_to_standard_strategy():
+    """Skor yoksa (match hesaplanmamış) standart strateji kullanılıyor"""
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+
+    await agent.generate(USER_PROFILE, JOB_ANALYSIS, {})
+
+    assert "POTANSİYEL vurgusu" not in client.last_prompt
+
+
+@pytest.mark.asyncio
 async def test_missing_profile_raises_validation_error():
     client = FakeGeminiClient(_words(350))
     agent = CoverLetterAgent(client=client)
