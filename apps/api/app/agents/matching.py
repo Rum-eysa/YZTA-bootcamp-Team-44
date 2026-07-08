@@ -65,8 +65,9 @@ def calculate_exact_score(
             if isinstance(tech_stack, str):
                 try:
                     import json
+
                     tech_stack = json.loads(tech_stack)
-                except:
+                except (ValueError, TypeError):
                     tech_stack = []
             for tech in tech_stack:
                 additional_skills.add(str(tech).lower())

@@ -100,7 +100,9 @@ class Match(Base):
     score: Mapped[float] = mapped_column(Float, nullable=False)
     matched_skills: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array
     missing_skills: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array
-    score_breakdown: Mapped[str] = mapped_column(Text, nullable=True)  # JSON: {required, nice_to_have, seniority, semantic_bonus}
+    score_breakdown: Mapped[str] = mapped_column(
+        Text, nullable=True
+    )  # JSON: {required, nice_to_have, seniority, semantic_bonus}
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
