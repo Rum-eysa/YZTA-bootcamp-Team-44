@@ -26,6 +26,20 @@ TONE_DISPLAY_NAMES = {
 _MIN_WORDS = 250
 _MAX_WORDS = 600
 
+# Skor bu eşiğin altındaysa "potansiyel vurgusu" stratejisine geçilir (US-022 / US-033)
+_LOW_SCORE_THRESHOLD = 40
+
+_STRATEGY_STANDARD = (
+    "Adayın ilanla eşleşen güçlü yönlerini ve somut başarılarını öne çıkar; "
+    "yetkinliğini kanıtlayan örneklerle güven ver."
+)
+_STRATEGY_POTENTIAL = (
+    "Eşleşme skoru düşük; doğrudan yeterlilik yerine POTANSİYEL vurgusu yap. "
+    "Adayın öğrenme hızını, aktarılabilir (transferable) becerilerini, motivasyonunu ve "
+    "gelişim eğilimini öne çıkar; eksik becerileri hızlı kapatabileceğine dair somut "
+    "işaretler ver. Abartılı yeterlilik iddialarından kaçın."
+)
+
 # Panoya kopyalamaya hazır düz metin için - LLM markdown eklerse temizler
 _MARKDOWN_ARTIFACTS = re.compile(r"[*_#`]+")
 
@@ -33,6 +47,14 @@ _MARKDOWN_ARTIFACTS = re.compile(r"[*_#`]+")
 def _sanitize(text: str) -> str:
     text = _MARKDOWN_ARTIFACTS.sub("", text)
     return text.strip()
+
+
+def _select_strategy(matching_gaps: dict[str, Any]) -> str:
+    """Skor < 40 ise potansiyel vurgusu, aksi halde standart strateji."""
+    score = matching_gaps.get("score")
+    if isinstance(score, (int, float)) and score < _LOW_SCORE_THRESHOLD:
+        return _STRATEGY_POTENTIAL
+    return _STRATEGY_STANDARD
 
 
 class CoverLetterAgent:
@@ -53,6 +75,8 @@ class CoverLetterAgent:
             raise ValidationException("user_profile ve job_analysis zorunludur")
 
         tone = TONE_DISPLAY_NAMES.get(tone_preference, TONE_DISPLAY_NAMES["professional"])
+        strategy = _select_strategy(matching_gaps)
+        low_score = strategy is _STRATEGY_POTENTIAL
 
         async with agent_run("cover_letter", tone=tone_preference):
             prompt = render_prompt(
@@ -62,6 +86,7 @@ class CoverLetterAgent:
                 user_profile=json.dumps(user_profile, ensure_ascii=False),
                 job_analysis=json.dumps(job_analysis, ensure_ascii=False),
                 matching_gaps=json.dumps(matching_gaps, ensure_ascii=False),
+                strategy=strategy,
             )
 
             raw_text = await self.client.generate_text(prompt, temperature=0.7)
@@ -75,7 +100,13 @@ class CoverLetterAgent:
                     tone=tone_preference,
                 )
 
-            logger.info("cover_letter_generated", tone=tone_preference, word_count=word_count)
+            logger.info(
+                "cover_letter_generated",
+                tone=tone_preference,
+                word_count=word_count,
+                score=matching_gaps.get("score"),
+                low_score_strategy=low_score,
+            )
             return text
 
     async def generate_and_save(
