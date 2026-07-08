@@ -157,3 +157,116 @@ async def test_missing_profile_raises_validation_error():
 
     with pytest.raises(ValidationException):
         await agent.match({}, {"required_skills": ["Python"]})
+
+
+# --- Work experiences ve projects ile score breakdown testleri -----------------
+
+
+def test_score_breakdown_includes_all_components():
+    """Score breakdown'ın tüm bileşenleri içerdiğinden emin ol"""
+    result = calculate_exact_score(
+        user_skills=["Python", "FastAPI"],
+        required_skills=["Python", "React"],
+        nice_to_have_skills=["Docker"],
+        user_seniority="mid",
+        listing_seniority="mid",
+    )
+
+    assert "score_breakdown" in result
+    assert "required" in result["score_breakdown"]
+    assert "nice_to_have" in result["score_breakdown"]
+    assert "seniority" in result["score_breakdown"]
+    assert "semantic_bonus" in result["score_breakdown"]
+
+    # required: 1/2*60=30, nice: 0/1*20=0, seniority: 20 -> 50
+    assert result["score_breakdown"]["required"] == 30.0
+    assert result["score_breakdown"]["nice_to_have"] == 0.0
+    assert result["score_breakdown"]["seniority"] == 20.0
+    assert result["score_breakdown"]["semantic_bonus"] == 0.0
+
+
+def test_work_experiences_adds_to_skills():
+    """Work experiences'ten beceri çıkarma testi"""
+    result = calculate_exact_score(
+        user_skills=["Python"],
+        required_skills=["Python", "React"],
+        nice_to_have_skills=[],
+        user_seniority="mid",
+        listing_seniority="mid",
+        work_experiences=[
+            {"title": "React Developer", "description": "React ile frontend geliştirme"},
+        ],
+    )
+
+    # Work experiences'ten "react" kelimesi çıkılmalı
+    assert "react" in result["matched_skills"]
+    assert result["score_breakdown"]["required"] == 60.0  # 2/2*60
+
+
+def test_projects_tech_stack_adds_to_skills():
+    """Projects tech_stack'ten beceri çıkarma testi"""
+    result = calculate_exact_score(
+        user_skills=["Python"],
+        required_skills=["Python", "Docker"],
+        nice_to_have_skills=[],
+        user_seniority="mid",
+        listing_seniority="mid",
+        projects=[
+            {"title": "DevOps Project", "description": "CI/CD", "tech_stack": ["Docker", "Kubernetes"]},
+        ],
+    )
+
+    # Projects tech_stack'ten "docker" kelimesi çıkılmalı
+    assert "docker" in result["matched_skills"]
+    assert result["score_breakdown"]["required"] == 60.0  # 2/2*60
+
+
+def test_combined_work_and_projects_boost_score():
+    """Work experiences ve projects birlikte skor artışı testi"""
+    result = calculate_exact_score(
+        user_skills=["Python"],
+        required_skills=["Python", "React", "Docker"],
+        nice_to_have_skills=["Kubernetes"],
+        user_seniority="mid",
+        listing_seniority="mid",
+        work_experiences=[
+            {"title": "React Developer", "description": "React ile frontend geliştirme"},
+        ],
+        projects=[
+            {"title": "DevOps Project", "description": "CI/CD", "tech_stack": ["Docker", "Kubernetes"]},
+        ],
+    )
+
+    # Tüm beceriler work/projects'ten gelmeli
+    assert "react" in result["matched_skills"]
+    assert "docker" in result["matched_skills"]
+    assert "kubernetes" in result["matched_skills"]
+    assert result["score_breakdown"]["required"] == 60.0  # 3/3*60
+    assert result["score_breakdown"]["nice_to_have"] == 20.0  # 1/1*20
+    assert result["score"] == 100.0
+
+
+@pytest.mark.asyncio
+async def test_match_includes_score_breakdown_in_result():
+    """Match fonksiyonu sonucunda score_breakdown olmalı"""
+    agent = MatchingAgent(client=FakeGeminiClient(None))
+
+    result = await agent.match(
+        user_profile={
+            "skills": ["Python"],
+            "seniority": "mid",
+            "work_experiences": [{"title": "React Developer", "description": "React development"}],
+            "projects": [],
+        },
+        job_analysis={
+            "required_skills": ["Python", "React"],
+            "nice_to_have_skills": [],
+            "seniority": "mid",
+        },
+    )
+
+    assert "score_breakdown" in result
+    assert result["score_breakdown"]["required"] == 60.0
+    assert result["score_breakdown"]["nice_to_have"] == 20.0
+    assert result["score_breakdown"]["seniority"] == 20.0
+    assert result["score_breakdown"]["semantic_bonus"] == 0.0

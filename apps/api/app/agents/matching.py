@@ -36,9 +36,45 @@ def calculate_exact_score(
     nice_to_have_skills: list[str],
     user_seniority: Optional[str],
     listing_seniority: Optional[str],
+    work_experiences: Optional[list[dict[str, Any]]] = None,
+    projects: Optional[list[dict[str, Any]]] = None,
 ) -> dict[str, Any]:
-    """Saf Python skor hesaplama - deterministik, LLM'siz, test edilebilir"""
-    user_set = _normalize(user_skills)
+    """Saf Python skor hesaplama - deterministik, LLM'siz, test edilebilir
+
+    Skor formülü:
+    - Zorunlu beceriler eşleşmesi: max 60 puan
+    - Nice-to-have beceriler eşleşmesi: max 20 puan
+    - Seniority uyumu: max 20 puan (tam eşleşme=20, bir seviye fark=10, iki seviye fark=0)
+    """
+    # Work experiences ve projects'ten skills çıkarma
+    additional_skills = set()
+    if work_experiences:
+        for exp in work_experiences:
+            title = exp.get("title", "").lower()
+            description = exp.get("description", "").lower()
+            # Basit kelime çıkarma - ileride daha gelişmiş NLP kullanılabilir
+            for word in f"{title} {description}".split():
+                if len(word) > 2:  # 2 karakterden uzun kelimeler
+                    additional_skills.add(word)
+
+    if projects:
+        for proj in projects:
+            title = proj.get("title", "").lower()
+            description = proj.get("description", "").lower()
+            tech_stack = proj.get("tech_stack", [])
+            if isinstance(tech_stack, str):
+                try:
+                    import json
+                    tech_stack = json.loads(tech_stack)
+                except:
+                    tech_stack = []
+            for tech in tech_stack:
+                additional_skills.add(str(tech).lower())
+            for word in f"{title} {description}".split():
+                if len(word) > 2:
+                    additional_skills.add(word)
+
+    user_set = _normalize(user_skills) | additional_skills
     required_set = _normalize(required_skills)
     nice_set = _normalize(nice_to_have_skills)
 
@@ -63,6 +99,12 @@ def calculate_exact_score(
         "score": min(score, 100.0),
         "matched_skills": sorted(matched_required | matched_nice),
         "missing_skills": sorted(missing_required),
+        "score_breakdown": {
+            "required": round(required_score, 1),
+            "nice_to_have": round(nice_score, 1),
+            "seniority": round(seniority_score, 1),
+            "semantic_bonus": 0.0,  # Daha sonra eklenecek
+        },
     }
 
 
@@ -135,6 +177,8 @@ class MatchingAgent:
             nice_to_have_skills=job_analysis.get("nice_to_have_skills") or [],
             user_seniority=user_profile.get("seniority"),
             listing_seniority=job_analysis.get("seniority"),
+            work_experiences=user_profile.get("work_experiences"),
+            projects=user_profile.get("projects"),
         )
 
         # Gemini kotası/bağlantısı yoksa deterministik skor tek başına yeterli -
@@ -149,10 +193,15 @@ class MatchingAgent:
 
         final_score = min(round(exact["score"] + semantic["bonus"], 1), 100.0)
 
+        # Score breakdown'ı güncelle (semantic bonus'ı dahil et)
+        score_breakdown = exact["score_breakdown"].copy()
+        score_breakdown["semantic_bonus"] = round(semantic["bonus"], 1)
+
         result = {
             "score": final_score,
             "matched_skills": exact["matched_skills"],
             "missing_skills": exact["missing_skills"],
+            "score_breakdown": score_breakdown,
             "readiness_summary": semantic["readiness_summary"],
             "semantic_matches": semantic["semantic_matches"],
         }
@@ -181,6 +230,7 @@ class MatchingAgent:
             score=result["score"],
             matched_skills=json.dumps(result["matched_skills"], ensure_ascii=False),
             missing_skills=json.dumps(result["missing_skills"], ensure_ascii=False),
+            score_breakdown=json.dumps(result["score_breakdown"], ensure_ascii=False),
         )
         db.add(match)
         await db.commit()
