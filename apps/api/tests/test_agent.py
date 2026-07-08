@@ -26,6 +26,41 @@ class MockAgent(BaseAgent):
 
 
 @pytest.mark.asyncio
+async def test_agent_service_load_context_and_build_payload(test_session):
+    """AgentService US-017 context yükleme ve payload üretimi"""
+    import json
+    import uuid
+
+    from app.models import JobListing, User
+    from app.services.agent import agent_service
+
+    user_id = str(uuid.uuid4())
+    listing_id = str(uuid.uuid4())
+    user = User(
+        id=user_id,
+        email="orchestrator@example.com",
+        hashed_password="x",
+        skills=json.dumps(["Go"]),
+        seniority="senior",
+    )
+    listing = JobListing(
+        id=listing_id,
+        title="Platform Engineer",
+        raw_text="a" * 60,
+        parsed_json=json.dumps({"required_skills": ["Go"], "seniority": "senior"}),
+        analysis_status="completed",
+    )
+    test_session.add_all([user, listing])
+    await test_session.commit()
+
+    context = await agent_service.load_context(test_session, user_id, listing_id)
+    payload = agent_service.build_agent_payload("matching", context)
+
+    assert payload["user_profile"]["skills"] == ["Go"]
+    assert payload["job_analysis"]["required_skills"] == ["Go"]
+
+
+@pytest.mark.asyncio
 async def test_agent_context_manager():
     """Test AgentContextManager basic operations"""
     ctx = AgentContextManager()

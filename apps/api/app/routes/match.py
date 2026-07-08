@@ -4,12 +4,14 @@ import json
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
-from app.models import JobListing, Project, WorkExperience
 from app.repositories.match import MatchRepository
 from app.schemas.match import MatchRequest, MatchResponse
-from app.services.user import get_user_by_id
+from app.services.context import (
+    ContextManager,
+    job_analysis_from_context,
+    user_profile_for_matching,
+)
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Matching"])
@@ -23,14 +25,6 @@ async def match_listing(
     db: AsyncSession = Depends(get_db),
 ):
     """Kullanıcı profili ile ilanı eşleştirir, matches tablosuna kaydeder (cache'li)"""
-    user = await get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    listing = await db.get(JobListing, payload.listing_id)
-    if not listing:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
-
     match_repo = MatchRepository(db)
     cached = await match_repo.get_by_user_and_listing(user_id, payload.listing_id)
     if cached:
@@ -44,36 +38,21 @@ async def match_listing(
             cached=True,
         )
 
-    # Work experiences ve projects verilerini çek
-    work_experiences_result = await db.execute(
-        select(WorkExperience).where(WorkExperience.user_id == user_id)
-    )
-    work_experiences = [
-        {
-            "company": exp.company,
-            "title": exp.title,
-            "description": exp.description,
-        }
-        for exp in work_experiences_result.scalars().all()
-    ]
+    context_manager = ContextManager(db)
+    try:
+        context = await context_manager.load(user_id, payload.listing_id)
+    except ValueError as exc:
+        detail = str(exc)
+        if "User not found" in detail:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found"
+        ) from exc
 
-    projects_result = await db.execute(select(Project).where(Project.user_id == user_id))
-    projects = [
-        {
-            "title": proj.title,
-            "description": proj.description,
-            "tech_stack": json.loads(proj.tech_stack) if proj.tech_stack else [],
-        }
-        for proj in projects_result.scalars().all()
-    ]
-
-    user_profile = {
-        "skills": json.loads(user.skills) if user.skills else [],
-        "seniority": user.seniority,
-        "work_experiences": work_experiences,
-        "projects": projects,
-    }
-    job_analysis = json.loads(listing.parsed_json) if listing.parsed_json else {}
+    user_profile = user_profile_for_matching(context)
+    job_analysis = job_analysis_from_context(context)
 
     match = await agent.match_and_save(
         db=db,

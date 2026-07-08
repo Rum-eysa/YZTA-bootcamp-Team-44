@@ -17,6 +17,7 @@ from app.schemas.listing import (
     ListingSummary,
     ListingUpdate,
 )
+from app.schemas.match import ScoreBreakdown
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -101,6 +102,15 @@ async def get_listing(
         for doc in docs_result.scalars().all()
     ]
 
+    # Score breakdown parse
+    score_breakdown = None
+    if match and match.score_breakdown:
+        try:
+            bd = json.loads(match.score_breakdown)
+            score_breakdown = ScoreBreakdown(**bd) if isinstance(bd, dict) else None
+        except (ValueError, TypeError):
+            score_breakdown = None
+
     return ListingDetail(
         id=listing.id,
         title=listing.title,
@@ -122,6 +132,7 @@ async def get_listing(
         driver_license=listing.driver_license,
         application_stage=listing.application_stage or "review",
         score=match.score if match else None,
+        score_breakdown=score_breakdown,
         matched_skills=_load_list(match.matched_skills) if match else [],
         missing_skills=_load_list(match.missing_skills) if match else [],
         documents=documents,

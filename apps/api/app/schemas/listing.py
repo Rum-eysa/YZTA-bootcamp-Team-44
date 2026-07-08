@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+from app.schemas.match import ScoreBreakdown
 from pydantic import BaseModel, Field
 
 APPLICATION_STAGES = {"review", "interview", "technical_test", "offer", "rejected"}
@@ -55,6 +56,7 @@ class ListingDetail(BaseModel):
     application_stage: str = "review"
 
     score: Optional[float] = None
+    score_breakdown: Optional[ScoreBreakdown] = None
     matched_skills: List[str] = []
     missing_skills: List[str] = []
     documents: List[ListingDocument] = []
