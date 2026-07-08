@@ -18,6 +18,7 @@ from typing import Any, Optional
 from app.exceptions import ValidationException
 from app.logging_config import get_logger
 from app.models import Match
+from app.observability import agent_run
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -172,48 +173,49 @@ class MatchingAgent:
         if not user_profile or not job_analysis:
             raise ValidationException("user_profile ve job_analysis zorunludur")
 
-        exact = calculate_exact_score(
-            user_skills=user_profile.get("skills") or [],
-            required_skills=job_analysis.get("required_skills") or [],
-            nice_to_have_skills=job_analysis.get("nice_to_have_skills") or [],
-            user_seniority=user_profile.get("seniority"),
-            listing_seniority=job_analysis.get("seniority"),
-            work_experiences=user_profile.get("work_experiences"),
-            projects=user_profile.get("projects"),
-        )
-
-        # Gemini kotası/bağlantısı yoksa deterministik skor tek başına yeterli -
-        # semantik bonus opsiyonel bir iyileştirme, hatası eşleştirmeyi düşürmemeli
-        try:
-            semantic = await self._semantic_boost(
-                user_profile, job_analysis, exact["missing_skills"]
+        async with agent_run("matching"):
+            exact = calculate_exact_score(
+                user_skills=user_profile.get("skills") or [],
+                required_skills=job_analysis.get("required_skills") or [],
+                nice_to_have_skills=job_analysis.get("nice_to_have_skills") or [],
+                user_seniority=user_profile.get("seniority"),
+                listing_seniority=job_analysis.get("seniority"),
+                work_experiences=user_profile.get("work_experiences"),
+                projects=user_profile.get("projects"),
             )
-        except Exception as exc:  # noqa: BLE001 - LLM hatası ne olursa olsun fallback
-            logger.warning("matching_semantic_boost_failed", error=str(exc))
-            semantic = {"bonus": 0.0, "readiness_summary": "", "semantic_matches": []}
 
-        final_score = min(round(exact["score"] + semantic["bonus"], 1), 100.0)
+            # Gemini kotası/bağlantısı yoksa deterministik skor tek başına yeterli -
+            # semantik bonus opsiyonel bir iyileştirme, hatası eşleştirmeyi düşürmemeli
+            try:
+                semantic = await self._semantic_boost(
+                    user_profile, job_analysis, exact["missing_skills"]
+                )
+            except Exception as exc:  # noqa: BLE001 - LLM hatası ne olursa olsun fallback
+                logger.warning("matching_semantic_boost_failed", error=str(exc))
+                semantic = {"bonus": 0.0, "readiness_summary": "", "semantic_matches": []}
 
-        # Score breakdown'ı güncelle (semantic bonus'ı dahil et)
-        score_breakdown = exact["score_breakdown"].copy()
-        score_breakdown["semantic_bonus"] = round(semantic["bonus"], 1)
+            final_score = min(round(exact["score"] + semantic["bonus"], 1), 100.0)
 
-        result = {
-            "score": final_score,
-            "matched_skills": exact["matched_skills"],
-            "missing_skills": exact["missing_skills"],
-            "score_breakdown": score_breakdown,
-            "readiness_summary": semantic["readiness_summary"],
-            "semantic_matches": semantic["semantic_matches"],
-        }
+            # Score breakdown'ı güncelle (semantic bonus'ı dahil et)
+            score_breakdown = exact["score_breakdown"].copy()
+            score_breakdown["semantic_bonus"] = round(semantic["bonus"], 1)
 
-        logger.info(
-            "matching_completed",
-            score=final_score,
-            matched_count=len(exact["matched_skills"]),
-            missing_count=len(exact["missing_skills"]),
-        )
-        return result
+            result = {
+                "score": final_score,
+                "matched_skills": exact["matched_skills"],
+                "missing_skills": exact["missing_skills"],
+                "score_breakdown": score_breakdown,
+                "readiness_summary": semantic["readiness_summary"],
+                "semantic_matches": semantic["semantic_matches"],
+            }
+
+            logger.info(
+                "matching_completed",
+                score=final_score,
+                matched_count=len(exact["matched_skills"]),
+                missing_count=len(exact["missing_skills"]),
+            )
+            return result
 
     async def match_and_save(
         self,

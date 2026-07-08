@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from app.exceptions import GeminiAPIException, ValidationException
 from app.logging_config import get_logger
+from app.observability import agent_run
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
 
 logger = get_logger("listing_analysis_agent")
@@ -56,21 +57,22 @@ class AnalyzeListingAgent:
             )
             return "recorded"
 
-        prompt = render_prompt("analyze_listing", listing_text=listing_text)
-        await self.client.generate_with_tools(prompt, tools=[extract_job_requirements])
+        async with agent_run("listing_analysis"):
+            prompt = render_prompt("analyze_listing", listing_text=listing_text)
+            await self.client.generate_with_tools(prompt, tools=[extract_job_requirements])
 
-        if not captured:
-            logger.warning("listing_analysis_empty_result", listing_preview=listing_text[:120])
-            raise GeminiAPIException("Analiz ajanı ilan metninden veri çıkaramadı")
+            if not captured:
+                logger.warning("listing_analysis_empty_result", listing_preview=listing_text[:120])
+                raise GeminiAPIException("Analiz ajanı ilan metninden veri çıkaramadı")
 
-        logger.info(
-            "listing_analysis_completed",
-            position_title=captured.get("position_title"),
-            seniority=captured.get("seniority"),
-            confidence=captured.get("confidence"),
-            required_skills_count=len(captured.get("required_skills") or []),
-        )
-        return captured
+            logger.info(
+                "listing_analysis_completed",
+                position_title=captured.get("position_title"),
+                seniority=captured.get("seniority"),
+                confidence=captured.get("confidence"),
+                required_skills_count=len(captured.get("required_skills") or []),
+            )
+            return captured
 
 
 _agent: Optional[AnalyzeListingAgent] = None

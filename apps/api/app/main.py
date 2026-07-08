@@ -9,6 +9,7 @@ from app.config import settings
 from app.exceptions import APIException
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware, RequestIDMiddleware
+from app.observability import capture_exception, init_sentry
 from app.routes import (
     agents,
     analysis,
@@ -31,6 +32,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 logger = setup_logging(log_level=getattr(logging, settings.LOG_LEVEL.upper()))
+init_sentry()
 
 
 def _cors_headers(request: Request) -> dict[str, str]:
@@ -128,6 +130,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     logger.error("Unhandled exception", path=request.url.path, error=str(exc), exc_info=True)
+    capture_exception(exc)
     content: dict = {"detail": "Internal server error"}
     if settings.DEBUG:
         content["error"] = str(exc)
