@@ -14,6 +14,14 @@ import structlog
 from app.config import settings
 from app.logging_config import get_logger
 from app.models.agent import AgentTask, AgentWorkflow
+from app.services.context import (
+    ContextManager,
+    job_analysis_from_context,
+    matching_gaps_from_context,
+    user_profile_for_agents,
+    user_profile_for_matching,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -310,6 +318,52 @@ class AgentService:
         """Register a BaseAgent instance for task execution"""
         self._agents[agent.name] = agent
         logger.info("agent_registered", agent_name=agent.name)
+
+    async def load_context(
+        self,
+        db: AsyncSession,
+        user_id: str,
+        listing_id: str,
+    ) -> Dict[str, Any]:
+        """US-017: DB'den agent context yükle (profil, ilan, match, deneyim, proje)."""
+        return await ContextManager(db).load(user_id, listing_id)
+
+    def build_agent_payload(self, agent_name: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Context'ten agent'a özel payload üret."""
+        if agent_name == "matching":
+            return {
+                "user_profile": user_profile_for_matching(context),
+                "job_analysis": job_analysis_from_context(context),
+            }
+        if agent_name == "cover_letter":
+            return {
+                "user_profile": user_profile_for_agents(context),
+                "job_analysis": job_analysis_from_context(context),
+                "matching_gaps": matching_gaps_from_context(context),
+                "tone_preference": context["user"].get("tone_preference") or "professional",
+                "company_name": context["listing"].get("company"),
+            }
+        if agent_name == "cv_generation":
+            return {
+                "user_profile": user_profile_for_agents(context),
+                "job_analysis": job_analysis_from_context(context),
+            }
+        return {"context": context}
+
+    async def execute_agent_task_with_context(
+        self,
+        db: AsyncSession,
+        agent_name: str,
+        user_id: str,
+        listing_id: str,
+        task_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Context yükleyip kayıtlı agent ile görev çalıştır."""
+        context = await self.load_context(db, user_id, listing_id)
+        payload = self.build_agent_payload(agent_name, context)
+        payload["user_id"] = user_id
+        payload["listing_id"] = listing_id
+        return await self.execute_agent_task(agent_name, payload, task_id=task_id)
 
     async def execute_agent_task(
         self,

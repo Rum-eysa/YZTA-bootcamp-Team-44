@@ -52,7 +52,7 @@ async def get_agent_system_status():
         "features": [
             "Base agent execution lifecycle",
             "Structured logging",
-            "Context manager memory",
+            "Context manager memory (US-017)",
             "Retry scaffolding",
             "Task tracking",
         ],

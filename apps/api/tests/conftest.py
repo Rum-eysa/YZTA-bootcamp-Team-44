@@ -3,20 +3,18 @@ import os
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
 from app.config import settings
 from app.database import get_db
 from app.main import app
 from app.models import Base
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 DATABASE_URL = os.environ.get("TEST_DATABASE_URL") or os.environ.get(
     "DATABASE_URL", settings.DATABASE_URL
 )
-if "TEST_DATABASE_URL" not in os.environ and not DATABASE_URL.rsplit("/", 1)[-1].endswith(
-    "_test"
-):
+assert DATABASE_URL is not None, "DATABASE_URL (veya TEST_DATABASE_URL) tanımlı olmalı"
+if "TEST_DATABASE_URL" not in os.environ and not DATABASE_URL.rsplit("/", 1)[-1].endswith("_test"):
     base_url, _, db_name = DATABASE_URL.rpartition("/")
     DATABASE_URL = f"{base_url}/{db_name}_test"
 ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
@@ -74,6 +72,16 @@ async def prepare_database():
         await conn.run_sync(Base.metadata.drop_all)
     await test_engine.dispose()
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def clean_tables():
+    """Her testten önce tabloları temizle — test izolasyonu."""
+    if test_engine is not None:
+        async with test_engine.begin() as conn:
+            for table in reversed(Base.metadata.sorted_tables):
+                await conn.execute(table.delete())
+    yield
 
 
 @pytest_asyncio.fixture
