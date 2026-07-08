@@ -56,7 +56,6 @@ async def test_compile_retries_once_then_succeeds():
             # ikinci denemede tectonic --outdir hedefine gerçek bir dosya yazmadığımız
             # için burada sadece returncode=0 dönüp pdf_path.exists() kontrolünü
             # geçmesi için gerçek bir dosya oluşturuyoruz
-            import tempfile
             from pathlib import Path
 
             outdir = Path(args[3])  # tectonic tex.tex --outdir <dir>
@@ -114,6 +113,23 @@ async def test_generate_and_save_uploads_and_persists_document():
     db.add.assert_called_once()
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once()
+
+
+def test_cv_generation_exception_returns_422():
+    """US-015: LaTeX/Tectonic hatası kullanıcıya 422 + temiz mesaj olarak dönmeli"""
+    exc = CVGenerationException()
+    assert exc.status_code == 422
+    assert exc.error_code == "CV_GENERATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_generate_rejects_non_pdf_output():
+    """Tectonic PDF olmayan bir çıktı üretirse temiz bir hata fırlatılmalı (stack trace sızmaz)"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    agent._compile_with_tectonic = AsyncMock(return_value=b"not-a-pdf")
+
+    with pytest.raises(CVGenerationException):
+        await agent.generate({"full_name": "Ayşe"}, {"position_title": "Dev"})
 
 
 def test_get_cv_generation_agent_returns_singleton():

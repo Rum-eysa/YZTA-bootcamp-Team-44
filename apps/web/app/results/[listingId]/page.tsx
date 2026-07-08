@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
 import { Spinner } from "@/components/ui/Spinner";
+import { Toast } from "@/components/ui/Toast";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { generateCoverLetter } from "@/lib/api/coverLetter";
 import { generateCv } from "@/lib/api/cvGeneration";
@@ -19,6 +20,7 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  ExternalLink,
   FileText,
   Sparkles,
   Target,
@@ -235,7 +237,6 @@ function AnalyzeResultContent() {
             <Button onClick={handleGenerateCv} loading={cvLoading} className="w-full">
               CV Oluştur
             </Button>
-            <FormError message={cvError} />
           </div>
 
           <div className="rounded-lg border border-outline-variant p-4 space-y-3">
@@ -307,17 +308,33 @@ function AnalyzeResultContent() {
         </Card>
       )}
 
+      {cvLoading && (
+        <Card title="CV Hazırlanıyor">
+          <Spinner label="CV oluşturuluyor, lütfen bekleyin..." className="py-6" />
+        </Card>
+      )}
+
       {cvResult && (
         <Card title="CV Hazır">
-          <p className="text-body-sm text-on-surface-variant mb-4">
-            CV başarıyla oluşturuldu. Aşağıdaki bağlantıdan indirebilirsiniz.
-          </p>
-          <a href={cvResult.cv_url} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline">
-              <Download className="w-4 h-4" />
-              CV&apos;yi İndir
-            </Button>
-          </a>
+          <div className="flex flex-wrap justify-end gap-3 mb-4">
+            <a href={cvResult.cv_url} download target="_blank" rel="noopener noreferrer">
+              <Button variant="outline">
+                <Download className="w-4 h-4" />
+                İndir
+              </Button>
+            </a>
+            <a href={cvResult.cv_url} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline">
+                <ExternalLink className="w-4 h-4" />
+                Yeni Sekmede Aç
+              </Button>
+            </a>
+          </div>
+          <iframe
+            src={cvResult.cv_url}
+            title="CV önizleme"
+            className="w-full h-[600px] rounded-lg border border-outline-variant bg-surface-container-low"
+          />
         </Card>
       )}
 
@@ -346,6 +363,8 @@ function AnalyzeResultContent() {
           <Button>Profile Git</Button>
         </Link>
       </div>
+
+      <Toast message={cvError} variant="error" onClose={() => setCvError(undefined)} />
     </main>
   );
 }

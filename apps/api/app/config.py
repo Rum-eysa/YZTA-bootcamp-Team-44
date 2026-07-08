@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     STORAGE_BUCKET: str = "cv-documents"
     STORAGE_PUBLIC_URL: str = "http://localhost:9000"
 
+    SENTRY_DSN: str = ""
+    SENTRY_ENVIRONMENT: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
+
 
 @lru_cache
 def get_settings() -> Settings:

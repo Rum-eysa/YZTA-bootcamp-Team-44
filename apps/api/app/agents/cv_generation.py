@@ -14,6 +14,7 @@ from typing import Any, Optional
 from app.exceptions import APIException, ValidationException
 from app.logging_config import get_logger
 from app.models import Document
+from app.observability import agent_run
 from app.services.storage import StorageService, get_storage_service
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,8 +61,8 @@ _jinja_env.filters["latex_escape"] = latex_escape
 
 
 class CVGenerationException(APIException):
-    def __init__(self, detail: str = "CV generation failed"):
-        super().__init__(detail, status_code=503, error_code="CV_GENERATION_ERROR")
+    def __init__(self, detail: str = "CV oluşturulamadı"):
+        super().__init__(detail, status_code=422, error_code="CV_GENERATION_ERROR")
 
 
 class CVGenerationAgent:
@@ -127,8 +128,10 @@ class CVGenerationAgent:
                     error=last_error,
                 )
 
+        logger.error("cv_tectonic_exhausted", attempts=max_retries, error=last_error)
         raise CVGenerationException(
-            f"LaTeX compilation failed after {max_retries} attempts: {last_error}"
+            "CV PDF oluşturulamadı: LaTeX derlemesi başarısız oldu. "
+            "Lütfen daha sonra tekrar deneyin."
         )
 
     async def generate(
@@ -139,8 +142,15 @@ class CVGenerationAgent:
         if not user_profile:
             raise ValidationException("user_profile zorunludur")
 
-        tex_source = self._render_latex(user_profile, job_analysis or {})
-        return await self._compile_with_tectonic(tex_source)
+        async with agent_run(
+            "cv_generation",
+            position=(job_analysis or {}).get("position_title"),
+        ):
+            tex_source = self._render_latex(user_profile, job_analysis or {})
+            pdf_bytes = await self._compile_with_tectonic(tex_source)
+            if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
+                raise CVGenerationException("Üretilen dosya geçerli bir PDF değil")
+            return pdf_bytes
 
     async def generate_and_save(
         self,
