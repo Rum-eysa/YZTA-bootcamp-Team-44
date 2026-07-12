@@ -215,3 +215,79 @@ async def test_chain_rejects_requests_without_token(client: AsyncClient):
     for path in ("/api/match", "/api/generate-cv", "/api/generate-cover-letter"):
         response = await client.post(path, json={"listing_id": "x"})
         assert response.status_code == 403, f"{path} auth istemedi"
+
+
+@pytest.mark.asyncio
+async def test_full_journey_persists_all_records(client: AsyncClient, test_session):
+    """US-034: her adımın DB kalıcılığı - listing, match ve 2 document kaydı
+
+    HTTP zinciri US-031'deki ile aynı; bu test her adımdan sonra gerçek test
+    veritabanında beklenen satırın oluştuğunu ayrıca doğrular.
+    """
+    from sqlalchemy import select
+
+    email, headers = await _register_and_login(client)
+
+    # register -> users tablosunda kayıt var
+    user_row = (await test_session.execute(select(User).where(User.email == email))).scalar_one()
+    assert user_row.is_active
+
+    # profile update -> alanlar DB'ye yazıldı (JSON string olarak)
+    await client.patch(
+        "/api/profiles/me",
+        headers=headers,
+        json={"skills": ["Python", "FastAPI"], "seniority": "junior"},
+    )
+    await test_session.refresh(user_row)
+    assert json.loads(user_row.skills) == ["Python", "FastAPI"]
+    assert user_row.seniority == "junior"
+
+    # analyze -> job_listings satırı: şirket, parsed_json, status, sahiplik
+    analyze = await client.post(
+        "/api/analyze",
+        headers=headers,
+        json={"listing_text": LISTING_TEXT, "company_name": "Acme Yazılım A.Ş."},
+    )
+    listing_id = analyze.json()["listing_id"]
+    listing_row = (
+        await test_session.execute(select(JobListing).where(JobListing.id == listing_id))
+    ).scalar_one()
+    assert listing_row.company == "Acme Yazılım A.Ş."
+    assert listing_row.analysis_status == "completed"
+    assert json.loads(listing_row.parsed_json)["position_title"] == "Backend Developer"
+    assert listing_row.created_by == user_row.id
+
+    # match -> matches satırı: skor + beceri listeleri
+    await client.post("/api/match", headers=headers, json={"listing_id": listing_id})
+    match_row = (
+        await test_session.execute(
+            select(Match).where(Match.user_id == user_row.id, Match.listing_id == listing_id)
+        )
+    ).scalar_one()
+    assert match_row.score == 71.4
+    assert json.loads(match_row.matched_skills) == ["python", "fastapi"]
+    assert json.loads(match_row.missing_skills) == ["postgresql"]
+
+    # cv + cover letter -> documents'ta tam 2 kayıt, tipleri doğru
+    await client.post("/api/generate-cv", headers=headers, json={"listing_id": listing_id})
+    await client.post(
+        "/api/generate-cover-letter", headers=headers, json={"listing_id": listing_id}
+    )
+    documents = (
+        (
+            await test_session.execute(
+                select(Document).where(
+                    Document.user_id == user_row.id, Document.listing_id == listing_id
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(documents) == 2
+    by_type = {d.doc_type: d for d in documents}
+    assert set(by_type) == {"cv", "cover_letter"}
+    assert by_type["cv"].cv_url.endswith(".pdf")
+    assert by_type["cv"].cover_letter_text is None
+    assert "Acme Yazılım A.Ş." in by_type["cover_letter"].cover_letter_text
+    assert by_type["cover_letter"].cv_url is None
