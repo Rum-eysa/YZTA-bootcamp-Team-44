@@ -10,10 +10,11 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
-    "@uiw/react-md-editor": "^4.1.1",
     "@uiw/react-markdown-preview": "^4.1.1",
+    "@uiw/react-md-editor": "^4.1.1",
     "axios": "^1.6.2",
     "clsx": "^2.0.0",
+    "framer-motion": "^12.42.2",
     "lucide-react": "^0.294.0",
     "next": "14.2.35",
     "react": "18.3.1",
