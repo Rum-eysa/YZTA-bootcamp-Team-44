@@ -10,14 +10,13 @@ import uuid
 
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-
 from app.agents.cover_letter import get_cover_letter_agent
 from app.agents.cv_generation import get_cv_generation_agent
 from app.agents.listing_analysis import get_listing_analysis_agent
 from app.agents.matching import get_matching_agent
 from app.main import app
 from app.models import Document, JobListing, Match, User
+from httpx import AsyncClient
 
 LISTING_TEXT = (
     "Acme Yazılım A.Ş. Backend Developer (Junior) arıyor. Python, FastAPI ve "
@@ -184,21 +183,15 @@ async def test_full_application_flow(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_flow_with_seeded_listing_and_match_cache(
-    client: AsyncClient, seeded_listing: str
-):
+async def test_flow_with_seeded_listing_and_match_cache(client: AsyncClient, seeded_listing: str):
     """Seed ilan üzerinden akış + ikinci match çağrısının cache'den dönmesi"""
     _, headers = await _register_and_login(client)
 
-    first = await client.post(
-        "/api/match", headers=headers, json={"listing_id": seeded_listing}
-    )
+    first = await client.post("/api/match", headers=headers, json={"listing_id": seeded_listing})
     assert first.status_code == 200
     assert first.json()["cached"] is False
 
-    second = await client.post(
-        "/api/match", headers=headers, json={"listing_id": seeded_listing}
-    )
+    second = await client.post("/api/match", headers=headers, json={"listing_id": seeded_listing})
     assert second.status_code == 200
     assert second.json()["cached"] is True
     assert second.json()["score"] == first.json()["score"]
