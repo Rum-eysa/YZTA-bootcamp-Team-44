@@ -19,6 +19,7 @@ from app.routes import (
     health,
     listings,
     match,
+    orchestrator,
     profiles,
     users,
 )
@@ -103,6 +104,7 @@ app.include_router(listings.router, prefix="/api/listings")
 app.include_router(cover_letter.router, prefix="/api")
 app.include_router(cv_generation.router, prefix="/api")
 app.include_router(match.router, prefix="/api")
+app.include_router(orchestrator.router, prefix="/api")
 
 
 @app.exception_handler(APIException)
