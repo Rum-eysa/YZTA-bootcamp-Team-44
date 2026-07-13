@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-flash-latest"
 
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
+    # API'nin kendi domain'leri (staging/prod'da TrustedHost için; virgülle ayrık).
+    # CORS_ORIGINS frontend origin'leridir - API'nin Railway domain'ini kapsamaz.
+    ALLOWED_HOSTS: str = ""
 
     STORAGE_ENDPOINT: str = "http://localhost:9000"
     STORAGE_ACCESS_KEY: str = "yzta_minio"
