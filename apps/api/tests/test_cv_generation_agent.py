@@ -5,6 +5,8 @@ import pytest
 from app.agents.cv_generation import (
     CVGenerationAgent,
     CVGenerationException,
+    _rank_projects,
+    _sorted_experiences,
     get_cv_generation_agent,
     latex_escape,
 )
@@ -134,3 +136,83 @@ async def test_generate_rejects_non_pdf_output():
 
 def test_get_cv_generation_agent_returns_singleton():
     assert get_cv_generation_agent() is get_cv_generation_agent()
+
+
+def test_rank_projects_prioritizes_matching_tech_stack():
+    """US: aday C#, Java ve Python projeleri olduğunda, ilana en uygun proje öne çıkmalı"""
+    projects = [
+        {"title": "Envanter Sistemi", "tech_stack": ["C#", ".NET"], "description": ""},
+        {"title": "Mikroservis API", "tech_stack": ["Java", "Spring Boot"], "description": ""},
+        {"title": "Veri Pipeline", "tech_stack": ["Python", "FastAPI"], "description": ""},
+    ]
+    job_analysis = {"required_skills": ["Python", "FastAPI"], "nice_to_have_skills": ["Docker"]}
+
+    ranked = _rank_projects(projects, job_analysis, limit=3)
+
+    assert ranked[0]["title"] == "Veri Pipeline"
+
+
+def test_rank_projects_respects_limit():
+    projects = [
+        {"title": f"Proje {i}", "tech_stack": ["Python"], "description": ""} for i in range(5)
+    ]
+    ranked = _rank_projects(projects, {"required_skills": ["Python"]}, limit=3)
+    assert len(ranked) == 3
+
+
+def test_rank_projects_empty_list_returns_empty():
+    assert _rank_projects([], {"required_skills": ["Python"]}, limit=3) == []
+
+
+def test_rank_projects_stable_order_on_tie():
+    """Skor eşitse orijinal sıra korunmalı (rastgele karışmamalı)"""
+    projects = [
+        {"title": "A", "tech_stack": [], "description": ""},
+        {"title": "B", "tech_stack": [], "description": ""},
+        {"title": "C", "tech_stack": [], "description": ""},
+    ]
+    ranked = _rank_projects(projects, {"required_skills": ["Go"]}, limit=3)
+    assert [p["title"] for p in ranked] == ["A", "B", "C"]
+
+
+def test_sorted_experiences_puts_current_job_first():
+    experiences = [
+        {"title": "Junior Dev", "end_date": "2022-01-01"},
+        {"title": "Mid Dev", "end_date": None},  # halen çalışıyor
+        {"title": "Intern", "end_date": "2020-06-01"},
+    ]
+    sorted_exp = _sorted_experiences(experiences)
+    assert sorted_exp[0]["title"] == "Mid Dev"
+    assert sorted_exp[-1]["title"] == "Intern"
+
+
+@pytest.mark.asyncio
+async def test_render_latex_includes_experience_and_selected_projects():
+    """CV'de en alakalı proje(ler) ve iş deneyimi bölümü gerçekten basılmalı"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    profile = {
+        "full_name": "Ayşe Yılmaz",
+        "skills": ["Python", "FastAPI"],
+        "work_experiences": [
+            {
+                "company": "Acme",
+                "title": "Backend Developer",
+                "start_date": "2022-01-01",
+                "end_date": None,
+                "description": "FastAPI ile REST API geliştirdi.",
+            }
+        ],
+        "projects": [
+            {"title": "C# Envanter", "tech_stack": ["C#"], "description": "..."},
+            {"title": "Python API", "tech_stack": ["Python", "FastAPI"], "description": "..."},
+        ],
+    }
+    job_analysis = {"position_title": "Backend Developer", "required_skills": ["Python", "FastAPI"]}
+
+    tex = agent._render_latex(profile, job_analysis)
+
+    assert "Backend Developer" in tex
+    assert "Acme" in tex
+    assert "Python API" in tex
+    # C# projesi bu ilanla alakasız değil ama Python API daha üstte olmalı
+    assert tex.index("Python API") < tex.index("C\\# Envanter")

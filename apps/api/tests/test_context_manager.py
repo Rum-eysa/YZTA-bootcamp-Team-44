@@ -8,6 +8,7 @@ from app.services.context import (
     ContextManager,
     job_analysis_from_context,
     matching_gaps_from_context,
+    user_profile_for_agents,
     user_profile_for_matching,
 )
 
@@ -269,6 +270,11 @@ async def test_context_helpers_build_agent_payloads(test_session):
     profile = user_profile_for_matching(context)
     assert profile["skills"] == ["Python"]
     assert profile["work_experiences"] == []
+
+    agent_profile = user_profile_for_agents(context)
+    assert agent_profile["skills"] == ["Python"]
+    assert agent_profile["work_experiences"] == []
+    assert agent_profile["projects"] == []
 
     gaps = matching_gaps_from_context(context)
     assert gaps == {}
