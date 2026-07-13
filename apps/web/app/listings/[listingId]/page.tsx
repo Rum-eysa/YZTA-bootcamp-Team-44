@@ -243,6 +243,13 @@ function ListingDetailContent() {
     );
   }
 
+  const matchScore =
+    listing.score == null ? null : Math.min(100, Math.max(0, Math.round(listing.score)));
+  const hasCv = listing.documents.some((document) => document.doc_type === "cv");
+  const hasCoverLetter = listing.documents.some(
+    (document) => document.doc_type === "cover_letter"
+  );
+
   const steps = [
     {
       label: "İlan Analiz Edildi",
@@ -362,7 +369,7 @@ function ListingDetailContent() {
             </div>
             <div className="flex flex-col items-center justify-center text-center bg-primary-fixed/20 rounded-xl px-5 py-2 min-w-[104px]">
               <p className="text-[32px] leading-none font-bold text-primary">
-                {listing.score != null ? `%${Math.round(listing.score)}` : "—"}
+                {matchScore != null ? `%${matchScore}` : "—"}
               </p>
               <p className="text-label-md text-on-surface-variant mt-1">Eşleşme Skoru</p>
             </div>
@@ -403,37 +410,78 @@ function ListingDetailContent() {
                 </div>
               </div>
             )}
-            {listing.matched_skills.length > 0 && (
-              <div className="mt-4">
-                <p className="text-label-md text-on-surface-variant mb-2">EŞLEŞEN BECERİLER</p>
-                <div className="flex flex-wrap gap-2">
-                  {listing.matched_skills.map((s) => (
-                    <span
-                      key={s}
-                      className="bg-primary-fixed/20 text-primary px-2 py-1 rounded text-label-md"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {listing.missing_skills.length > 0 && (
-              <div className="mt-4">
-                <p className="text-label-md text-on-surface-variant mb-2">EKSİK BECERİLER</p>
-                <div className="flex flex-wrap gap-2">
-                  {listing.missing_skills.map((s) => (
-                    <span
-                      key={s}
-                      className="bg-error-container text-on-error-container px-2 py-1 rounded text-label-md"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </Card>
+
+          {matchScore != null && (
+            <Card title="Uygunluk Sonucu" className="shadow-card-hover">
+              <div className="grid grid-cols-1 items-center gap-lg lg:grid-cols-[180px_1fr]">
+                <div className="flex justify-center">
+                  <div
+                    role="progressbar"
+                    aria-label={`Uygunluk skoru yüzde ${matchScore}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={matchScore}
+                    className="flex h-36 w-36 items-center justify-center rounded-full p-3"
+                    style={{
+                      background: `conic-gradient(#10b981 ${matchScore * 3.6}deg, #e7eefe 0deg)`,
+                    }}
+                  >
+                    <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-container-lowest">
+                      <span className="text-headline-lg font-semibold text-primary">
+                        %{matchScore}
+                      </span>
+                      <span className="text-label-md text-on-surface-variant">Eşleşme</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
+                  <div className="rounded-xl bg-primary-fixed/10 p-4">
+                    <h3 className="mb-3 text-label-md font-semibold text-on-surface">
+                      Eşleşen Beceriler
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {listing.matched_skills.length > 0 ? (
+                        listing.matched_skills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded bg-primary-fixed/20 px-2 py-1 text-label-md text-primary"
+                          >
+                            {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <p className="text-body-sm text-on-surface-variant">
+                          Eşleşen beceri bulunamadı
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-error-container/30 p-4">
+                    <h3 className="mb-3 text-label-md font-semibold text-on-surface">
+                      Eksik Beceriler
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {listing.missing_skills.length > 0 ? (
+                        listing.missing_skills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded bg-error-container px-2 py-1 text-label-md text-on-error-container"
+                          >
+                            {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <p className="text-body-sm text-on-surface-variant">Eksik beceri yok</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           <Card title="Yan Haklar">
             <TagInput
@@ -454,12 +502,28 @@ function ListingDetailContent() {
         </div>
 
         <div className="space-y-lg min-w-0">
-          <Card title="AI Araçları">
+          <Card
+            title="AI Araçları"
+            className="bg-gradient-to-br from-surface-container-lowest to-primary-fixed/10 shadow-card"
+          >
             <p className="text-body-sm text-on-surface-variant mb-4">
               Profilinize göre uygunluğu hesaplayın, ilana özel CV ve önyazı oluşturun.
             </p>
             <div className="space-y-md">
-              <div className="space-y-2">
+              <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-label-md font-semibold">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed/20 text-primary">
+                      <Target className="h-4 w-4" />
+                    </span>
+                    Uygunluk
+                  </span>
+                  {matchScore != null && (
+                    <span className="rounded-full bg-primary-fixed/20 px-2 py-1 text-label-md text-primary">
+                      %{matchScore}
+                    </span>
+                  )}
+                </div>
                 <Button
                   onClick={handleMatch}
                   loading={matchLoading}
@@ -470,7 +534,20 @@ function ListingDetailContent() {
                 </Button>
                 <FormError message={matchError} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-label-md font-semibold">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed/20 text-primary">
+                      <FileText className="h-4 w-4" />
+                    </span>
+                    CV
+                  </span>
+                  {hasCv && (
+                    <span className="rounded-full bg-secondary-container px-2 py-1 text-label-md text-on-secondary-container">
+                      Hazır
+                    </span>
+                  )}
+                </div>
                 <Button
                   onClick={handleGenerateCv}
                   loading={cvLoading}
@@ -482,7 +559,20 @@ function ListingDetailContent() {
                 </Button>
                 <FormError message={cvError} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-2 text-label-md font-semibold">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed/20 text-primary">
+                      <Sparkles className="h-4 w-4" />
+                    </span>
+                    Önyazı
+                  </span>
+                  {hasCoverLetter && (
+                    <span className="rounded-full bg-secondary-container px-2 py-1 text-label-md text-on-secondary-container">
+                      Hazır
+                    </span>
+                  )}
+                </div>
                 <Button
                   onClick={handleGenerateCoverLetter}
                   loading={coverLetterLoading}
@@ -575,7 +665,7 @@ function ListingDetailContent() {
             </div>
           </Card>
 
-          <Card title="Dokümanlar">
+          <Card title="Dokümanlar" className="border-primary/20 shadow-card">
             {listing.documents.length === 0 ? (
               <p className="text-body-sm text-on-surface-variant italic">Henüz doküman yok</p>
             ) : (
@@ -586,7 +676,7 @@ function ListingDetailContent() {
                   return (
                     <div
                       key={doc.id}
-                      className="border border-outline-variant rounded-lg px-3 py-2 space-y-2"
+                      className="space-y-2 rounded-xl border border-outline-variant bg-gradient-to-br from-surface-container-low to-primary-fixed/10 px-3 py-3"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="flex items-center gap-2 min-w-0">
