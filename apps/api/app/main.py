@@ -75,6 +75,8 @@ if settings.ENVIRONMENT not in ("test",) and not settings.DEBUG:
     ]
     allowed_hosts.extend(parsed_hosts)
 
+allowed_hosts.extend(h.strip() for h in settings.ALLOWED_HOSTS.split(",") if h.strip())
+
 allowed_hosts = list(dict.fromkeys(host for host in allowed_hosts if host))
 
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
