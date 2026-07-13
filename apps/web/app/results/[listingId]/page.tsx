@@ -287,8 +287,11 @@ function AnalyzeResultContent() {
           <div className="grid grid-cols-1 items-center gap-lg lg:grid-cols-[180px_1fr]">
             <div className="flex flex-col items-center gap-3">
               <div
-                role="img"
+                role="progressbar"
                 aria-label={`Uygunluk skoru yüzde ${matchScore}`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={matchScore}
                 className="flex h-36 w-36 items-center justify-center rounded-full p-3"
                 style={{
                   background: `conic-gradient(#10b981 ${matchScore * 3.6}deg, #e7eefe 0deg)`,
