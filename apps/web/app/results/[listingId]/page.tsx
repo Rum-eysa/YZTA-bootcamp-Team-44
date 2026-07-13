@@ -146,6 +146,9 @@ function AnalyzeResultContent() {
   }
 
   const confidencePercent = Math.round(result.confidence * 100);
+  const matchScore = matchResult
+    ? Math.min(100, Math.max(0, Math.round(matchResult.score)))
+    : 0;
 
   return (
     <main className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-lg md:py-xl space-y-lg">
@@ -205,17 +208,27 @@ function AnalyzeResultContent() {
         </Card>
       </div>
 
-      <Card title="Başvuru Araçları">
+      <Card
+        title="Başvuru Araçları"
+        className="overflow-hidden bg-gradient-to-br from-surface-container-lowest to-primary-fixed/10 shadow-card"
+      >
         <p className="text-body-sm text-on-surface-variant mb-4">
           Analiz tamamlandı. Profilinize göre uygunluk skorunu hesaplayabilir, ilana özel CV ve
           önyazı oluşturabilirsiniz.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-lg border border-outline-variant p-4 space-y-3">
-            <div className="flex items-center gap-2 text-primary">
-              <Target className="w-4 h-4" />
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 space-y-3 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-fixed/20 text-primary">
+              <Target className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
               <span className="text-label-md font-semibold">Uygunluk</span>
+              {matchResult && (
+                <span className="rounded-full bg-primary-fixed/20 px-2 py-1 text-label-md text-primary">
+                  %{matchScore}
+                </span>
+              )}
             </div>
             <p className="text-body-sm text-on-surface-variant">
               Profiliniz ile ilan arasındaki eşleşme skorunu hesaplar.
@@ -226,10 +239,17 @@ function AnalyzeResultContent() {
             <FormError message={matchError} />
           </div>
 
-          <div className="rounded-lg border border-outline-variant p-4 space-y-3">
-            <div className="flex items-center gap-2 text-primary">
-              <FileText className="w-4 h-4" />
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 space-y-3 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-fixed/20 text-primary">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
               <span className="text-label-md font-semibold">CV</span>
+              {cvResult && (
+                <span className="rounded-full bg-secondary-container px-2 py-1 text-label-md text-on-secondary-container">
+                  Hazır
+                </span>
+              )}
             </div>
             <p className="text-body-sm text-on-surface-variant">
               İlana özel PDF CV oluşturur ve indirme linki sunar.
@@ -239,10 +259,17 @@ function AnalyzeResultContent() {
             </Button>
           </div>
 
-          <div className="rounded-lg border border-outline-variant p-4 space-y-3">
-            <div className="flex items-center gap-2 text-primary">
-              <Sparkles className="w-4 h-4" />
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 space-y-3 shadow-card transition-shadow hover:shadow-card-hover">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-fixed/20 text-primary">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="flex items-center justify-between gap-2">
               <span className="text-label-md font-semibold">Önyazı</span>
+              {coverLetterResult && (
+                <span className="rounded-full bg-secondary-container px-2 py-1 text-label-md text-on-secondary-container">
+                  Hazır
+                </span>
+              )}
             </div>
             <p className="text-body-sm text-on-surface-variant">
               Şirkete özel önyazı metni üretir.
@@ -256,52 +283,73 @@ function AnalyzeResultContent() {
       </Card>
 
       {matchResult && (
-        <Card title="Uygunluk Sonucu">
-          <div className="flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-headline-md font-semibold text-primary">
-              {Math.round(matchResult.score)} / 100
-            </span>
-            {matchResult.cached && (
-              <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-label-md">
-                Önbellekten
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-            <div>
-              <h3 className="text-label-md font-semibold text-on-surface mb-2">Eşleşen Beceriler</h3>
-              <div className="flex flex-wrap gap-2">
-                {matchResult.matched_skills.length > 0 ? (
-                  matchResult.matched_skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="bg-primary-fixed/20 text-primary px-2 py-1 rounded font-label-md"
-                    >
-                      {skill}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-body-sm text-on-surface-variant">Eşleşen beceri bulunamadı</p>
-                )}
+        <Card title="Uygunluk Sonucu" className="shadow-card-hover">
+          <div className="grid grid-cols-1 items-center gap-lg lg:grid-cols-[180px_1fr]">
+            <div className="flex flex-col items-center gap-3">
+              <div
+                role="progressbar"
+                aria-label={`Uygunluk skoru yüzde ${matchScore}`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={matchScore}
+                className="flex h-36 w-36 items-center justify-center rounded-full p-3"
+                style={{
+                  background: `conic-gradient(#10b981 ${matchScore * 3.6}deg, #e7eefe 0deg)`,
+                }}
+              >
+                <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-container-lowest">
+                  <span className="text-headline-lg font-semibold text-primary">%{matchScore}</span>
+                  <span className="text-label-md text-on-surface-variant">Eşleşme</span>
+                </div>
               </div>
+              {matchResult.cached && (
+                <span className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded-full text-label-md">
+                  Önbellekten
+                </span>
+              )}
             </div>
 
-            <div>
-              <h3 className="text-label-md font-semibold text-on-surface mb-2">Eksik Beceriler</h3>
-              <div className="flex flex-wrap gap-2">
-                {matchResult.missing_skills.length > 0 ? (
-                  matchResult.missing_skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="bg-error-container text-on-error-container px-2 py-1 rounded font-label-md"
-                    >
-                      {skill}
-                    </span>
-                  ))
-                ) : (
-                  <p className="text-body-sm text-on-surface-variant">Eksik beceri yok</p>
-                )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+              <div className="rounded-xl bg-primary-fixed/10 p-4">
+                <h3 className="text-label-md font-semibold text-on-surface mb-3">
+                  Eşleşen Beceriler
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {matchResult.matched_skills.length > 0 ? (
+                    matchResult.matched_skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="bg-primary-fixed/20 text-primary px-2 py-1 rounded font-label-md"
+                      >
+                        {skill}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-body-sm text-on-surface-variant">
+                      Eşleşen beceri bulunamadı
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-error-container/30 p-4">
+                <h3 className="text-label-md font-semibold text-on-surface mb-3">
+                  Eksik Beceriler
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {matchResult.missing_skills.length > 0 ? (
+                    matchResult.missing_skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="bg-error-container text-on-error-container px-2 py-1 rounded font-label-md"
+                      >
+                        {skill}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-body-sm text-on-surface-variant">Eksik beceri yok</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -339,14 +387,17 @@ function AnalyzeResultContent() {
       )}
 
       {coverLetterResult && (
-        <Card title={`Önyazı — ${coverLetterResult.company_name}`}>
+        <Card
+          title={`Önyazı — ${coverLetterResult.company_name}`}
+          className="border-primary/30 shadow-card-hover"
+        >
           <div className="flex justify-end mb-3">
             <Button variant="outline" onClick={handleCopyCoverLetter}>
               <Copy className="w-4 h-4" />
               {copied ? "Kopyalandı" : "Panoya Kopyala"}
             </Button>
           </div>
-          <div className="rounded-lg bg-surface-container-low p-4 whitespace-pre-wrap text-body-sm text-on-surface">
+          <div className="rounded-xl bg-gradient-to-br from-surface-container-low to-primary-fixed/10 p-5 whitespace-pre-wrap text-body-sm leading-relaxed text-on-surface">
             {coverLetterResult.cover_letter_text}
           </div>
         </Card>
