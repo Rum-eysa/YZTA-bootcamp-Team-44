@@ -59,6 +59,52 @@ _jinja_env = Environment(
 )
 _jinja_env.filters["latex_escape"] = latex_escape
 
+_MAX_PROJECTS_ON_CV = 3
+
+
+def _rank_projects(
+    projects: list[dict[str, Any]], job_analysis: dict[str, Any], limit: int
+) -> list[dict[str, Any]]:
+    """Kullanıcının projelerini ilanın istediği tech stack'e göre sıralar.
+
+    Aday birden fazla teknoloji setinde proje yapmış olabilir (ör. biri C#,
+    biri Java, biri Python) - CV'de hepsini basmak yerine bu ilana en alakalı
+    olanları öne çıkarır. Skor: proje tech_stack'inin, ilanın required +
+    nice_to_have becerileriyle örtüşen beceri sayısı. Eşitlikte orijinal sıra
+    korunur (stabil sort); hiç proje yoksa boş liste döner (opsiyonel bölüm).
+    """
+    if not projects:
+        return []
+
+    wanted = {
+        s.strip().lower()
+        for s in (job_analysis.get("required_skills") or [])
+        + (job_analysis.get("nice_to_have_skills") or [])
+        if s and s.strip()
+    }
+
+    def score(project: dict[str, Any]) -> int:
+        stack = {str(t).strip().lower() for t in (project.get("tech_stack") or [])}
+        return len(stack & wanted)
+
+    ranked = sorted(enumerate(projects), key=lambda pair: (-score(pair[1]), pair[0]))
+    return [project for _, project in ranked[:limit]]
+
+
+def _sorted_experiences(experiences: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """En güncel iş deneyimi en üstte (end_date yok = hâlâ çalışıyor, en üstte)"""
+    return sorted(
+        experiences,
+        key=lambda exp: exp.get("end_date") or "9999-99-99",
+        reverse=True,
+    )
+
+
+def _format_period(experience: dict[str, Any]) -> str:
+    start = experience.get("start_date") or "?"
+    end = experience.get("end_date") or "halen"
+    return f"{start} - {end}"
+
 
 class CVGenerationException(APIException):
     def __init__(self, detail: str = "CV oluşturulamadı"):
@@ -75,6 +121,10 @@ class CVGenerationAgent:
         job_analysis: dict[str, Any],
     ) -> str:
         skills = sorted(set(user_profile.get("skills") or []))
+        relevant_projects = _rank_projects(
+            user_profile.get("projects") or [], job_analysis, limit=_MAX_PROJECTS_ON_CV
+        )
+        experiences = _sorted_experiences(user_profile.get("work_experiences") or [])
 
         template = _jinja_env.get_template("cv_template.tex.jinja")
         return template.render(
@@ -90,6 +140,25 @@ class CVGenerationAgent:
             all_skills=[latex_escape(s) for s in skills],
             experience_years=latex_escape(user_profile.get("experience_years") or "belirtilmemiş"),
             seniority=latex_escape(user_profile.get("seniority") or "belirtilmemiş"),
+            work_experiences=[
+                {
+                    "company": latex_escape(exp.get("company")),
+                    "title": latex_escape(exp.get("title")),
+                    "period": latex_escape(_format_period(exp)),
+                    "description": latex_escape(exp.get("description")),
+                }
+                for exp in experiences
+            ],
+            projects=[
+                {
+                    "title": latex_escape(proj.get("title")),
+                    "description": latex_escape(proj.get("description")),
+                    "tech_stack": ", ".join(
+                        latex_escape(t) for t in (proj.get("tech_stack") or [])
+                    ),
+                }
+                for proj in relevant_projects
+            ],
         )
 
     async def _compile_with_tectonic(self, tex_source: str, max_retries: int = 2) -> bytes:

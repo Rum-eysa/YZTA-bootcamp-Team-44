@@ -50,7 +50,11 @@ def job_analysis_from_context(context: dict[str, Any]) -> dict[str, Any]:
 
 
 def user_profile_for_agents(context: dict[str, Any]) -> dict[str, Any]:
-    """CV / önyazı ajanları için kullanıcı profili."""
+    """CV / önyazı ajanları için kullanıcı profili.
+
+    work_experiences ve projects de dahil - CV ajanı bunları bölüm olarak
+    basar, projects ayrıca ilana göre en alakalı olacak şekilde CV ajanı
+    tarafından sıralanıp kısaltılır (bkz. cv_generation._rank_projects)."""
     user = context["user"]
     return {
         "full_name": user.get("full_name"),
@@ -63,6 +67,8 @@ def user_profile_for_agents(context: dict[str, Any]) -> dict[str, Any]:
         "phone": user.get("phone"),
         "location": user.get("location"),
         "tone_preference": user.get("tone_preference"),
+        "work_experiences": context.get("experiences") or [],
+        "projects": context.get("projects") or [],
     }
 
 

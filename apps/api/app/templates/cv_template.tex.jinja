@@ -25,10 +25,25 @@
 \VAR{all_skills | join(', ')}
 
 \section*{Deneyim}
+\BLOCK{if work_experiences}
 \begin{itemize}
-\BLOCK{for years in [experience_years]}
-\item Toplam \VAR{years} yıl deneyim, \VAR{seniority} seviye
+\BLOCK{for exp in work_experiences}
+\item \textbf{\VAR{exp.title}} — \VAR{exp.company} (\VAR{exp.period})\BLOCK{if exp.description}\\ \VAR{exp.description}\BLOCK{endif}
 \BLOCK{endfor}
 \end{itemize}
+\BLOCK{else}
+\begin{itemize}
+\item Toplam \VAR{experience_years} yıl deneyim, \VAR{seniority} seviye
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if projects}
+\section*{Projeler}
+\begin{itemize}
+\BLOCK{for proj in projects}
+\item \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}\BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
 
 \end{document}
