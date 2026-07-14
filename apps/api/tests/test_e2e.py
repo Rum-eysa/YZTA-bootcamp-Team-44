@@ -9,7 +9,6 @@ import json
 import uuid
 
 import pytest
-import pytest_asyncio
 from app.agents.cover_letter import get_cover_letter_agent
 from app.agents.cv_generation import get_cv_generation_agent
 from app.agents.listing_analysis import get_listing_analysis_agent
@@ -98,10 +97,13 @@ def _stub_agents():
         app.dependency_overrides.pop(dep, None)
 
 
-@pytest_asyncio.fixture
-async def seeded_listing(test_session) -> str:
-    """Test fixture: önceden analiz edilmiş bir ilan (seed listing)"""
+async def _seed_listing(test_session, user_id: str) -> str:
+    """Önceden analiz edilmiş, verilen kullanıcıya ait bir ilan oluşturur.
+
+    created_by mutlaka set edilmeli - /api/match artık yalnızca sahibi olunan
+    ilanlarda çalışıyor (US-040)."""
     listing = JobListing(
+        created_by=user_id,
         title="Backend Developer",
         company="Acme Yazılım A.Ş.",
         raw_text=LISTING_TEXT,
@@ -115,20 +117,21 @@ async def seeded_listing(test_session) -> str:
 
 
 async def _register_and_login(client: AsyncClient) -> tuple[str, dict]:
-    """Gerçek auth akışı: register + login, (email, auth_headers) döner"""
+    """Gerçek auth akışı: register + login, (user_id, auth_headers) döner"""
     email = f"e2e-{uuid.uuid4()}@example.com"
     register = await client.post(
         "/api/auth/register",
         json={"email": email, "password": "E2eTestPass123", "full_name": "E2E Kullanıcı"},
     )
     assert register.status_code == 201
+    user_id = register.json()["id"]
 
     login = await client.post(
         "/api/auth/login", json={"email": email, "password": "E2eTestPass123"}
     )
     assert login.status_code == 200
     token = login.json()["access_token"]
-    return email, {"Authorization": f"Bearer {token}"}
+    return user_id, {"Authorization": f"Bearer {token}"}
 
 
 @pytest.mark.asyncio
@@ -183,15 +186,16 @@ async def test_full_application_flow(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_flow_with_seeded_listing_and_match_cache(client: AsyncClient, seeded_listing: str):
+async def test_flow_with_seeded_listing_and_match_cache(client: AsyncClient, test_session):
     """Seed ilan üzerinden akış + ikinci match çağrısının cache'den dönmesi"""
-    _, headers = await _register_and_login(client)
+    user_id, headers = await _register_and_login(client)
+    listing_id = await _seed_listing(test_session, user_id)
 
-    first = await client.post("/api/match", headers=headers, json={"listing_id": seeded_listing})
+    first = await client.post("/api/match", headers=headers, json={"listing_id": listing_id})
     assert first.status_code == 200
     assert first.json()["cached"] is False
 
-    second = await client.post("/api/match", headers=headers, json={"listing_id": seeded_listing})
+    second = await client.post("/api/match", headers=headers, json={"listing_id": listing_id})
     assert second.status_code == 200
     assert second.json()["cached"] is True
     assert second.json()["score"] == first.json()["score"]
@@ -226,10 +230,10 @@ async def test_full_journey_persists_all_records(client: AsyncClient, test_sessi
     """
     from sqlalchemy import select
 
-    email, headers = await _register_and_login(client)
+    user_id, headers = await _register_and_login(client)
 
     # register -> users tablosunda kayıt var
-    user_row = (await test_session.execute(select(User).where(User.email == email))).scalar_one()
+    user_row = (await test_session.execute(select(User).where(User.id == user_id))).scalar_one()
     assert user_row.is_active
 
     # profile update -> alanlar DB'ye yazıldı (JSON string olarak)
