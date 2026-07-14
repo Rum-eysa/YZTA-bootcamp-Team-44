@@ -5,6 +5,8 @@ Not: analiz sonucunu DB'den okuma + created_by/JWT US-014 ile örtüşür.
 import json
 from typing import Any, List, Optional
 
+from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
+from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.models import Document, JobListing
@@ -18,6 +20,11 @@ from app.schemas.listing import (
     ListingUpdate,
 )
 from app.schemas.match import ScoreBreakdown
+from app.services.context import (
+    ContextManager,
+    job_analysis_from_context,
+    user_profile_for_matching,
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -168,5 +175,65 @@ async def update_listing(
     for field, value in update_data.items():
         setattr(listing, field, value)
     await repo.update(listing.id, listing)
+
+    return await get_listing(listing_id, user_id, db)
+
+
+@router.post("/{listing_id}/reanalyze", response_model=ListingDetail)
+async def reanalyze_listing(
+    listing_id: str,
+    user_id: str = Depends(get_current_user_id),
+    agent: AnalyzeListingAgent = Depends(get_listing_analysis_agent),
+    db: AsyncSession = Depends(get_db),
+):
+    """İlan metni/detayları değiştiğinde manuel olarak yeniden analiz eder (US-037).
+
+    required_skills/nice_to_have_skills/seniority güncel ilan metnine göre yenilenir;
+    bu ilan için önceden hesaplanmış eşleşme artık geçersiz olduğundan silinir - kullanıcı
+    "Eşleşmeyi Güncelle"ye basana kadar eski (yanıltıcı) skor gösterilmez.
+    """
+    repo = JobListingRepository(db)
+    listing = await _get_owned_listing(listing_id, user_id, repo)
+
+    result = await agent.analyze(listing.raw_text)
+
+    listing.required_skills = json.dumps(result.get("required_skills") or [], ensure_ascii=False)
+    listing.nice_to_have_skills = json.dumps(
+        result.get("nice_to_have_skills") or [], ensure_ascii=False
+    )
+    listing.seniority = result.get("seniority")
+    listing.parsed_json = json.dumps(result, ensure_ascii=False)
+    listing.analysis_status = "completed"
+    await repo.update(listing.id, listing)
+
+    match_repo = MatchRepository(db)
+    await match_repo.delete_by_user_and_listing(user_id, listing_id)
+
+    return await get_listing(listing_id, user_id, db)
+
+
+@router.post("/{listing_id}/rematch", response_model=ListingDetail)
+async def rematch_listing(
+    listing_id: str,
+    user_id: str = Depends(get_current_user_id),
+    agent: MatchingAgent = Depends(get_matching_agent),
+    db: AsyncSession = Depends(get_db),
+):
+    """Eşleşmeyi cache'i bypass ederek güncel profil/ilan verisiyle yeniden hesaplar (US-037)."""
+    repo = JobListingRepository(db)
+    await _get_owned_listing(listing_id, user_id, repo)
+
+    match_repo = MatchRepository(db)
+    await match_repo.delete_by_user_and_listing(user_id, listing_id)
+
+    context_manager = ContextManager(db)
+    context = await context_manager.load(user_id, listing_id)
+    await agent.match_and_save(
+        db=db,
+        user_id=user_id,
+        listing_id=listing_id,
+        user_profile=user_profile_for_matching(context),
+        job_analysis=job_analysis_from_context(context),
+    )
 
     return await get_listing(listing_id, user_id, db)
