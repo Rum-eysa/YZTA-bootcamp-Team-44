@@ -201,7 +201,7 @@ async def reanalyze_listing(
     listing.nice_to_have_skills = json.dumps(
         result.get("nice_to_have_skills") or [], ensure_ascii=False
     )
-    listing.seniority = result.get("seniority")
+    listing.seniority = result.get("seniority") or ""
     listing.parsed_json = json.dumps(result, ensure_ascii=False)
     listing.analysis_status = "completed"
     await repo.update(listing.id, listing)
