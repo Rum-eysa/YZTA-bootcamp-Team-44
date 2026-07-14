@@ -3,12 +3,11 @@ import json
 import uuid
 
 import pytest
-from httpx import AsyncClient
-
-from app.agents.cv_generation import get_cv_generation_agent
+from app.agents.cv_generation import CVGenerationException, get_cv_generation_agent
 from app.dependencies import get_current_user_id
 from app.main import app
 from app.models import Document, JobListing, User
+from httpx import AsyncClient
 
 
 class _StubCVAgent:
@@ -23,6 +22,20 @@ class _StubCVAgent:
         await db.commit()
         await db.refresh(document)
         return document
+
+
+class _StubCVAgentLatexFailure:
+    """US-042: Tectonic/LaTeX derlemesi başarısız - agent'ın kendi temiz 422 hatası"""
+
+    async def generate_and_save(self, db, user_id, listing_id, user_profile, job_analysis):
+        raise CVGenerationException("CV PDF oluşturulamadı: LaTeX derlemesi başarısız oldu.")
+
+
+class _StubCVAgentServiceUnavailable:
+    """US-042: beklenmeyen alt sistem hatası (ör. MinIO'ya erişilemiyor)"""
+
+    async def generate_and_save(self, db, user_id, listing_id, user_profile, job_analysis):
+        raise ConnectionError("connection refused")
 
 
 @pytest.fixture(autouse=True)
@@ -80,3 +93,39 @@ async def test_generate_cv_unknown_listing_returns_404(client: AsyncClient, test
 async def test_generate_cv_requires_authentication(client: AsyncClient):
     response = await client.post("/api/generate-cv", json={"listing_id": "some-id"})
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_latex_failure_returns_422_with_clean_message(
+    client: AsyncClient, test_session
+):
+    """US-042: Tectonic/LaTeX derlemesi başarısız -> 422 + kullanıcı dostu mesaj, stack trace yok"""
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    app.dependency_overrides[get_cv_generation_agent] = lambda: _StubCVAgentLatexFailure()
+
+    response = await client.post("/api/generate-cv", json={"listing_id": listing.id})
+
+    assert response.status_code == 422
+    body = response.json()
+    assert "LaTeX derlemesi başarısız" in body["detail"]
+    assert "Traceback" not in response.text
+    assert 'File "' not in response.text
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_service_unavailable_returns_503(client: AsyncClient, test_session):
+    """US-042: beklenmeyen alt sistem hatası (ör. MinIO erişilemez) -> 503, stack trace yok"""
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    app.dependency_overrides[get_cv_generation_agent] = lambda: _StubCVAgentServiceUnavailable()
+
+    response = await client.post("/api/generate-cv", json={"listing_id": listing.id})
+
+    assert response.status_code == 503
+    body = response.json()
+    assert "şu anda kullanılamıyor" in body["detail"]
+    assert "Traceback" not in response.text
+    assert "connection refused" not in response.text
