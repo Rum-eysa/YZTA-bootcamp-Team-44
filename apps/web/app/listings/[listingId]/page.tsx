@@ -8,7 +8,12 @@ import { Spinner } from "@/components/ui/Spinner";
 import { TagInput } from "@/components/ui/TagInput";
 import { generateCoverLetter } from "@/lib/api/coverLetter";
 import { generateCv } from "@/lib/api/cvGeneration";
-import { getListing, updateListing } from "@/lib/api/listings";
+import {
+  getListing,
+  reanalyzeListing,
+  rematchListing,
+  updateListing,
+} from "@/lib/api/listings";
 import { matchListing } from "@/lib/api/match";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { cn } from "@/lib/utils";
@@ -27,6 +32,7 @@ import {
   Eye,
   FileText,
   MapPin,
+  RefreshCw,
   Sparkles,
   Target,
 } from "lucide-react";
@@ -95,6 +101,10 @@ function ListingDetailContent() {
 
   const [matchLoading, setMatchLoading] = useState(false);
   const [matchError, setMatchError] = useState<string>();
+  const [reanalyzeLoading, setReanalyzeLoading] = useState(false);
+  const [reanalyzeError, setReanalyzeError] = useState<string>();
+  const [rematchLoading, setRematchLoading] = useState(false);
+  const [rematchError, setRematchError] = useState<string>();
   const [cvLoading, setCvLoading] = useState(false);
   const [cvError, setCvError] = useState<string>();
   const [coverLetterLoading, setCoverLetterLoading] = useState(false);
@@ -150,6 +160,37 @@ function ListingDetailContent() {
       );
     } finally {
       setMatchLoading(false);
+    }
+  };
+
+  const handleReanalyze = async () => {
+    setReanalyzeError(undefined);
+    setReanalyzeLoading(true);
+    try {
+      const updated = await reanalyzeListing(listingId);
+      setListing(updated);
+      setForm(toForm(updated));
+    } catch (err: unknown) {
+      setReanalyzeError(
+        getApiErrorMessage(err, "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin.")
+      );
+    } finally {
+      setReanalyzeLoading(false);
+    }
+  };
+
+  const handleRematch = async () => {
+    setRematchError(undefined);
+    setRematchLoading(true);
+    try {
+      const updated = await rematchListing(listingId);
+      setListing(updated);
+    } catch (err: unknown) {
+      setRematchError(
+        getApiErrorMessage(err, "Eşleşme güncellenemedi. Lütfen tekrar deneyin.")
+      );
+    } finally {
+      setRematchLoading(false);
     }
   };
 
@@ -410,6 +451,35 @@ function ListingDetailContent() {
                 </div>
               </div>
             )}
+            {listing.nice_to_have.length > 0 && (
+              <div className="mt-3">
+                <p className="text-label-md text-on-surface-variant mb-2">TERCİH SEBEBİ</p>
+                <div className="flex flex-wrap gap-2">
+                  {listing.nice_to_have.map((s) => (
+                    <span
+                      key={s}
+                      className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-label-md"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-4 flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={handleReanalyze}
+                loading={reanalyzeLoading}
+              >
+                <RefreshCw className="w-4 h-4" />
+                Yeniden Analiz Et
+              </Button>
+              <p className="text-label-md text-on-surface-variant">
+                İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz edin.
+              </p>
+            </div>
+            <FormError message={reanalyzeError} />
           </Card>
 
           {matchScore != null && (
@@ -533,6 +603,20 @@ function ListingDetailContent() {
                   Uygunluğumu Hesapla
                 </Button>
                 <FormError message={matchError} />
+                {matchScore != null && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={handleRematch}
+                      loading={rematchLoading}
+                      className="w-full"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Eşleşmeyi Güncelle
+                    </Button>
+                    <FormError message={rematchError} />
+                  </>
+                )}
               </div>
               <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
                 <div className="flex items-center justify-between gap-2">

@@ -18,3 +18,13 @@ export async function updateListing(
   const { data } = await api.patch<ListingDetail>(`/api/listings/${id}`, payload);
   return data;
 }
+
+export async function reanalyzeListing(id: string): Promise<ListingDetail> {
+  const { data } = await api.post<ListingDetail>(`/api/listings/${id}/reanalyze`, {});
+  return data;
+}
+
+export async function rematchListing(id: string): Promise<ListingDetail> {
+  const { data } = await api.post<ListingDetail>(`/api/listings/${id}/rematch`, {});
+  return data;
+}
