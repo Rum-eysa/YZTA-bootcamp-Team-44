@@ -1,5 +1,9 @@
 """CV Üretim Ajanı'nı tetikleyen endpoint"""
-from app.agents.cv_generation import CVGenerationAgent, get_cv_generation_agent
+from app.agents.cv_generation import (
+    CVGenerationAgent,
+    CVGenerationException,
+    get_cv_generation_agent,
+)
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.schemas.cv_generation import CVGenerationRequest, CVGenerationResponse
@@ -34,13 +38,23 @@ async def generate_cv(
     user_profile = user_profile_for_agents(context)
     job_analysis = job_analysis_from_context(context)
 
-    document = await agent.generate_and_save(
-        db=db,
-        user_id=user_id,
-        listing_id=context["listing"]["id"],
-        user_profile=user_profile,
-        job_analysis=job_analysis,
-    )
+    try:
+        document = await agent.generate_and_save(
+            db=db,
+            user_id=user_id,
+            listing_id=context["listing"]["id"],
+            user_profile=user_profile,
+            job_analysis=job_analysis,
+        )
+    except CVGenerationException:
+        # Zaten temiz, kullanıcı dostu bir mesajla 422 - global handler'a bırak
+        # (US-042: agent'ın kendi hatası olduğu için stack trace sızdırmaz)
+        raise
+    except Exception as exc:  # noqa: BLE001 - beklenmeyen alt sistem hatası (ör. MinIO erişilemez)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CV oluşturma servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+        ) from exc
 
     return CVGenerationResponse(
         document_id=document.id,
