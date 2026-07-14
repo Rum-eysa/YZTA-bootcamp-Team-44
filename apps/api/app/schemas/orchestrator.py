@@ -1,4 +1,4 @@
-"""Orkestratör endpoint şemaları (US-030)"""
+"""Orkestratör endpoint şemaları (US-030, response şekli US-041 ile güncellendi)"""
 
 from typing import Any, Optional
 
@@ -31,9 +31,14 @@ class TimelineStep(BaseModel):
 
 
 class ProcessResponse(BaseModel):
+    """US-041 kabul kriteri: listing_id, match, cv_url, cover_letter_text, errors[]"""
+
     listing_id: str
-    analysis: dict[str, Any]
     match: dict[str, Any]
-    cover_letter: Optional[dict[str, Any]] = None
-    cv: Optional[dict[str, Any]] = None
+    cv_url: Optional[str] = None
+    cover_letter_text: Optional[str] = None
+    errors: list[str] = []
+
+    # Ek gözlemlenebilirlik alanları (AC'yi kırmaz, hata ayıklama için)
+    analysis: dict[str, Any]
     timeline: list[TimelineStep]
