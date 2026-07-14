@@ -1,17 +1,20 @@
-"""Orkestratör: Ajan koordinasyonu + hafıza (US-030)
+"""Orkestratör: Ajan koordinasyonu + hafıza (US-030, retry/response düzeltmeleri US-041)
 
 Tek giriş noktası: process(listing_text | listing_id, user_id)
 Akış: Analiz -> Eşleştirme -> Önyazı -> CV
 
 - Ajanlar arası bağlam ContextManager (US-017) üzerinden taşınır.
-- Geçici (Gemini) hatalarında adım başına 1 retry yapılır.
+- Geçici (Gemini) hatalarında adım başına exponential backoff ile en fazla
+  2 deneme yapılır (US-041): 1. deneme başarısızsa ~0.2s bekleyip 2. deneme
+  yapılır, o da düşerse adım "failed" sayılır.
 - Doküman adımları (önyazı/CV) kısmi başarısızlığa dayanıklıdır: biri düşerse
-  akış devam eder, sonuçta step status'ları raporlanır. Analiz ve eşleştirme
-  ise zincirin temelidir - onlar düşerse akış durur.
+  akış devam eder, hata mesajı `errors[]`'e eklenir. Analiz ve eşleştirme ise
+  zincirin temelidir - onlar düşerse akış durur (OrchestrationError).
 - Her adımın süresi timeline olarak döner; token kullanımı zaten
   observability.agent_run + gemini_client loglarına düşer.
 """
 
+import asyncio
 import json
 import time
 from typing import Any, Optional
@@ -36,6 +39,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = get_logger("orchestrator")
 
 _RETRYABLE = (GeminiAPIException,)
+_MAX_ATTEMPTS = 2
+_BASE_BACKOFF_SECONDS = 0.2
 
 
 class OrchestrationError(Exception):
@@ -63,10 +68,11 @@ class ApplicationOrchestrator:
         self.cv_agent = cv_agent or get_cv_generation_agent()
 
     async def _run_step(self, name: str, coro_factory, timeline: list[dict[str, Any]]):
-        """Adımı çalıştırır, süresini ölçer; geçici hatada 1 kez tekrar dener"""
+        """Adımı çalıştırır, süresini ölçer; geçici hatada exponential backoff ile
+        en fazla `_MAX_ATTEMPTS` kez dener (1. deneme dahil)."""
         started = time.monotonic()
         last_exc: Exception | None = None
-        for attempt in (1, 2):
+        for attempt in range(1, _MAX_ATTEMPTS + 1):
             try:
                 result = await coro_factory()
                 timeline.append(
@@ -80,7 +86,12 @@ class ApplicationOrchestrator:
                 return result
             except _RETRYABLE as exc:
                 last_exc = exc
-                logger.warning("orchestrator_step_retry", step=name, attempt=attempt)
+                if attempt < _MAX_ATTEMPTS:
+                    backoff = _BASE_BACKOFF_SECONDS * (2 ** (attempt - 1))
+                    logger.warning(
+                        "orchestrator_step_retry", step=name, attempt=attempt, backoff_s=backoff
+                    )
+                    await asyncio.sleep(backoff)
             except Exception as exc:  # noqa: BLE001 - adım hatası timeline'a işlenir
                 last_exc = exc
                 break
@@ -109,7 +120,13 @@ class ApplicationOrchestrator:
             raise ValidationException("listing_text veya listing_id zorunludur")
 
         timeline: list[dict[str, Any]] = []
-        result: dict[str, Any] = {"timeline": timeline}
+        errors: list[str] = []
+        result: dict[str, Any] = {
+            "timeline": timeline,
+            "errors": errors,
+            "cv_url": None,
+            "cover_letter_text": None,
+        }
 
         # 1) Analiz (yeni ilan metni geldiyse) --------------------------------
         if not listing_id:
@@ -204,13 +221,10 @@ class ApplicationOrchestrator:
                     ),
                     timeline,
                 )
-                result["cover_letter"] = {
-                    "document_id": document.id,
-                    "text": document.cover_letter_text,
-                }
+                result["cover_letter_text"] = document.cover_letter_text
             except Exception as exc:  # noqa: BLE001
                 logger.warning("orchestrator_cover_letter_failed", error=str(exc))
-                result["cover_letter"] = None
+                errors.append(f"cover_letter: {exc}")
 
         # 5) CV (kısmi başarısızlığa dayanıklı) -------------------------------
         if generate_cv:
@@ -226,15 +240,16 @@ class ApplicationOrchestrator:
                     ),
                     timeline,
                 )
-                result["cv"] = {"document_id": document.id, "cv_url": document.cv_url}
+                result["cv_url"] = document.cv_url
             except Exception as exc:  # noqa: BLE001
                 logger.warning("orchestrator_cv_failed", error=str(exc))
-                result["cv"] = None
+                errors.append(f"cv: {exc}")
 
         logger.info(
             "orchestrator_completed",
             listing_id=listing_id,
             steps={s["step"]: s["status"] for s in timeline},
+            error_count=len(errors),
         )
         return result
 
