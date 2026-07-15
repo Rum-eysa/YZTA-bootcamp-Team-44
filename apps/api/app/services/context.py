@@ -9,7 +9,7 @@ import json
 from typing import Any
 
 from app.logging_config import get_logger
-from app.models import JobListing, Match, Project, User, WorkExperience
+from app.models import EducationRecord, JobListing, Match, Project, User, WorkExperience
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,9 +52,11 @@ def job_analysis_from_context(context: dict[str, Any]) -> dict[str, Any]:
 def user_profile_for_agents(context: dict[str, Any]) -> dict[str, Any]:
     """CV / önyazı ajanları için kullanıcı profili.
 
-    work_experiences ve projects de dahil - CV ajanı bunları bölüm olarak
-    basar, projects ayrıca ilana göre en alakalı olacak şekilde CV ajanı
-    tarafından sıralanıp kısaltılır (bkz. cv_generation._rank_projects)."""
+    work_experiences, projects ve education de dahil - CV ajanı bunları bölüm
+    olarak basar, projects ayrıca ilana göre en alakalı olacak şekilde CV
+    ajanı tarafından sıralanıp kısaltılır (bkz. cv_generation._rank_projects).
+    gender/nationality/driver_license/military_status "Kişisel Bilgiler"
+    bölümünde basılır (TR CV geleneği - yalnızca doldurulmuşsa gösterilir)."""
     user = context["user"]
     return {
         "full_name": user.get("full_name"),
@@ -69,6 +71,12 @@ def user_profile_for_agents(context: dict[str, Any]) -> dict[str, Any]:
         "tone_preference": user.get("tone_preference"),
         "work_experiences": context.get("experiences") or [],
         "projects": context.get("projects") or [],
+        "education": context.get("education") or [],
+        "birth_year": user.get("birth_year"),
+        "gender": user.get("gender"),
+        "nationality": user.get("nationality"),
+        "driver_license": user.get("driver_license"),
+        "military_status": user.get("military_status"),
     }
 
 
@@ -162,6 +170,14 @@ class ContextManager:
         projects_result = await self.db.execute(select(Project).where(Project.user_id == user_id))
         projects = projects_result.scalars().all()
 
+        # Eğitim kayıtlarını yükle
+        education_result = await self.db.execute(
+            select(EducationRecord)
+            .where(EducationRecord.user_id == user_id)
+            .order_by(EducationRecord.start_date.desc().nullslast())
+        )
+        education_records = education_result.scalars().all()
+
         # Context'i oluştur
         parsed_json = _parse_json(listing.parsed_json, {})
         if not isinstance(parsed_json, dict):
@@ -209,6 +225,7 @@ class ContextManager:
             "match": None,
             "experiences": [],
             "projects": [],
+            "education": [],
         }
 
         # Match varsa ekle
@@ -246,6 +263,20 @@ class ContextManager:
                 }
             )
 
+        # Eğitim kayıtlarını ekle
+        for edu in education_records:
+            context["education"].append(
+                {
+                    "id": edu.id,
+                    "school": edu.school,
+                    "degree": edu.degree,
+                    "field_of_study": edu.field_of_study,
+                    "start_date": edu.start_date.isoformat() if edu.start_date else None,
+                    "end_date": edu.end_date.isoformat() if edu.end_date else None,
+                    "description": edu.description,
+                }
+            )
+
         logger.info(
             "context_loaded",
             user_id=user_id,
@@ -253,6 +284,7 @@ class ContextManager:
             has_match=match is not None,
             experiences_count=len(experiences),
             projects_count=len(projects),
+            education_count=len(education_records),
         )
 
         return context

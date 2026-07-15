@@ -106,6 +106,15 @@ def _format_period(experience: dict[str, Any]) -> str:
     return f"{start} - {end}"
 
 
+def _sorted_education(education: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """En güncel eğitim en üstte (end_date yok = hâlâ devam ediyor, en üstte)"""
+    return sorted(
+        education,
+        key=lambda edu: edu.get("end_date") or "9999-99-99",
+        reverse=True,
+    )
+
+
 class CVGenerationException(APIException):
     def __init__(self, detail: str = "CV oluşturulamadı"):
         super().__init__(detail, status_code=422, error_code="CV_GENERATION_ERROR")
@@ -125,6 +134,20 @@ class CVGenerationAgent:
             user_profile.get("projects") or [], job_analysis, limit=_MAX_PROJECTS_ON_CV
         )
         experiences = _sorted_experiences(user_profile.get("work_experiences") or [])
+        education = _sorted_education(user_profile.get("education") or [])
+
+        # Kişisel bilgiler - TR CV geleneği (yalnızca doldurulmuşsa gösterilir)
+        personal_info = [
+            (label, latex_escape(value))
+            for label, value in (
+                ("Cinsiyet", user_profile.get("gender")),
+                ("Uyruk", user_profile.get("nationality")),
+                ("Doğum Yılı", user_profile.get("birth_year")),
+                ("Askerlik Durumu", user_profile.get("military_status")),
+                ("Sürücü Belgesi", user_profile.get("driver_license")),
+            )
+            if value
+        ]
 
         template = _jinja_env.get_template("cv_template.tex.jinja")
         return template.render(
@@ -159,6 +182,17 @@ class CVGenerationAgent:
                 }
                 for proj in relevant_projects
             ],
+            education=[
+                {
+                    "school": latex_escape(edu.get("school")),
+                    "degree": latex_escape(edu.get("degree")),
+                    "field_of_study": latex_escape(edu.get("field_of_study")),
+                    "period": latex_escape(_format_period(edu)),
+                    "description": latex_escape(edu.get("description")),
+                }
+                for edu in education
+            ],
+            personal_info=personal_info,
         )
 
     async def _compile_with_tectonic(self, tex_source: str, max_retries: int = 2) -> bytes:

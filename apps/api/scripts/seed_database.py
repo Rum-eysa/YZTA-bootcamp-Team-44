@@ -15,7 +15,7 @@ import json
 from datetime import date
 
 from app.database import AsyncSessionLocal
-from app.models import Document, JobListing, Match, Project, User, WorkExperience
+from app.models import Document, EducationRecord, JobListing, Match, Project, User, WorkExperience
 from app.services.auth import get_password_hash
 from sqlalchemy import delete
 
@@ -29,6 +29,21 @@ USERS = [
         skills=["Python", "SQL", "Git", "REST API"],
         experience_summary="Üniversite projelerinde Flask ile 2 küçük API geliştirdi.",
         tone_preference="professional",
+        gender="Kadın",
+        nationality="TC",
+        driver_license="B",
+        military_status=None,
+        birth_year=2003,
+        education=[
+            dict(
+                school="Erzincan Binali Yıldırım Üniversitesi",
+                degree="Lisans",
+                field_of_study="Bilgisayar Mühendisliği",
+                start_date=date(2021, 9, 1),
+                end_date=None,
+                description="4. sınıf, mezuniyet 2026 Haziran.",
+            ),
+        ],
         experiences=[
             dict(
                 company="Üniversite Bitirme Projesi",
@@ -62,6 +77,21 @@ USERS = [
             "2 yıl bir fintech şirketinde Java/Spring " "Boot ile mikroservis geliştirdi."
         ),
         tone_preference="confident",
+        gender="Erkek",
+        nationality="TC",
+        driver_license="B",
+        military_status="Yapıldı",
+        birth_year=1997,
+        education=[
+            dict(
+                school="Orta Doğu Teknik Üniversitesi",
+                degree="Lisans",
+                field_of_study="Bilgisayar Mühendisliği",
+                start_date=date(2015, 9, 1),
+                end_date=date(2019, 6, 1),
+                description=None,
+            ),
+        ],
         experiences=[
             dict(
                 company="FinTechCo",
@@ -101,6 +131,29 @@ USERS = [
             "geliştirmeye odaklandı."
         ),
         tone_preference="professional",
+        gender="Kadın",
+        nationality="TC",
+        driver_license="B",
+        military_status=None,
+        birth_year=1996,
+        education=[
+            dict(
+                school="Boğaziçi Üniversitesi",
+                degree="Yüksek Lisans",
+                field_of_study="Yapay Zeka",
+                start_date=date(2019, 9, 1),
+                end_date=date(2021, 6, 1),
+                description=None,
+            ),
+            dict(
+                school="Boğaziçi Üniversitesi",
+                degree="Lisans",
+                field_of_study="Bilgisayar Mühendisliği",
+                start_date=date(2015, 9, 1),
+                end_date=date(2019, 6, 1),
+                description=None,
+            ),
+        ],
         experiences=[
             dict(
                 company="NeuralWorks",
@@ -153,6 +206,21 @@ USERS = [
             "full stack projeler geliştirdi."
         ),
         tone_preference="confident",
+        gender="Erkek",
+        nationality="TC",
+        driver_license="B",
+        military_status="Muaf",
+        birth_year=1998,
+        education=[
+            dict(
+                school="Yıldız Teknik Üniversitesi",
+                degree="Lisans",
+                field_of_study="Yazılım Mühendisliği",
+                start_date=date(2016, 9, 1),
+                end_date=date(2021, 6, 1),
+                description=None,
+            ),
+        ],
         experiences=[
             dict(
                 company="Kodçu Yazılım",
@@ -198,6 +266,21 @@ USERS = [
         skills=["Python", "FastAPI", "Kubernetes", "AWS", "System Design", "PostgreSQL"],
         experience_summary="5 yıl kıdemli backend mühendisi, mikroservis mimarileri kurdu.",
         tone_preference="professional",
+        gender="Kadın",
+        nationality="TC",
+        driver_license=None,
+        military_status=None,
+        birth_year=1994,
+        education=[
+            dict(
+                school="İstanbul Teknik Üniversitesi",
+                degree="Lisans",
+                field_of_study="Bilgisayar Mühendisliği",
+                start_date=date(2012, 9, 1),
+                end_date=date(2016, 6, 1),
+                description=None,
+            ),
+        ],
         experiences=[
             dict(
                 company="ScaleUp Tech",
@@ -279,6 +362,7 @@ async def seed() -> None:
         await session.execute(delete(Match))
         await session.execute(delete(Project))
         await session.execute(delete(WorkExperience))
+        await session.execute(delete(EducationRecord))
         await session.execute(delete(JobListing))
         await session.execute(delete(User))
         await session.commit()
@@ -295,12 +379,29 @@ async def seed() -> None:
                 skills=json.dumps(u["skills"], ensure_ascii=False),
                 experience_summary=u["experience_summary"],
                 tone_preference=u["tone_preference"],
+                gender=u.get("gender"),
+                nationality=u.get("nationality"),
+                driver_license=u.get("driver_license"),
+                military_status=u.get("military_status"),
+                birth_year=u.get("birth_year"),
             )
             session.add(user)
             users.append(user)
         await session.commit()
 
         for u, user in zip(USERS, users):
+            for edu in u.get("education") or []:
+                session.add(
+                    EducationRecord(
+                        user_id=user.id,
+                        school=edu["school"],
+                        degree=edu.get("degree"),
+                        field_of_study=edu.get("field_of_study"),
+                        start_date=edu.get("start_date"),
+                        end_date=edu.get("end_date"),
+                        description=edu.get("description"),
+                    )
+                )
             for exp in u.get("experiences") or []:
                 session.add(
                     WorkExperience(
@@ -359,10 +460,11 @@ async def seed() -> None:
 
         total_experiences = sum(len(u.get("experiences") or []) for u in USERS)
         total_projects = sum(len(u.get("projects") or []) for u in USERS)
+        total_education = sum(len(u.get("education") or []) for u in USERS)
         print(
             f"Seeded {len(users)} users, {len(listings)} listings, "
             f"{total_experiences} work experiences, {total_projects} projects, "
-            "1 match, 1 document"
+            f"{total_education} education records, 1 match, 1 document"
         )
         for u in users:
             print(f"  - {u.email} ({u.seniority}, {u.target_position})")
