@@ -6,6 +6,7 @@ from app.agents.cv_generation import (
     CVGenerationAgent,
     CVGenerationException,
     _rank_projects,
+    _sorted_education,
     _sorted_experiences,
     get_cv_generation_agent,
     latex_escape,
@@ -216,3 +217,75 @@ async def test_render_latex_includes_experience_and_selected_projects():
     assert "Python API" in tex
     # C# projesi bu ilanla alakasız değil ama Python API daha üstte olmalı
     assert tex.index("Python API") < tex.index("C\\# Envanter")
+
+
+def test_sorted_education_puts_ongoing_first():
+    education = [
+        {"school": "Lise", "end_date": "2018-06-01"},
+        {"school": "Üniversite (devam ediyor)", "end_date": None},
+        {"school": "İlkokul", "end_date": "2010-06-01"},
+    ]
+    sorted_edu = _sorted_education(education)
+    assert sorted_edu[0]["school"] == "Üniversite (devam ediyor)"
+    assert sorted_edu[-1]["school"] == "İlkokul"
+
+
+@pytest.mark.asyncio
+async def test_render_latex_includes_education_and_personal_info():
+    """CV'de eğitim ve kişisel bilgiler (yalnızca doluysa) basılmalı"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    profile = {
+        "full_name": "Mehmet Kaya",
+        "skills": ["Java"],
+        "gender": "Erkek",
+        "nationality": "TC",
+        "birth_year": 1997,
+        "military_status": "Yapıldı",
+        "driver_license": "B",
+        "education": [
+            {
+                "school": "ODTÜ",
+                "degree": "Lisans",
+                "field_of_study": "Bilgisayar Mühendisliği",
+                "start_date": "2015-09-01",
+                "end_date": "2019-06-01",
+            }
+        ],
+    }
+    job_analysis = {"position_title": "Java Backend Developer"}
+
+    tex = agent._render_latex(profile, job_analysis)
+
+    assert "Eğitim" in tex
+    assert "ODTÜ" in tex
+    assert "Kişisel Bilgiler" in tex
+    assert "Erkek" in tex
+    assert "Askerlik Durumu" in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_omits_empty_personal_fields():
+    """Doldurulmamış kişisel alanlar (ör. askerlik/ehliyet) CV'de hiç görünmemeli"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    profile = {
+        "full_name": "Elif Aydın",
+        "skills": ["Python"],
+        "gender": "Kadın",
+        "military_status": None,
+        "driver_license": None,
+    }
+    tex = agent._render_latex(profile, {"position_title": "Senior Backend Engineer"})
+
+    assert "Askerlik Durumu" not in tex
+    assert "Sürücü Belgesi" not in tex
+    assert "Cinsiyet" in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_omits_education_section_when_empty():
+    agent = CVGenerationAgent(storage=MagicMock())
+    tex = agent._render_latex(
+        {"full_name": "Ayşe", "skills": ["Python"]}, {"position_title": "Dev"}
+    )
+    assert "Eğitim" not in tex
+    assert "Kişisel Bilgiler" not in tex
