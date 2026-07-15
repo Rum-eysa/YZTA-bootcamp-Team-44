@@ -307,6 +307,7 @@ LISTINGS = [
     dict(
         title="Backend Developer Intern",
         company="TechNova",
+        owner_email="junior.dev@example.com",
         raw_text=(
             "TechNova olarak yaz stajyeri arıyoruz. Gereken: Python, temel SQL bilgisi, "
             "Git kullanımı. Tercih sebebi: REST API deneyimi, FastAPI bilgisi."
@@ -315,6 +316,7 @@ LISTINGS = [
     dict(
         title="Java Backend Developer",
         company="FinTechCo",
+        owner_email="java.dev@example.com",
         raw_text=(
             "Java Backend Developer arıyoruz. Zorunlu: Java, Spring Boot, PostgreSQL. "
             "Tercih sebebi: Kafka, Docker deneyimi. 2-4 yıl deneyim bekleniyor."
@@ -323,6 +325,7 @@ LISTINGS = [
     dict(
         title="Full Stack Developer",
         company="Kodçu Yazılım",
+        owner_email="fullstack.multi@example.com",
         raw_text=(
             "Full stack geliştirici arıyoruz. Zorunlu: Python, React, PostgreSQL. "
             "Tercih sebebi: Docker, CI/CD deneyimi. 1-3 yıl deneyim bekleniyor."
@@ -331,6 +334,7 @@ LISTINGS = [
     dict(
         title="Senior Backend Engineer",
         company="ScaleUp Tech",
+        owner_email="senior.dev@example.com",
         raw_text=(
             "Kıdemli backend mühendisi arıyoruz. Zorunlu: Python, Kubernetes, sistem "
             "tasarımı deneyimi, AWS. Tercih sebebi: mikroservis mimarisi tecrübesi. 5+ yıl deneyim."
@@ -339,6 +343,7 @@ LISTINGS = [
     dict(
         title="Data Engineer Intern",
         company="DataFlow",
+        owner_email="junior.dev@example.com",
         raw_text=(
             "Veri mühendisliği stajyeri arıyoruz. Zorunlu: Python, SQL. "
             "Tercih sebebi: Airflow, Spark bilgisi."
@@ -347,6 +352,7 @@ LISTINGS = [
     dict(
         title="AI/ML Engineer",
         company="NeuralWorks",
+        owner_email="ai.engineer@example.com",
         raw_text=(
             "Yapay zeka mühendisi arıyoruz. Zorunlu: Python, LLM API deneyimi (Gemini/OpenAI), "
             "FastAPI. Tercih sebebi: agent orkestrasyonu, prompt engineering. 2+ yıl deneyim."
@@ -425,9 +431,16 @@ async def seed() -> None:
                 )
         await session.commit()
 
+        # US-040 sonrası sahipsiz ilan hiçbir akışta kullanılamıyor - her seed
+        # ilanı, profili o ilana en uygun seed kullanıcısına atanır ki demo
+        # kullanıcıları giriş yapınca "İlanlarım"da hazır ilan bulup match/CV/
+        # önyazı akışını Gemini'siz-analiz adımı olmadan deneyebilsin.
+        users_by_email = {u.email: u for u in users}
         listings = []
         for listing_data in LISTINGS:
+            owner = users_by_email[listing_data["owner_email"]]
             listing = JobListing(
+                created_by=owner.id,
                 title=listing_data["title"],
                 company=listing_data["company"],
                 raw_text=listing_data["raw_text"],

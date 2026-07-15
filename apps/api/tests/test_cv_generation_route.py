@@ -48,12 +48,15 @@ def _clear_overrides():
 async def _seed_user_and_listing(test_session, user_id):
     user = User(id=user_id, email=f"cv-{user_id}@example.com", hashed_password="x")
     listing = JobListing(
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"position_title": "Backend Developer"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     await test_session.refresh(listing)
     return listing
@@ -129,3 +132,24 @@ async def test_generate_cv_service_unavailable_returns_503(client: AsyncClient, 
     assert "şu anda kullanılamıyor" in body["detail"]
     assert "Traceback" not in response.text
     assert "connection refused" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_rejects_other_users_listing(client: AsyncClient, test_session):
+    """Sahiplik: başka kullanıcının ilanına karşı CV üretilemez (US-040 genellemesi)"""
+    owner_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, owner_id)
+
+    attacker_id = str(uuid.uuid4())
+    attacker = User(
+        id=attacker_id, email=f"cv-attacker-{attacker_id}@example.com", hashed_password="x"
+    )
+    test_session.add(attacker)
+    await test_session.commit()
+
+    app.dependency_overrides[get_current_user_id] = lambda: attacker_id
+    app.dependency_overrides[get_cv_generation_agent] = lambda: _StubCVAgent()
+
+    response = await client.post("/api/generate-cv", json={"listing_id": listing.id})
+
+    assert response.status_code == 404

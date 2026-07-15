@@ -28,6 +28,7 @@ async def test_context_manager_loads_user_and_listing(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps(
@@ -39,7 +40,9 @@ async def test_context_manager_loads_user_and_listing(test_session):
         ),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     await test_session.refresh(user)
     await test_session.refresh(listing)
@@ -73,12 +76,15 @@ async def test_context_manager_loads_match_if_exists(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     await test_session.refresh(user)
     await test_session.refresh(listing)
@@ -120,12 +126,15 @@ async def test_context_manager_returns_none_for_match_if_not_exists(test_session
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context_manager = ContextManager(test_session)
@@ -149,6 +158,7 @@ async def test_context_manager_loads_work_experiences(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
@@ -166,7 +176,9 @@ async def test_context_manager_loads_work_experiences(test_session):
         title="Junior Developer",
         description="Full stack development",
     )
-    test_session.add_all([user, listing, exp1, exp2])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add_all([listing, exp1, exp2])
     await test_session.commit()
 
     context_manager = ContextManager(test_session)
@@ -194,6 +206,7 @@ async def test_context_manager_loads_education(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
@@ -210,7 +223,9 @@ async def test_context_manager_loads_education(test_session):
         school="Lise",
         degree="Lise Diploması",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     test_session.add_all([edu1, edu2])
     await test_session.commit()
@@ -238,6 +253,7 @@ async def test_context_manager_loads_projects(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
@@ -289,6 +305,7 @@ async def test_context_helpers_build_agent_payloads(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         company="Acme Corp",
         raw_text="a" * 60,
@@ -302,7 +319,9 @@ async def test_context_helpers_build_agent_payloads(test_session):
         ),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context = await ContextManager(test_session).load(user_id, listing_id)
@@ -349,12 +368,15 @@ async def test_user_profile_for_agents_passes_through_personal_info_and_educatio
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     edu = EducationRecord(user_id=user_id, school="ODTÜ", degree="Lisans")
     test_session.add(edu)
@@ -427,12 +449,15 @@ async def test_context_manager_returns_json_serializable_context(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context_manager = ContextManager(test_session)
