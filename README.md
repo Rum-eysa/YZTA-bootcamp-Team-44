@@ -302,6 +302,10 @@ make seed
 
 Her hesapta iş deneyimi, proje, eğitim ve sertifika kayıtları önceden dolu gelir; diğer seed kullanıcıları için bkz. `apps/api/scripts/seed_database.py`.
 
+### Staging / Canlı Ortam
+
+Staging kurulum rehberi için [`docs/DEPLOY_STAGING.md`](docs/DEPLOY_STAGING.md), canlı URL'ler ve go-live kontrol listesi için [`docs/deploy.md`](docs/deploy.md).
+
 ### Erişim Noktaları
 
 - **Frontend**: http://localhost:3000
