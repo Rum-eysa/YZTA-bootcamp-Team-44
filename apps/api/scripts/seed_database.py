@@ -14,10 +14,19 @@ import asyncio
 import json
 from datetime import date
 
-from app.database import AsyncSessionLocal
-from app.models import Document, EducationRecord, JobListing, Match, Project, User, WorkExperience
-from app.services.auth import get_password_hash
 from sqlalchemy import delete
+
+from app.database import AsyncSessionLocal
+from app.models import (
+    Document,
+    EducationRecord,
+    JobListing,
+    Match,
+    Project,
+    User,
+    WorkExperience,
+)
+from app.services.auth import get_password_hash
 
 USERS = [
     dict(
@@ -51,7 +60,8 @@ USERS = [
                 start_date=date(2025, 6, 1),
                 end_date=date(2025, 9, 1),
                 description=(
-                    "Flask ile küçük ölçekli bir REST API " "ve SQLite entegrasyonu geliştirdi."
+                    "Flask ile küçük ölçekli bir REST API "
+                    "ve SQLite entegrasyonu geliştirdi."
                 ),
             )
         ],
@@ -59,7 +69,8 @@ USERS = [
             dict(
                 title="Kütüphane Ödünç Takip API'si",
                 description=(
-                    "Flask + SQLite ile kitap ödünç/iade süreçlerini " "yöneten basit bir REST API."
+                    "Flask + SQLite ile kitap ödünç/iade süreçlerini "
+                    "yöneten basit bir REST API."
                 ),
                 tech_stack=["Python", "Flask", "SQLite"],
                 url="https://github.com/example/library-api",
@@ -74,7 +85,8 @@ USERS = [
         experience_years=2.5,
         skills=["Java", "Spring Boot", "PostgreSQL", "Docker", "Kafka"],
         experience_summary=(
-            "2 yıl bir fintech şirketinde Java/Spring " "Boot ile mikroservis geliştirdi."
+            "2 yıl bir fintech şirketinde Java/Spring "
+            "Boot ile mikroservis geliştirdi."
         ),
         tone_preference="confident",
         gender="Erkek",
@@ -125,7 +137,14 @@ USERS = [
         target_position="AI Engineer",
         seniority="senior",
         experience_years=4.0,
-        skills=["Python", "LLM", "Gemini API", "FastAPI", "Prompt Engineering", "LangChain"],
+        skills=[
+            "Python",
+            "LLM",
+            "Gemini API",
+            "FastAPI",
+            "Prompt Engineering",
+            "LangChain",
+        ],
         experience_summary=(
             "4 yıl backend deneyiminin son 1.5 yılında LLM tabanlı agent sistemleri "
             "geliştirmeye odaklandı."
@@ -161,7 +180,8 @@ USERS = [
                 start_date=date(2024, 6, 1),
                 end_date=None,
                 description=(
-                    "Gemini function calling ile multi-agent " "bir başvuru platformu geliştirdi."
+                    "Gemini function calling ile multi-agent "
+                    "bir başvuru platformu geliştirdi."
                 ),
             ),
             dict(
@@ -170,7 +190,8 @@ USERS = [
                 start_date=date(2021, 9, 1),
                 end_date=date(2024, 5, 1),
                 description=(
-                    "FastAPI tabanlı servislerde çalıştı, sonrasında " "AI ürünlerine geçiş yaptı."
+                    "FastAPI tabanlı servislerde çalıştı, sonrasında "
+                    "AI ürünlerine geçiş yaptı."
                 ),
             ),
         ],
@@ -187,7 +208,8 @@ USERS = [
             dict(
                 title="Prompt Değerlendirme Aracı",
                 description=(
-                    "Farklı prompt varyantlarının çıktı kalitesini " "otomatik skorlayan araç."
+                    "Farklı prompt varyantlarının çıktı kalitesini "
+                    "otomatik skorlayan araç."
                 ),
                 tech_stack=["Python", "LLM", "Prompt Engineering"],
                 url="https://github.com/example/prompt-eval",
@@ -263,7 +285,14 @@ USERS = [
         target_position="Senior Backend Engineer",
         seniority="senior",
         experience_years=5.0,
-        skills=["Python", "FastAPI", "Kubernetes", "AWS", "System Design", "PostgreSQL"],
+        skills=[
+            "Python",
+            "FastAPI",
+            "Kubernetes",
+            "AWS",
+            "System Design",
+            "PostgreSQL",
+        ],
         experience_summary="5 yıl kıdemli backend mühendisi, mikroservis mimarileri kurdu.",
         tone_preference="professional",
         gender="Kadın",
@@ -288,7 +317,8 @@ USERS = [
                 start_date=date(2020, 4, 1),
                 end_date=None,
                 description=(
-                    "AWS üzerinde Kubernetes ile ölçeklenen " "mikroservis mimarisi tasarladı."
+                    "AWS üzerinde Kubernetes ile ölçeklenen "
+                    "mikroservis mimarisi tasarladı."
                 ),
             )
         ],
@@ -312,6 +342,9 @@ LISTINGS = [
             "TechNova olarak yaz stajyeri arıyoruz. Gereken: Python, temel SQL bilgisi, "
             "Git kullanımı. Tercih sebebi: REST API deneyimi, FastAPI bilgisi."
         ),
+        required_skills=["Python", "SQL", "Git"],
+        nice_to_have_skills=["REST API", "FastAPI"],
+        seniority="junior",
     ),
     dict(
         title="Java Backend Developer",
@@ -321,6 +354,9 @@ LISTINGS = [
             "Java Backend Developer arıyoruz. Zorunlu: Java, Spring Boot, PostgreSQL. "
             "Tercih sebebi: Kafka, Docker deneyimi. 2-4 yıl deneyim bekleniyor."
         ),
+        required_skills=["Java", "Spring Boot", "PostgreSQL"],
+        nice_to_have_skills=["Kafka", "Docker"],
+        seniority="mid",
     ),
     dict(
         title="Full Stack Developer",
@@ -330,6 +366,9 @@ LISTINGS = [
             "Full stack geliştirici arıyoruz. Zorunlu: Python, React, PostgreSQL. "
             "Tercih sebebi: Docker, CI/CD deneyimi. 1-3 yıl deneyim bekleniyor."
         ),
+        required_skills=["Python", "React", "PostgreSQL"],
+        nice_to_have_skills=["Docker", "CI/CD"],
+        seniority="mid",
     ),
     dict(
         title="Senior Backend Engineer",
@@ -339,6 +378,9 @@ LISTINGS = [
             "Kıdemli backend mühendisi arıyoruz. Zorunlu: Python, Kubernetes, sistem "
             "tasarımı deneyimi, AWS. Tercih sebebi: mikroservis mimarisi tecrübesi. 5+ yıl deneyim."
         ),
+        required_skills=["Python", "Kubernetes", "sistem tasarımı", "AWS"],
+        nice_to_have_skills=["mikroservis mimarisi"],
+        seniority="senior",
     ),
     dict(
         title="Data Engineer Intern",
@@ -348,6 +390,9 @@ LISTINGS = [
             "Veri mühendisliği stajyeri arıyoruz. Zorunlu: Python, SQL. "
             "Tercih sebebi: Airflow, Spark bilgisi."
         ),
+        required_skills=["Python", "SQL"],
+        nice_to_have_skills=["Airflow", "Spark"],
+        seniority="junior",
     ),
     dict(
         title="AI/ML Engineer",
@@ -357,6 +402,9 @@ LISTINGS = [
             "Yapay zeka mühendisi arıyoruz. Zorunlu: Python, LLM API deneyimi (Gemini/OpenAI), "
             "FastAPI. Tercih sebebi: agent orkestrasyonu, prompt engineering. 2+ yıl deneyim."
         ),
+        required_skills=["Python", "LLM API", "FastAPI"],
+        nice_to_have_skills=["agent orkestrasyonu", "prompt engineering"],
+        seniority="mid",
     ),
 ]
 
@@ -425,7 +473,9 @@ async def seed() -> None:
                         user_id=user.id,
                         title=proj["title"],
                         description=proj.get("description"),
-                        tech_stack=json.dumps(proj.get("tech_stack") or [], ensure_ascii=False),
+                        tech_stack=json.dumps(
+                            proj.get("tech_stack") or [], ensure_ascii=False
+                        ),
                         url=proj.get("url"),
                     )
                 )
@@ -434,7 +484,13 @@ async def seed() -> None:
         # US-040 sonrası sahipsiz ilan hiçbir akışta kullanılamıyor - her seed
         # ilanı, profili o ilana en uygun seed kullanıcısına atanır ki demo
         # kullanıcıları giriş yapınca "İlanlarım"da hazır ilan bulup match/CV/
-        # önyazı akışını Gemini'siz-analiz adımı olmadan deneyebilsin.
+        # önyazı akışını deneyebilsin. required_skills/nice_to_have_skills önceden
+        # dolduruluyor ve analysis_status="completed" veriliyor - "pending" bir
+        # ilanda calculate_exact_score boş required_skills'i "kriter yok, tam
+        # puan" sayıp yanıltıcı yüksek skor üretiyordu (ör. eşleşen/eksik beceri
+        # listeleri boşken %90 uygunluk); /api/match artık analiz tamamlanmamış
+        # ilanlarda 422 döndürüyor, bu yüzden seed ilanları gerçekten analiz
+        # edilmiş gibi gelmeli.
         users_by_email = {u.email: u for u in users}
         listings = []
         for listing_data in LISTINGS:
@@ -444,7 +500,14 @@ async def seed() -> None:
                 title=listing_data["title"],
                 company=listing_data["company"],
                 raw_text=listing_data["raw_text"],
-                analysis_status="pending",
+                required_skills=json.dumps(
+                    listing_data["required_skills"], ensure_ascii=False
+                ),
+                nice_to_have_skills=json.dumps(
+                    listing_data["nice_to_have_skills"], ensure_ascii=False
+                ),
+                seniority=listing_data["seniority"],
+                analysis_status="completed",
             )
             session.add(listing)
             listings.append(listing)

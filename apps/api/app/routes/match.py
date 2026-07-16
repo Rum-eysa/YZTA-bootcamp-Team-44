@@ -1,6 +1,9 @@
 """Eşleştirme Ajanı'nı tetikleyen endpoint"""
 import json
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
@@ -12,8 +15,6 @@ from app.services.context import (
     job_analysis_from_context,
     user_profile_for_matching,
 )
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Matching"])
 
@@ -33,7 +34,19 @@ async def match_listing(
     listing_repo = JobListingRepository(db)
     listing = await listing_repo.get(payload.listing_id)
     if not listing or listing.created_by != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found"
+        )
+    if listing.analysis_status != "completed":
+        # Analiz edilmemiş ilanda required/nice_to_have_skills boş gelir ve
+        # calculate_exact_score bunu "kriter yok, tam puan" sayar (60+20 puan) -
+        # kullanıcıya yanıltıcı yüksek bir skor (ör. %90) gösterir, eşleşen/eksik
+        # beceri listeleri de boş kalır. Bu yüzden analiz tamamlanmadan eşleştirme
+        # yapılmasını engelliyoruz.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Bu ilan henüz analiz edilmedi. Lütfen önce ilanı analiz edin.",
+        )
 
     match_repo = MatchRepository(db)
     cached = await match_repo.get_by_user_and_listing(user_id, payload.listing_id)
@@ -42,9 +55,15 @@ async def match_listing(
             match_id=cached.id,
             listing_id=payload.listing_id,
             score=cached.score,
-            matched_skills=json.loads(cached.matched_skills) if cached.matched_skills else [],
-            missing_skills=json.loads(cached.missing_skills) if cached.missing_skills else [],
-            score_breakdown=json.loads(cached.score_breakdown) if cached.score_breakdown else None,
+            matched_skills=json.loads(cached.matched_skills)
+            if cached.matched_skills
+            else [],
+            missing_skills=json.loads(cached.missing_skills)
+            if cached.missing_skills
+            else [],
+            score_breakdown=json.loads(cached.score_breakdown)
+            if cached.score_breakdown
+            else None,
             cached=True,
         )
 
@@ -78,6 +97,8 @@ async def match_listing(
         score=match.score,
         matched_skills=json.loads(match.matched_skills) if match.matched_skills else [],
         missing_skills=json.loads(match.missing_skills) if match.missing_skills else [],
-        score_breakdown=json.loads(match.score_breakdown) if match.score_breakdown else None,
+        score_breakdown=json.loads(match.score_breakdown)
+        if match.score_breakdown
+        else None,
         cached=False,
     )
