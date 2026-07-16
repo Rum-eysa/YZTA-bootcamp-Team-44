@@ -18,6 +18,7 @@ from sqlalchemy import delete
 
 from app.database import AsyncSessionLocal
 from app.models import (
+    Certificate,
     Document,
     EducationRecord,
     JobListing,
@@ -76,9 +77,17 @@ USERS = [
                 url="https://github.com/example/library-api",
             ),
         ],
+        certificates=[
+            dict(
+                title="Python for Everybody Specialization",
+                issuer="Coursera",
+                issue_date=date(2024, 3, 15),
+                url="https://coursera.org/verify/example-py4e",
+            ),
+        ],
     ),
     dict(
-        email="java.dev@example.com",
+        email="mid.dev@example.com",
         full_name="Mehmet Kaya",
         target_position="Java Backend Developer",
         seniority="mid",
@@ -128,6 +137,14 @@ USERS = [
                 description="Kullanıcı bildirimlerini yöneten, Redis kuyruklu Spring Boot servisi.",
                 tech_stack=["Java", "Spring Boot", "Redis"],
                 url="https://github.com/example/notification-service",
+            ),
+        ],
+        certificates=[
+            dict(
+                title="Spring Professional Certification",
+                issuer="VMware",
+                issue_date=date(2023, 9, 10),
+                url="https://vmware.com/certify/example-spring",
             ),
         ],
     ),
@@ -330,6 +347,20 @@ USERS = [
                 url="https://github.com/example/microservices-migration",
             ),
         ],
+        certificates=[
+            dict(
+                title="AWS Certified Solutions Architect - Professional",
+                issuer="Amazon Web Services",
+                issue_date=date(2022, 11, 1),
+                url="https://aws.amazon.com/verification/example-saa-p",
+            ),
+            dict(
+                title="Certified Kubernetes Administrator (CKA)",
+                issuer="The Linux Foundation",
+                issue_date=date(2021, 5, 20),
+                url="https://training.linuxfoundation.org/certification/verify/example-cka",
+            ),
+        ],
     ),
 ]
 
@@ -349,7 +380,7 @@ LISTINGS = [
     dict(
         title="Java Backend Developer",
         company="FinTechCo",
-        owner_email="java.dev@example.com",
+        owner_email="mid.dev@example.com",
         raw_text=(
             "Java Backend Developer arıyoruz. Zorunlu: Java, Spring Boot, PostgreSQL. "
             "Tercih sebebi: Kafka, Docker deneyimi. 2-4 yıl deneyim bekleniyor."
@@ -417,6 +448,7 @@ async def seed() -> None:
         await session.execute(delete(Project))
         await session.execute(delete(WorkExperience))
         await session.execute(delete(EducationRecord))
+        await session.execute(delete(Certificate))
         await session.execute(delete(JobListing))
         await session.execute(delete(User))
         await session.commit()
@@ -479,6 +511,16 @@ async def seed() -> None:
                         url=proj.get("url"),
                     )
                 )
+            for cert in u.get("certificates") or []:
+                session.add(
+                    Certificate(
+                        user_id=user.id,
+                        title=cert["title"],
+                        issuer=cert.get("issuer"),
+                        issue_date=cert.get("issue_date"),
+                        url=cert.get("url"),
+                    )
+                )
         await session.commit()
 
         # US-040 sonrası sahipsiz ilan hiçbir akışta kullanılamıyor - her seed
@@ -537,10 +579,11 @@ async def seed() -> None:
         total_experiences = sum(len(u.get("experiences") or []) for u in USERS)
         total_projects = sum(len(u.get("projects") or []) for u in USERS)
         total_education = sum(len(u.get("education") or []) for u in USERS)
+        total_certificates = sum(len(u.get("certificates") or []) for u in USERS)
         print(
-            f"Seeded {len(users)} users, {len(listings)} listings, "
-            f"{total_experiences} work experiences, {total_projects} projects, "
-            f"{total_education} education records, 1 match, 1 document"
+            f"Seeded {len(users)} users, {len(listings)} listings, 1 matches, "
+            f"1 documents, {total_experiences} experiences, {total_projects} projects, "
+            f"{total_education} education, {total_certificates} certificates"
         )
         for u in users:
             print(f"  - {u.email} ({u.seniority}, {u.target_position})")

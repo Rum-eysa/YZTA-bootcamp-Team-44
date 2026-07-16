@@ -290,6 +290,18 @@ make migrate
 make seed
 ```
 
+### Demo Hesaplar
+
+`make seed` sonrası aşağıdaki hesaplarla giriş yapılabilir (tümü için şifre: `seedpass123`):
+
+| E-posta | Seviye | Hedef Pozisyon |
+| --- | --- | --- |
+| `junior.dev@example.com` | junior | Python Backend Developer Intern |
+| `mid.dev@example.com` | mid | Java Backend Developer |
+| `senior.dev@example.com` | senior | Senior Backend Engineer |
+
+Her hesapta iş deneyimi, proje, eğitim ve sertifika kayıtları önceden dolu gelir; diğer seed kullanıcıları için bkz. `apps/api/scripts/seed_database.py`.
+
 ### Erişim Noktaları
 
 - **Frontend**: http://localhost:3000
