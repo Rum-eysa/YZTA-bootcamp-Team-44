@@ -1,13 +1,16 @@
 "use client";
 
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ListingEditActions } from "@/components/listing/ListingEditActions";
+import { CoverLetterResultSection } from "@/components/listing/results/CoverLetterResultSection";
+import { CvResultSection } from "@/components/listing/results/CvResultSection";
+import { MatchResultsSection } from "@/components/listing/results/MatchResultsSection";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
-import { Spinner } from "@/components/ui/Spinner";
 import { TagInput } from "@/components/ui/TagInput";
-import { generateCoverLetter } from "@/lib/api/coverLetter";
-import { generateCv } from "@/lib/api/cvGeneration";
+import { generateCoverLetter } from "@/lib/api/cover-letter";
+import { generateCv } from "@/lib/api/generate-cv";
 import {
   getListing,
   reanalyzeListing,
@@ -29,13 +32,10 @@ import {
   CheckCircle2,
   Circle,
   Clock,
-  Eye,
-  FileText,
   MapPin,
   RefreshCw,
-  Sparkles,
-  Target,
 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -45,6 +45,8 @@ const EXPERIENCE_OPTIONS = ["Seçiniz", "Junior", "Mid", "Senior"];
 const EDUCATION_OPTIONS = ["Seçiniz", "Lise", "Lisans", "Yüksek Lisans", "Doktora"];
 const MILITARY_OPTIONS = ["Seçiniz", "Yapıldı", "Muaf", "Tecilli"];
 
+const listingQueryKey = (listingId: string) => ["listing", listingId] as const;
+
 function daysAgo(value: string): string {
   const created = new Date(value).getTime();
   if (Number.isNaN(created)) return "";
@@ -52,6 +54,13 @@ function daysAgo(value: string): string {
   if (diff <= 0) return "bugün eklendi";
   if (diff === 1) return "1 gün önce eklendi";
   return `${diff} gün önce eklendi`;
+}
+
+function scoreSummaryClasses(score: number | null): string {
+  if (score == null) return "bg-primary-fixed/20 text-primary";
+  if (score < 40) return "bg-error-container/40 text-error";
+  if (score < 70) return "bg-yellow-50 text-yellow-800";
+  return "bg-green-50 text-green-700";
 }
 
 interface FormState {
@@ -90,150 +99,163 @@ function ListingDetailContent() {
   const params = useParams();
   const router = useRouter();
   const listingId = params.listingId as string;
+  const queryClient = useQueryClient();
 
-  const [listing, setListing] = useState<ListingDetail | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string>();
   const [saved, setSaved] = useState(false);
 
-  const [matchLoading, setMatchLoading] = useState(false);
-  const [matchError, setMatchError] = useState<string>();
-  const [reanalyzeLoading, setReanalyzeLoading] = useState(false);
-  const [reanalyzeError, setReanalyzeError] = useState<string>();
-  const [rematchLoading, setRematchLoading] = useState(false);
-  const [rematchError, setRematchError] = useState<string>();
-  const [cvLoading, setCvLoading] = useState(false);
-  const [cvError, setCvError] = useState<string>();
-  const [coverLetterLoading, setCoverLetterLoading] = useState(false);
-  const [coverLetterError, setCoverLetterError] = useState<string>();
-  const [copiedDocId, setCopiedDocId] = useState<string>();
+  const listingQuery = useQuery({
+    queryKey: listingQueryKey(listingId),
+    queryFn: () => getListing(listingId),
+    enabled: Boolean(listingId),
+  });
+  const listing = listingQuery.data ?? null;
 
   useEffect(() => {
     setCompanyLogo(localStorage.getItem(`listing-logo:${listingId}`));
   }, [listingId]);
 
   useEffect(() => {
-    getListing(listingId)
-      .then((data) => {
-        setListing(data);
-        setForm(toForm(data));
-      })
-      .catch(() => setError("İlan yüklenemedi veya erişim yetkiniz yok."))
-      .finally(() => setLoading(false));
+    setForm(null);
   }, [listingId]);
+
+  useEffect(() => {
+    if (listing && !form) setForm(toForm(listing));
+  }, [form, listing]);
+
+  const invalidateListing = () =>
+    queryClient.invalidateQueries({ queryKey: listingQueryKey(listingId) });
+
+  const matchMutation = useMutation({
+    mutationFn: () => matchListing({ listing_id: listingId }),
+    onSuccess: async (result) => {
+      queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
+        current
+          ? {
+              ...current,
+              score: result.score,
+              score_breakdown: result.score_breakdown,
+              matched_skills: result.matched_skills,
+              missing_skills: result.missing_skills,
+            }
+          : current
+      );
+      await invalidateListing();
+    },
+  });
+
+  const reanalyzeMutation = useMutation({
+    mutationFn: () => reanalyzeListing(listingId),
+    onSuccess: async (updated) => {
+      queryClient.setQueryData(listingQueryKey(listingId), updated);
+      setForm(toForm(updated));
+      await invalidateListing();
+    },
+  });
+
+  const rematchMutation = useMutation({
+    mutationFn: () => rematchListing(listingId),
+    onSuccess: async (updated) => {
+      queryClient.setQueryData(listingQueryKey(listingId), updated);
+      await invalidateListing();
+    },
+  });
+
+  const cvMutation = useMutation({
+    mutationFn: () => generateCv({ listing_id: listingId }),
+    onSuccess: async (result) => {
+      queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
+        current
+          ? {
+              ...current,
+              documents: [
+                ...current.documents.filter((document) => document.id !== result.document_id),
+                {
+                  id: result.document_id,
+                  doc_type: "cv",
+                  cv_url: result.cv_url,
+                  cover_letter_text: null,
+                },
+              ],
+            }
+          : current
+      );
+      await invalidateListing();
+    },
+  });
+
+  const coverLetterMutation = useMutation({
+    mutationFn: () => generateCoverLetter({ listing_id: listingId }),
+    onSuccess: async (result) => {
+      queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
+        current
+          ? {
+              ...current,
+              documents: [
+                ...current.documents.filter((document) => document.id !== result.document_id),
+                {
+                  id: result.document_id,
+                  doc_type: "cover_letter",
+                  cv_url: null,
+                  cover_letter_text: result.cover_letter_text,
+                },
+              ],
+            }
+          : current
+      );
+      await invalidateListing();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: ListingUpdate) => updateListing(listingId, payload),
+    onSuccess: async (updated) => {
+      queryClient.setQueryData(listingQueryKey(listingId), updated);
+      setForm(toForm(updated));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 3000);
+      await invalidateListing();
+    },
+  });
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
     setSaved(false);
   };
 
-  const refreshListing = async () => {
-    const data = await getListing(listingId);
-    setListing(data);
+  const handleMatch = () => {
+    matchMutation.reset();
+    matchMutation.mutate();
   };
 
-  const handleCopyCoverLetter = async (docId: string, text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedDocId(docId);
-      setTimeout(() => setCopiedDocId(undefined), 2000);
-    } catch {
-      setCoverLetterError("Önyazı panoya kopyalanamadı.");
-    }
+  const handleReanalyze = () => {
+    reanalyzeMutation.reset();
+    reanalyzeMutation.mutate();
   };
 
-  const handleMatch = async () => {
-    setMatchError(undefined);
-    setMatchLoading(true);
-    try {
-      await matchListing({ listing_id: listingId });
-      await refreshListing();
-    } catch (err: unknown) {
-      setMatchError(
-        getApiErrorMessage(
-          err,
-          "Uygunluk hesaplanamadı. Lütfen profilinizi kontrol edip tekrar deneyin."
-        )
-      );
-    } finally {
-      setMatchLoading(false);
-    }
+  const handleRematch = () => {
+    rematchMutation.reset();
+    rematchMutation.mutate();
   };
 
-  const handleReanalyze = async () => {
-    setReanalyzeError(undefined);
-    setReanalyzeLoading(true);
-    try {
-      const updated = await reanalyzeListing(listingId);
-      setListing(updated);
-      setForm(toForm(updated));
-    } catch (err: unknown) {
-      setReanalyzeError(
-        getApiErrorMessage(err, "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin.")
-      );
-    } finally {
-      setReanalyzeLoading(false);
-    }
+  const handleGenerateCv = () => {
+    cvMutation.reset();
+    cvMutation.mutate();
   };
 
-  const handleRematch = async () => {
-    setRematchError(undefined);
-    setRematchLoading(true);
-    try {
-      const updated = await rematchListing(listingId);
-      setListing(updated);
-    } catch (err: unknown) {
-      setRematchError(
-        getApiErrorMessage(err, "Eşleşme güncellenemedi. Lütfen tekrar deneyin.")
-      );
-    } finally {
-      setRematchLoading(false);
-    }
+  const handleGenerateCoverLetter = () => {
+    coverLetterMutation.reset();
+    coverLetterMutation.mutate();
   };
 
-  const handleGenerateCv = async () => {
-    setCvError(undefined);
-    setCvLoading(true);
-    try {
-      await generateCv({ listing_id: listingId });
-      await refreshListing();
-    } catch (err: unknown) {
-      setCvError(
-        getApiErrorMessage(err, "CV oluşturulamadı. Lütfen tekrar deneyin.", {
-          serviceUnavailable:
-            "CV oluşturma servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
-        })
-      );
-    } finally {
-      setCvLoading(false);
-    }
+  const handleCancel = () => {
+    router.push("/listings");
   };
 
-  const handleGenerateCoverLetter = async () => {
-    setCoverLetterError(undefined);
-    setCoverLetterLoading(true);
-    try {
-      await generateCoverLetter({ listing_id: listingId });
-      await refreshListing();
-    } catch (err: unknown) {
-      setCoverLetterError(
-        getApiErrorMessage(err, "Önyazı oluşturulamadı. Lütfen tekrar deneyin.", {
-          serviceUnavailable:
-            "Önyazı servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
-        })
-      );
-    } finally {
-      setCoverLetterLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!form) return;
-    setSaving(true);
-    setError(undefined);
+    updateMutation.reset();
     const clean = (v: string) => (v.trim() === "" || v === "Seçiniz" ? null : v.trim());
     const payload: ListingUpdate = {
       company: clean(form.company),
@@ -249,24 +271,71 @@ function ListingDetailContent() {
       languages: form.languages,
       application_stage: form.application_stage,
     };
-    try {
-      const updated = await updateListing(listingId, payload);
-      setListing(updated);
-      setForm(toForm(updated));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch {
-      setError("Değişiklikler kaydedilemedi. Lütfen tekrar deneyin.");
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate(payload);
   };
 
-  if (loading) {
+  const matchError = matchMutation.isError
+    ? getApiErrorMessage(
+        matchMutation.error,
+        "Uygunluk hesaplanamadı. Lütfen profilinizi kontrol edip tekrar deneyin."
+      )
+    : undefined;
+  const rematchError = rematchMutation.isError
+    ? getApiErrorMessage(
+        rematchMutation.error,
+        "Eşleşme güncellenemedi. Lütfen tekrar deneyin."
+      )
+    : undefined;
+  const cvError = cvMutation.isError
+    ? getApiErrorMessage(cvMutation.error, "CV oluşturulamadı. Lütfen tekrar deneyin.", {
+        serviceUnavailable:
+          "CV oluşturma servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+      })
+    : undefined;
+  const coverLetterError = coverLetterMutation.isError
+    ? getApiErrorMessage(
+        coverLetterMutation.error,
+        "Önyazı oluşturulamadı. Lütfen tekrar deneyin.",
+        {
+          serviceUnavailable:
+            "Önyazı servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+        }
+      )
+    : undefined;
+
+  if (listingQuery.isPending) {
     return (
-      <div className="py-3xl">
-        <Spinner label="İlan yükleniyor..." />
-      </div>
+      <main className="mx-auto max-w-[1024px] space-y-lg px-margin-mobile py-lg md:px-lg md:py-xl">
+        <Link
+          href="/listings"
+          className="flex w-fit items-center gap-1 text-body-sm text-on-surface-variant transition-colors hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          İlanlarım&apos;a Dön
+        </Link>
+        <MatchResultsSection
+          score={null}
+          scoreBreakdown={null}
+          title={null}
+          company={null}
+          seniority={null}
+          requiredSkills={[]}
+          niceToHaveSkills={[]}
+          matchedSkills={[]}
+          missingSkills={[]}
+          loading
+          rematching={false}
+          onCalculate={() => undefined}
+          onRematch={() => undefined}
+        />
+        <CvResultSection documents={[]} loading onGenerate={() => undefined} />
+        <CoverLetterResultSection
+          documents={[]}
+          score={null}
+          loading
+          onGenerate={() => undefined}
+        />
+      </main>
     );
   }
 
@@ -275,7 +344,9 @@ function ListingDetailContent() {
       <main className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-xl text-center">
         <h1 className="text-headline-lg-mobile font-semibold mb-2">İlan bulunamadı</h1>
         <p className="text-body-sm text-on-surface-variant mb-6">
-          {error || "Bu ilana erişilemiyor."}
+          {listingQuery.isError
+            ? "İlan yüklenemedi veya erişim yetkiniz yok."
+            : "Bu ilana erişilemiyor."}
         </p>
         <Link href="/listings">
           <Button>İlanlarıma Dön</Button>
@@ -286,10 +357,6 @@ function ListingDetailContent() {
 
   const matchScore =
     listing.score == null ? null : Math.min(100, Math.max(0, Math.round(listing.score)));
-  const hasCv = listing.documents.some((document) => document.doc_type === "cv");
-  const hasCoverLetter = listing.documents.some(
-    (document) => document.doc_type === "cover_letter"
-  );
 
   const steps = [
     {
@@ -320,34 +387,30 @@ function ListingDetailContent() {
 
   return (
     <main className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-lg md:py-xl space-y-lg">
-      <div className="flex items-center justify-between gap-md">
-        <Link
-          href="/listings"
-          className="flex items-center gap-1 text-body-sm text-on-surface-variant hover:text-primary transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          İlanlarım&apos;a Dön
-        </Link>
-        <div className="flex items-center gap-sm">
-          <Button variant="outline" onClick={() => router.push("/listings")}>
-            İptal
-          </Button>
-          <Button onClick={handleSave} loading={saving}>
-            Değişiklikleri Kaydet
-          </Button>
-        </div>
-      </div>
+      <Link
+        href="/listings"
+        className="flex w-fit items-center gap-1 text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        İlanlarım&apos;a Dön
+      </Link>
 
       {saved && (
-        <div className="rounded-lg border border-primary bg-primary-fixed/20 px-4 py-3 text-body-sm text-primary">
+        <div
+          className="rounded-lg border border-primary bg-primary-fixed/20 px-4 py-3 text-body-sm text-primary"
+          role="status"
+          aria-live="polite"
+        >
           Değişiklikler kaydedildi.
         </div>
       )}
-      {error && (
-        <div className="rounded-lg border border-error bg-error-container/30 px-4 py-3 text-body-sm text-error">
-          {error}
-        </div>
-      )}
+      <FormError
+        message={
+          updateMutation.isError
+            ? "Değişiklikler kaydedilemedi. Lütfen tekrar deneyin."
+            : undefined
+        }
+      />
 
       <section className="bg-surface-container-lowest rounded-xl p-4 md:p-6 border border-outline-variant">
         <div className="flex flex-col md:flex-row gap-lg items-start">
@@ -393,27 +456,39 @@ function ListingDetailContent() {
             </div>
           </div>
 
-          <div className="flex items-stretch gap-md shrink-0 w-full md:w-auto">
-            <div className="flex-1 md:w-44 space-y-1">
-              <label className="text-label-md text-on-surface-variant">Başvuru Aşaması</label>
-              <select
-                className="input-field py-2"
-                value={form.application_stage}
-                onChange={(e) => update("application_stage", e.target.value as ApplicationStage)}
+          <div className="w-full shrink-0 space-y-3 md:w-auto">
+            <div className="flex items-stretch gap-md">
+              <div className="flex-1 space-y-1 md:w-44">
+                <label className="text-label-md text-on-surface-variant">Başvuru Aşaması</label>
+                <select
+                  className="input-field py-2"
+                  value={form.application_stage}
+                  onChange={(e) => update("application_stage", e.target.value as ApplicationStage)}
+                >
+                  {(Object.keys(APPLICATION_STAGE_LABELS) as ApplicationStage[]).map((s) => (
+                    <option key={s} value={s}>
+                      {APPLICATION_STAGE_LABELS[s]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div
+                className={cn(
+                  "flex min-w-[104px] flex-col items-center justify-center rounded-xl px-5 py-2 text-center",
+                  scoreSummaryClasses(matchScore)
+                )}
               >
-                {(Object.keys(APPLICATION_STAGE_LABELS) as ApplicationStage[]).map((s) => (
-                  <option key={s} value={s}>
-                    {APPLICATION_STAGE_LABELS[s]}
-                  </option>
-                ))}
-              </select>
+                <p className="text-[32px] font-bold leading-none">
+                  {matchScore != null ? `%${matchScore}` : "—"}
+                </p>
+                <p className="mt-1 text-label-md opacity-80">Eşleşme Skoru</p>
+              </div>
             </div>
-            <div className="flex flex-col items-center justify-center text-center bg-primary-fixed/20 rounded-xl px-5 py-2 min-w-[104px]">
-              <p className="text-[32px] leading-none font-bold text-primary">
-                {matchScore != null ? `%${matchScore}` : "—"}
-              </p>
-              <p className="text-label-md text-on-surface-variant mt-1">Eşleşme Skoru</p>
-            </div>
+            <ListingEditActions
+              onCancel={handleCancel}
+              onSave={handleSave}
+              isSaving={updateMutation.isPending}
+            />
           </div>
         </div>
       </section>
@@ -429,7 +504,22 @@ function ListingDetailContent() {
             />
           </Card>
 
-          <Card title="İlan Detayları">
+          <Card
+            title="İlan Detayları"
+            action={
+              <Button
+                variant="outline"
+                onClick={handleReanalyze}
+                loading={reanalyzeMutation.isPending}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Yeniden Analiz Et
+              </Button>
+            }
+          >
+            <p className="mb-3 text-label-md text-on-surface-variant">
+              İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz edin.
+            </p>
             <textarea
               className="w-full h-48 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
               placeholder="İş tanımı ve beklentileri..."
@@ -466,92 +556,50 @@ function ListingDetailContent() {
                 </div>
               </div>
             )}
-            <div className="mt-4 flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={handleReanalyze}
-                loading={reanalyzeLoading}
-              >
-                <RefreshCw className="w-4 h-4" />
-                Yeniden Analiz Et
-              </Button>
-              <p className="text-label-md text-on-surface-variant">
-                İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz edin.
-              </p>
-            </div>
-            <FormError message={reanalyzeError} />
+            <FormError
+              message={
+                reanalyzeMutation.isError
+                  ? getApiErrorMessage(
+                      reanalyzeMutation.error,
+                      "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin."
+                    )
+                  : undefined
+              }
+            />
           </Card>
 
-          {matchScore != null && (
-            <Card title="Uygunluk Sonucu" className="shadow-card-hover">
-              <div className="grid grid-cols-1 items-center gap-lg lg:grid-cols-[180px_1fr]">
-                <div className="flex justify-center">
-                  <div
-                    role="progressbar"
-                    aria-label={`Uygunluk skoru yüzde ${matchScore}`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={matchScore}
-                    className="flex h-36 w-36 items-center justify-center rounded-full p-3"
-                    style={{
-                      background: `conic-gradient(#10b981 ${matchScore * 3.6}deg, #e7eefe 0deg)`,
-                    }}
-                  >
-                    <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-surface-container-lowest">
-                      <span className="text-headline-lg font-semibold text-primary">
-                        %{matchScore}
-                      </span>
-                      <span className="text-label-md text-on-surface-variant">Eşleşme</span>
-                    </div>
-                  </div>
-                </div>
+          <MatchResultsSection
+            score={matchScore}
+            scoreBreakdown={listing.score_breakdown}
+            title={listing.title}
+            company={listing.company}
+            seniority={listing.seniority}
+            requiredSkills={listing.required_skills}
+            niceToHaveSkills={listing.nice_to_have}
+            matchedSkills={listing.matched_skills}
+            missingSkills={listing.missing_skills}
+            loading={matchMutation.isPending}
+            error={matchError}
+            rematching={rematchMutation.isPending}
+            rematchError={rematchError}
+            onCalculate={handleMatch}
+            onRematch={handleRematch}
+          />
 
-                <div className="grid grid-cols-1 gap-md sm:grid-cols-2">
-                  <div className="rounded-xl bg-primary-fixed/10 p-4">
-                    <h3 className="mb-3 text-label-md font-semibold text-on-surface">
-                      Eşleşen Beceriler
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {listing.matched_skills.length > 0 ? (
-                        listing.matched_skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded bg-primary-fixed/20 px-2 py-1 text-label-md text-primary"
-                          >
-                            {skill}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="text-body-sm text-on-surface-variant">
-                          Eşleşen beceri bulunamadı
-                        </p>
-                      )}
-                    </div>
-                  </div>
+          <CvResultSection
+            documents={listing.documents}
+            loading={cvMutation.isPending}
+            error={cvError}
+            onGenerate={handleGenerateCv}
+          />
 
-                  <div className="rounded-xl bg-error-container/30 p-4">
-                    <h3 className="mb-3 text-label-md font-semibold text-on-surface">
-                      Eksik Beceriler
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {listing.missing_skills.length > 0 ? (
-                        listing.missing_skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="rounded bg-error-container px-2 py-1 text-label-md text-on-error-container"
-                          >
-                            {skill}
-                          </span>
-                        ))
-                      ) : (
-                        <p className="text-body-sm text-on-surface-variant">Eksik beceri yok</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
+          <CoverLetterResultSection
+            documents={listing.documents}
+            score={matchScore}
+            loading={coverLetterMutation.isPending}
+            error={coverLetterError}
+            onGenerate={handleGenerateCoverLetter}
+          />
 
           <Card title="Yan Haklar">
             <TagInput
@@ -572,105 +620,6 @@ function ListingDetailContent() {
         </div>
 
         <div className="space-y-lg min-w-0">
-          <Card
-            title="AI Araçları"
-            className="bg-gradient-to-br from-surface-container-lowest to-primary-fixed/10 shadow-card"
-          >
-            <p className="text-body-sm text-on-surface-variant mb-4">
-              Profilinize göre uygunluğu hesaplayın, ilana özel CV ve önyazı oluşturun.
-            </p>
-            <div className="space-y-md">
-              <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-label-md font-semibold">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed/20 text-primary">
-                      <Target className="h-4 w-4" />
-                    </span>
-                    Uygunluk
-                  </span>
-                  {matchScore != null && (
-                    <span className="rounded-full bg-primary-fixed/20 px-2 py-1 text-label-md text-primary">
-                      %{matchScore}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  onClick={handleMatch}
-                  loading={matchLoading}
-                  className="w-full"
-                >
-                  <Target className="w-4 h-4" />
-                  Uygunluğumu Hesapla
-                </Button>
-                <FormError message={matchError} />
-                {matchScore != null && (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={handleRematch}
-                      loading={rematchLoading}
-                      className="w-full"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Eşleşmeyi Güncelle
-                    </Button>
-                    <FormError message={rematchError} />
-                  </>
-                )}
-              </div>
-              <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-label-md font-semibold">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed/20 text-primary">
-                      <FileText className="h-4 w-4" />
-                    </span>
-                    CV
-                  </span>
-                  {hasCv && (
-                    <span className="rounded-full bg-secondary-container px-2 py-1 text-label-md text-on-secondary-container">
-                      Hazır
-                    </span>
-                  )}
-                </div>
-                <Button
-                  onClick={handleGenerateCv}
-                  loading={cvLoading}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  <FileText className="w-4 h-4" />
-                  CV Oluştur
-                </Button>
-                <FormError message={cvError} />
-              </div>
-              <div className="space-y-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 text-label-md font-semibold">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-fixed/20 text-primary">
-                      <Sparkles className="h-4 w-4" />
-                    </span>
-                    Önyazı
-                  </span>
-                  {hasCoverLetter && (
-                    <span className="rounded-full bg-secondary-container px-2 py-1 text-label-md text-on-secondary-container">
-                      Hazır
-                    </span>
-                  )}
-                </div>
-                <Button
-                  onClick={handleGenerateCoverLetter}
-                  loading={coverLetterLoading}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Önyazı Oluştur
-                </Button>
-                <FormError message={coverLetterError} />
-              </div>
-            </div>
-          </Card>
-
           <Card title="Aday Kriterleri">
             <div className="space-y-md">
               <div className="space-y-1">
@@ -749,59 +698,15 @@ function ListingDetailContent() {
             </div>
           </Card>
 
-          <Card title="Dokümanlar" className="border-primary/20 shadow-card">
-            {listing.documents.length === 0 ? (
-              <p className="text-body-sm text-on-surface-variant italic">Henüz doküman yok</p>
-            ) : (
-              <div className="space-y-sm">
-                {listing.documents.map((doc) => {
-                  const name =
-                    doc.doc_type === "cv" ? "Güncel CV.pdf" : "Önyazı Taslağı";
-                  return (
-                    <div
-                      key={doc.id}
-                      className="space-y-2 rounded-xl border border-outline-variant bg-gradient-to-br from-surface-container-low to-primary-fixed/10 px-3 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="flex items-center gap-2 min-w-0">
-                          <FileText className="w-4 h-4 text-primary shrink-0" />
-                          <span className="text-body-sm text-on-surface break-all">{name}</span>
-                        </span>
-                        {doc.cv_url && (
-                          <a
-                            href={doc.cv_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-on-surface-variant hover:text-primary transition-colors shrink-0"
-                            aria-label="Dokümanı görüntüle"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </a>
-                        )}
-                        {doc.cover_letter_text && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleCopyCoverLetter(doc.id, doc.cover_letter_text as string)
-                            }
-                            className="text-label-md text-on-surface-variant hover:text-primary transition-colors shrink-0"
-                          >
-                            {copiedDocId === doc.id ? "Kopyalandı" : "Kopyala"}
-                          </button>
-                        )}
-                      </div>
-                      {doc.cover_letter_text && (
-                        <p className="text-body-sm text-on-surface-variant whitespace-pre-wrap max-h-40 overflow-y-auto">
-                          {doc.cover_letter_text}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
         </div>
+      </div>
+
+      <div className="border-t border-outline-variant pt-lg">
+        <ListingEditActions
+          onCancel={handleCancel}
+          onSave={handleSave}
+          isSaving={updateMutation.isPending}
+        />
       </div>
     </main>
   );

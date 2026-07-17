@@ -1,3 +1,5 @@
+import type { ScoreBreakdown } from "./match";
+
 export type ApplicationStage =
   | "review"
   | "interview"
@@ -45,6 +47,7 @@ export interface ListingDetail {
   driver_license: string | null;
   application_stage: ApplicationStage;
   score: number | null;
+  score_breakdown: ScoreBreakdown | null;
   matched_skills: string[];
   missing_skills: string[];
   documents: ListingDocument[];

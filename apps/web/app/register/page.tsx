@@ -1,10 +1,11 @@
 "use client";
 
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AuthPageLayout } from "@/components/auth/AuthPageLayout";
 import { Button } from "@/components/ui/Button";
 import { FormError } from "@/components/ui/FormError";
 import { Input } from "@/components/ui/Input";
 import { login, register as registerUser, saveTokens } from "@/lib/api/auth";
+import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiErrors";
 import { useAuth } from "@/hooks/useAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -29,69 +30,81 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    setApiError(undefined);
+    let registrationCompleted = false;
+
     try {
       await registerUser(data);
+      registrationCompleted = true;
       const tokens = await login(data.email, data.password);
       saveTokens(tokens);
       await refreshUser();
       router.push("/profile");
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.";
-      setApiError(typeof message === "string" ? message : "Kayıt başarısız.");
+      const status = getApiErrorStatus(err);
+      if (!registrationCompleted && (status === 400 || status === 409)) {
+        setApiError("Bu e-posta adresiyle daha önce kayıt olunmuş.");
+        setFocus("email");
+        return;
+      }
+
+      setApiError(
+        getApiErrorMessage(err, "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin.", {
+          serviceUnavailable: "Kayıt servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+        })
+      );
     }
   };
 
   return (
-    <div className="min-h-screen bg-surface-bright">
-      <AppHeader />
-      <main className="max-w-md mx-auto px-margin-mobile py-xl">
-        <div className="card">
-          <h1 className="text-headline-lg-mobile font-semibold text-on-surface mb-2">Kayıt Ol</h1>
-          <p className="text-body-sm text-on-surface-variant mb-6">
-            CareerTrack hesabı oluşturun ve profilinizi tamamlayın.
-          </p>
+    <AuthPageLayout>
+      <h1 className="mb-6 text-headline-lg-mobile font-semibold text-on-surface">Kayıt Ol</h1>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <FormError message={apiError} />
-            <Input
-              label="Ad Soyad"
-              error={errors.full_name?.message}
-              {...register("full_name")}
-            />
-            <Input
-              label="E-posta"
-              type="email"
-              error={errors.email?.message}
-              {...register("email")}
-            />
-            <Input
-              label="Şifre"
-              type="password"
-              error={errors.password?.message}
-              {...register("password")}
-            />
-            <Button type="submit" loading={isSubmitting} className="w-full">
-              Kayıt Ol
-            </Button>
-          </form>
+      <form
+        onSubmit={(event) => {
+          setApiError(undefined);
+          void handleSubmit(onSubmit)(event);
+        }}
+        className="space-y-4"
+      >
+        <FormError message={apiError} />
+        <Input
+          label="Ad Soyad"
+          autoComplete="name"
+          error={errors.full_name?.message}
+          {...register("full_name")}
+        />
+        <Input
+          label="E-posta"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <Input
+          label="Şifre"
+          type="password"
+          autoComplete="new-password"
+          error={errors.password?.message}
+          {...register("password")}
+        />
+        <Button type="submit" loading={isSubmitting} className="w-full py-3">
+          Kayıt Ol
+        </Button>
+      </form>
 
-          <p className="mt-4 text-body-sm text-on-surface-variant text-center">
-            Zaten hesabınız var mı?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Giriş yapın
-            </Link>
-          </p>
-        </div>
-      </main>
-    </div>
+      <p className="mt-5 text-center text-body-sm text-on-surface-variant">
+        Zaten hesabınız var mı?{" "}
+        <Link href="/login" className="font-semibold text-primary hover:underline">
+          Giriş yapın
+        </Link>
+      </p>
+    </AuthPageLayout>
   );
 }

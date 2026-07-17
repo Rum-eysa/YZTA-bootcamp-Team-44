@@ -146,7 +146,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
   **Alınan kararlar:**
   - US-004: Standalone compiler kaldırıldı; Tectonic API Docker image içine gömüldü
   - `applications` CRUD yerine agent odaklı veri modeli benimsendi
-  - İlan analizi sonuçları şimdilik frontend'de sessionStorage ile tutuluyor; kalıcı başvuru takibi Sprint 2'ye planlandı
+  - İlan analizi ve üretilen dokümanlar veritabanında kalıcı olarak saklanır; kullanıcı akışı kanonik ilan detay rotasına yönlenir
   - CV/önyazı üretimi backend'de hazır; kullanıcı arayüzüne uçtan uca entegrasyon Sprint 2 kapsamına alındı
 
 - **Sprint Retrospective:** 
@@ -176,7 +176,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 **Frontend — tamamlanan:**
 - CareerTrack arayüzü: landing, login/register, profil, ilan girişi (metin + URL)
-- Sonuç sayfası: analiz çıktısı + **uygunluk skoru göstergesi** + eşleşen/eksik beceri karşılaştırması + **önyazı üret/kopyala** + **CV üret/indir** bölümleri (`/analyze/[id]`)
+- İlan detay sayfası: analiz çıktısı + **uygunluk skoru göstergesi** + eşleşen/eksik beceri karşılaştırması + **önyazı üret/kopyala** + **CV üret/indir** bölümleri (`/listings/[listingId]`)
 
 **Devam eden / Sprint 3'e kalan:**
 - İş deneyimi & proje şeması + CRUD (US-013/019/020)
@@ -233,9 +233,10 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │       │   ├── register/            # Kayıt
 │       │   ├── profile/             # Profil formu
 │       │   ├── apply/               # İlan girişi
-│       │   └── analyze/[id]/      # Analiz sonuçları
+│       │   └── listings/[listingId]/ # Kalıcı ilan ve analiz detayları
 │       ├── components/              # UI ve layout bileşenleri
-│       ├── lib/                     # API client, validations
+│       ├── lib/api/                 # Endpoint bazlı API istemcileri
+│       ├── components/providers/    # Auth ve React Query sağlayıcıları
 │       └── Dockerfile
 │
 ├── docs/sprint-1/                   # Sprint dokümantasyon görselleri
@@ -250,7 +251,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 | Katman | Teknoloji | Amaç |
 | --- | --- | --- |
-| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS | Duyarlı kullanıcı arayüzü |
+| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS, TanStack React Query | Duyarlı arayüz ve sunucu durumu yönetimi |
 | **Backend** | FastAPI, SQLAlchemy 2.0, Pydantic V2 | Yüksek performanslı async API |
 | **Veritabanı** | PostgreSQL 15 / Supabase | Ana veri depolama |
 | **Önbellek** | Redis 7 | Token blacklist ve önbellekleme |
@@ -261,6 +262,15 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 | **Test** | Pytest, pytest-asyncio, Coverage | Birim ve entegrasyon testleri |
 | **CI/CD** | GitHub Actions | Otomatik test ve build |
 | **Kod Kalitesi** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
+
+### Frontend veri akışı
+
+`POST /api/analyze` başarılı olduğunda arayüz doğrudan
+`/listings/{listing_id}` rotasına gider. Bu kanonik sayfa ilanı
+`GET /api/listings/{listing_id}` ile veritabanından yükler; eşleştirme, yeniden analiz,
+CV ve önyazı mutasyonları React Query önbelleğini güncelledikten sonra aynı ilan
+sorgusunu geçersiz kılar. Böylece sayfa yenilendiğinde tüm kalıcı veriler API'den
+yeniden alınır.
 
 ## Hızlı Başlangıç
 
@@ -298,6 +308,8 @@ make seed
 | --- | --- | --- |
 | `junior.dev@example.com` | junior | Python Backend Developer Intern |
 | `mid.dev@example.com` | mid | Java Backend Developer |
+| `ai.engineer@example.com` | senior | AI Engineer |
+| `fullstack.multi@example.com` | mid | Full Stack Developer |
 | `senior.dev@example.com` | senior | Senior Backend Engineer |
 
 Her hesapta iş deneyimi, proje, eğitim ve sertifika kayıtları önceden dolu gelir; diğer seed kullanıcıları için bkz. `apps/api/scripts/seed_database.py`.

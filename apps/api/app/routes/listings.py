@@ -97,7 +97,9 @@ async def get_listing(
     match = await match_repo.get_by_user_and_listing(user_id, listing.id)
 
     docs_result = await db.execute(
-        select(Document).where(Document.listing_id == listing.id, Document.user_id == user_id)
+        select(Document)
+        .where(Document.listing_id == listing.id, Document.user_id == user_id)
+        .order_by(Document.created_at.asc(), Document.id.asc())
     )
     documents = [
         ListingDocument(
