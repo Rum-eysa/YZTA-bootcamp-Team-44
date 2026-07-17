@@ -9,10 +9,11 @@ import json
 from typing import Any, Optional
 
 import google.generativeai as genai
+from google.api_core.exceptions import DeadlineExceeded, ResourceExhausted, ServiceUnavailable
+
 from app.config import settings
 from app.exceptions import GeminiAPIException
 from app.logging_config import get_logger
-from google.api_core.exceptions import DeadlineExceeded, ResourceExhausted, ServiceUnavailable
 
 logger = get_logger("gemini_client")
 

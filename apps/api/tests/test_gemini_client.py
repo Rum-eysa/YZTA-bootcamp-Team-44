@@ -36,7 +36,7 @@ def fake_redis():
 
 @pytest.fixture
 def client(fake_redis, monkeypatch):
-    monkeypatch.setattr(gemini_client_module, "get_redis", lambda: fake_redis)
+    monkeypatch.setattr(gemini_client_module, "get_redis", lambda: fake_redis, raising=False)
     with patch("app.services.gemini_client.genai.configure"), patch(
         "app.services.gemini_client.genai.GenerativeModel"
     ):
@@ -198,7 +198,9 @@ async def test_generate_with_tools_uses_cost_two_quota_and_returns_text(client, 
         result = await client.generate_with_tools("prompt", tools=[lambda: None])
 
     assert result == "function-calling sonucu"
-    assert fake_redis.counters["gemini:quota:day"] == 2
+    # Uygulama Redis kotası no-op; Redis sayacı güncellenmez.
+    assert fake_redis.counters == {}
+    fake_model.start_chat.assert_called_once_with(enable_automatic_function_calling=True)
 
 
 @pytest.mark.asyncio
