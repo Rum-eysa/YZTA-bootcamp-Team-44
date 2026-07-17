@@ -21,17 +21,3 @@ export async function analyzeListing(
   const { data } = await api.post<AnalyzeResponse>("/api/analyze", body);
   return data;
 }
-
-export function saveAnalysisResult(result: AnalyzeResponse) {
-  sessionStorage.setItem(`analysis:${result.listing_id}`, JSON.stringify(result));
-}
-
-export function getAnalysisResult(listingId: string): AnalyzeResponse | null {
-  const raw = sessionStorage.getItem(`analysis:${listingId}`);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as AnalyzeResponse;
-  } catch {
-    return null;
-  }
-}

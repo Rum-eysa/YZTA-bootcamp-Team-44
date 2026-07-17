@@ -76,6 +76,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [lint-api]
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     services:
       postgres:
         image: postgres:15-alpine
@@ -148,13 +150,24 @@ jobs:
           STORAGE_SECRET_KEY: yzta_minio_password
           STORAGE_BUCKET: cv-documents-test
           STORAGE_PUBLIC_URL: http://localhost:9000
-        run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+        run: pytest tests/ -v --cov=app --cov-branch --cov-report=xml --cov-report=term-missing
 
-      - name: Upload coverage
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: apps/api/coverage.xml
+          if-no-files-found: error
+
+      - name: Upload coverage to Codecov
+        if: ${{ env.CODECOV_TOKEN != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
         uses: codecov/codecov-action@v4
         with:
           file: ./apps/api/coverage.xml
           flags: api
+          token: ${{ env.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
       - name: Enforce agent module coverage (>= 80%)
         working-directory: ./apps/api

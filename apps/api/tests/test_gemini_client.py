@@ -36,52 +36,33 @@ def fake_redis():
 
 @pytest.fixture
 def client(fake_redis, monkeypatch):
-    monkeypatch.setattr(gemini_client_module, "get_redis", lambda: fake_redis)
+    monkeypatch.setattr(gemini_client_module, "get_redis", lambda: fake_redis, raising=False)
     with patch("app.services.gemini_client.genai.configure"), patch(
         "app.services.gemini_client.genai.GenerativeModel"
     ):
         return GeminiClient(model_name="gemini-test")
 
 
-# --- Kota testleri -----------------------------------------------------------
+# --- Kota testleri (uygulama Redis kotası no-op) ------------------------------
 
 
 @pytest.mark.asyncio
-async def test_quota_allows_calls_under_limit(client):
-    for _ in range(FREE_TIER_RPM):
+async def test_quota_is_noop_and_does_not_touch_redis(client, fake_redis):
+    for _ in range(FREE_TIER_RPM + 5):
         await client._check_quota()
+    await client._check_quota(cost=FREE_TIER_RPD + 1)
+
+    assert fake_redis.counters == {}
+    assert fake_redis.expiries == {}
 
 
 @pytest.mark.asyncio
-async def test_quota_blocks_over_minute_limit(client):
-    for _ in range(FREE_TIER_RPM):
-        await client._check_quota()
-
-    with pytest.raises(GeminiAPIException, match="rate limit"):
-        await client._check_quota()
-
-
-@pytest.mark.asyncio
-async def test_quota_blocks_over_daily_limit(client, fake_redis):
+async def test_quota_never_raises_for_minute_or_daily_overflow(client, fake_redis):
+    fake_redis.counters["gemini:quota:minute"] = FREE_TIER_RPM
     fake_redis.counters["gemini:quota:day"] = FREE_TIER_RPD
 
-    with pytest.raises(GeminiAPIException, match="Daily AI quota exceeded"):
-        await client._check_quota()
-
-
-@pytest.mark.asyncio
-async def test_quota_cost_multiplier_consumes_budget_faster(client, fake_redis):
-    """generate_with_tools cost=2 ile sayıyor, tek çağrıda kotayı 2 tüketmeli"""
-    await client._check_quota(cost=2)
-    assert fake_redis.counters["gemini:quota:day"] == 2
-    assert fake_redis.counters["gemini:quota:minute"] == 2
-
-
-@pytest.mark.asyncio
-async def test_quota_sets_expiry_on_first_increment(client, fake_redis):
     await client._check_quota()
-    assert fake_redis.expiries["gemini:quota:minute"] == 60
-    assert fake_redis.expiries["gemini:quota:day"] == 24 * 60 * 60
+    await client._check_quota(cost=2)
 
 
 # --- Context budget testleri ---------------------------------------------------
@@ -217,7 +198,9 @@ async def test_generate_with_tools_uses_cost_two_quota_and_returns_text(client, 
         result = await client.generate_with_tools("prompt", tools=[lambda: None])
 
     assert result == "function-calling sonucu"
-    assert fake_redis.counters["gemini:quota:day"] == 2
+    # Uygulama Redis kotası no-op; Redis sayacı güncellenmez.
+    assert fake_redis.counters == {}
+    fake_model.start_chat.assert_called_once_with(enable_automatic_function_calling=True)
 
 
 @pytest.mark.asyncio

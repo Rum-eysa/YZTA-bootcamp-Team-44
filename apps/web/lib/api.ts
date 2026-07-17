@@ -11,7 +11,7 @@ const api = axios.create({
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -22,10 +22,25 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const requestUrl = error.config?.url ?? "";
+    const isPublicAuthRequest =
+      requestUrl.includes("/api/auth/login") || requestUrl.includes("/api/auth/register");
+
+    if (
+      error.response?.status === 401 &&
+      !isPublicAuthRequest &&
+      typeof window !== "undefined"
+    ) {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
-      window.location.href = "/login";
+
+      const currentTarget = `${window.location.pathname}${window.location.search}`;
+      const isAuthPage =
+        window.location.pathname === "/login" || window.location.pathname === "/register";
+
+      if (!isAuthPage) {
+        window.location.assign(`/login?redirect=${encodeURIComponent(currentTarget)}`);
+      }
     }
     return Promise.reject(error);
   }

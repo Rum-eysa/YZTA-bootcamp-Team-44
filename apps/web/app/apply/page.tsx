@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
 import { TagInput } from "@/components/ui/TagInput";
 import { useAuth } from "@/hooks/useAuth";
-import { analyzeListing, saveAnalysisResult } from "@/lib/api/analysis";
+import { analyzeListing } from "@/lib/api/analysis";
 import { patchProfile } from "@/lib/api/profiles";
 import { analysisSchema, type AnalysisFormData } from "@/lib/validations/analysis";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,11 +100,10 @@ function ApplyContent() {
         languages: languages.length > 0 ? languages : undefined,
         driver_license: clean(driverLicense),
       });
-      saveAnalysisResult(result);
       if (companyLogo) {
         localStorage.setItem(`listing-logo:${result.listing_id}`, companyLogo);
       }
-      router.push("/listings");
+      router.push(`/listings/${result.listing_id}`);
     } catch (err: unknown) {
       const response = (err as { response?: { status?: number; data?: { detail?: string } } })
         ?.response;
