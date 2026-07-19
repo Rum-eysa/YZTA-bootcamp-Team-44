@@ -6,11 +6,13 @@ import { FormError } from "@/components/ui/FormError";
 import type { ListingDocument } from "@/types/listing";
 import { Download, ExternalLink, FileText } from "lucide-react";
 import { useState } from "react";
+import { StaleWarningIcon } from "./StaleWarningIcon";
 
 interface CvResultSectionProps {
   documents: ListingDocument[];
   loading: boolean;
   error?: string;
+  outdated?: boolean;
   onGenerate: () => void;
 }
 
@@ -18,6 +20,7 @@ export function CvResultSection({
   documents,
   loading,
   error,
+  outdated = false,
   onGenerate,
 }: CvResultSectionProps) {
   const cv = [...documents].reverse().find((document) => document.doc_type === "cv");
@@ -47,7 +50,15 @@ export function CvResultSection({
   };
 
   return (
-    <Card title="İlana Özel CV" className="border-primary/20 shadow-card">
+    <Card
+      title="İlana Özel CV"
+      titleAddon={
+        outdated && cv ? (
+          <StaleWarningIcon message="Bu CV eski. İlan yeniden analiz edildi; güncellemenizi öneririz." />
+        ) : undefined
+      }
+      className="border-primary/20 shadow-card"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-body-sm text-on-surface-variant">
           Profiliniz ve ilan gereksinimleriyle uyumlu PDF özgeçmiş oluşturun.
@@ -78,7 +89,7 @@ export function CvResultSection({
 
       {cv?.cv_url ? (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <a
               href={cv.cv_url}
               target="_blank"

@@ -7,6 +7,7 @@ import type { ScoreBreakdown } from "@/types/match";
 import { Check, RefreshCw, Search, Target, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ScoreGauge } from "./ScoreGauge";
+import { StaleWarningIcon } from "./StaleWarningIcon";
 
 type SkillStatusFilter = "all" | "matched" | "missing";
 type SkillCategoryFilter = "all" | "required" | "nice";
@@ -14,9 +15,6 @@ type SkillCategoryFilter = "all" | "required" | "nice";
 interface MatchResultsSectionProps {
   score: number | null;
   scoreBreakdown: ScoreBreakdown | null;
-  title: string | null;
-  company: string | null;
-  seniority: string | null;
   requiredSkills: string[];
   niceToHaveSkills: string[];
   matchedSkills: string[];
@@ -25,6 +23,7 @@ interface MatchResultsSectionProps {
   error?: string;
   rematching: boolean;
   rematchError?: string;
+  outdated?: boolean;
   onCalculate: () => void;
   onRematch: () => void;
 }
@@ -40,9 +39,6 @@ const normalizeSkill = (skill: string) => skill.trim().toLocaleLowerCase("tr-TR"
 export function MatchResultsSection({
   score,
   scoreBreakdown,
-  title,
-  company,
-  seniority,
   requiredSkills,
   niceToHaveSkills,
   matchedSkills,
@@ -51,6 +47,7 @@ export function MatchResultsSection({
   error,
   rematching,
   rematchError,
+  outdated = false,
   onCalculate,
   onRematch,
 }: MatchResultsSectionProps) {
@@ -103,6 +100,11 @@ export function MatchResultsSection({
   return (
     <Card
       title="Uygunluk Sonucu"
+      titleAddon={
+        outdated && score != null ? (
+          <StaleWarningIcon message="Eşleşme skoru eski. İlan yeniden analiz edildi; Eşleşmeyi Güncelle ile yenilemenizi öneririz." />
+        ) : undefined
+      }
       className="shadow-card-hover"
       action={
         !loading && score != null ? (
@@ -148,14 +150,6 @@ export function MatchResultsSection({
       {!loading && score != null && (
         <>
       <FormError message={rematchError} />
-      <div className="mb-5 flex flex-col gap-1 border-b border-outline-variant pb-4">
-        <h3 className="text-headline-lg-mobile font-semibold text-on-surface">
-          {title || "Pozisyon belirtilmemiş"}
-        </h3>
-        <p className="text-body-sm text-on-surface-variant">
-          {[company, seniority].filter(Boolean).join(" • ") || "İlan bilgileri"}
-        </p>
-      </div>
 
       <div className="grid grid-cols-1 items-center gap-lg lg:grid-cols-[160px_1fr]">
         <div className="flex justify-center">

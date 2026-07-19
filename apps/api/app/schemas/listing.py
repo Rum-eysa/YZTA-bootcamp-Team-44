@@ -60,6 +60,10 @@ class ListingDetail(BaseModel):
     matched_skills: List[str] = []
     missing_skills: List[str] = []
     documents: List[ListingDocument] = []
+    match_outdated: bool = False
+    cv_outdated: bool = False
+    cover_letter_outdated: bool = False
+    analyzed_at: Optional[datetime] = None
 
     created_at: datetime
     updated_at: datetime

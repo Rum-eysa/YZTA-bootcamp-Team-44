@@ -316,9 +316,6 @@ function ListingDetailContent() {
         <MatchResultsSection
           score={null}
           scoreBreakdown={null}
-          title={null}
-          company={null}
-          seniority={null}
           requiredSkills={[]}
           niceToHaveSkills={[]}
           matchedSkills={[]}
@@ -328,13 +325,13 @@ function ListingDetailContent() {
           onCalculate={() => undefined}
           onRematch={() => undefined}
         />
-        <CvResultSection documents={[]} loading onGenerate={() => undefined} />
         <CoverLetterResultSection
           documents={[]}
           score={null}
           loading
           onGenerate={() => undefined}
         />
+        <CvResultSection documents={[]} loading onGenerate={() => undefined} />
       </main>
     );
   }
@@ -571,9 +568,6 @@ function ListingDetailContent() {
           <MatchResultsSection
             score={matchScore}
             scoreBreakdown={listing.score_breakdown}
-            title={listing.title}
-            company={listing.company}
-            seniority={listing.seniority}
             requiredSkills={listing.required_skills}
             niceToHaveSkills={listing.nice_to_have}
             matchedSkills={listing.matched_skills}
@@ -582,15 +576,9 @@ function ListingDetailContent() {
             error={matchError}
             rematching={rematchMutation.isPending}
             rematchError={rematchError}
+            outdated={Boolean(listing.match_outdated)}
             onCalculate={handleMatch}
             onRematch={handleRematch}
-          />
-
-          <CvResultSection
-            documents={listing.documents}
-            loading={cvMutation.isPending}
-            error={cvError}
-            onGenerate={handleGenerateCv}
           />
 
           <CoverLetterResultSection
@@ -598,25 +586,17 @@ function ListingDetailContent() {
             score={matchScore}
             loading={coverLetterMutation.isPending}
             error={coverLetterError}
+            outdated={Boolean(listing.cover_letter_outdated)}
             onGenerate={handleGenerateCoverLetter}
           />
 
-          <Card title="Yan Haklar">
-            <TagInput
-              value={form.benefits}
-              onChange={(v) => update("benefits", v)}
-              placeholder="Yan hak ekleyip Enter'a basın"
-            />
-          </Card>
-
-          <Card title="Ekstra Notlar">
-            <textarea
-              className="w-full h-24 bg-transparent border border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-              placeholder="Bu başvuruyla ilgili notlarınız..."
-              value={form.extra_notes}
-              onChange={(e) => update("extra_notes", e.target.value)}
-            />
-          </Card>
+          <CvResultSection
+            documents={listing.documents}
+            loading={cvMutation.isPending}
+            error={cvError}
+            outdated={Boolean(listing.cv_outdated)}
+            onGenerate={handleGenerateCv}
+          />
         </div>
 
         <div className="space-y-lg min-w-0">
@@ -667,6 +647,23 @@ function ListingDetailContent() {
                 />
               </div>
             </div>
+          </Card>
+
+          <Card title="Yan Haklar">
+            <TagInput
+              value={form.benefits}
+              onChange={(v) => update("benefits", v)}
+              placeholder="Yan hak ekleyip Enter'a basın"
+            />
+          </Card>
+
+          <Card title="Ekstra Notlar">
+            <textarea
+              className="w-full h-24 bg-transparent border border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+              placeholder="Bu başvuruyla ilgili notlarınız..."
+              value={form.extra_notes}
+              onChange={(e) => update("extra_notes", e.target.value)}
+            />
           </Card>
 
           <Card title="Sistem Durumu">

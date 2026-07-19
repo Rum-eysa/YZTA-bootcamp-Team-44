@@ -9,7 +9,7 @@ import { getApiErrorMessage, getApiErrorStatus } from "@/lib/apiErrors";
 import { useAuth } from "@/hooks/useAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,14 +24,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginForm() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const searchParams = useSearchParams();
-  const requestedRedirect = searchParams.get("redirect");
-  const redirect =
-    requestedRedirect?.startsWith("/") &&
-    !requestedRedirect.startsWith("//") &&
-    !requestedRedirect.includes("\\")
-      ? requestedRedirect
-      : "/profile";
   const [apiError, setApiError] = useState<string>();
 
   const {
@@ -48,7 +40,7 @@ export default function LoginForm() {
       const tokens = await login(data.email, data.password);
       saveTokens(tokens);
       await refreshUser();
-      router.push(redirect);
+      router.push("/profile");
     } catch (err: unknown) {
       const status = getApiErrorStatus(err);
       if (status && [400, 401, 402, 404].includes(status)) {
