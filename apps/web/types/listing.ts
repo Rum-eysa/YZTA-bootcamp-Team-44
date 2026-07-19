@@ -1,3 +1,5 @@
+import type { ScoreBreakdown } from "./match";
+
 export type ApplicationStage =
   | "review"
   | "interview"
@@ -45,9 +47,14 @@ export interface ListingDetail {
   driver_license: string | null;
   application_stage: ApplicationStage;
   score: number | null;
+  score_breakdown: ScoreBreakdown | null;
   matched_skills: string[];
   missing_skills: string[];
   documents: ListingDocument[];
+  match_outdated?: boolean;
+  cv_outdated?: boolean;
+  cover_letter_outdated?: boolean;
+  analyzed_at?: string | null;
   created_at: string;
   updated_at: string;
 }

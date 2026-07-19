@@ -1,10 +1,12 @@
 """Eşleştirme Ajanı testleri: skor formülü (saf Python) + semantik bonus (mock Gemini)"""
+import json
+import uuid
 from unittest.mock import AsyncMock
 
 import pytest
-
-from app.agents.matching import MatchingAgent, calculate_exact_score
+from app.agents.matching import MatchingAgent, calculate_exact_score, get_matching_agent
 from app.exceptions import ValidationException
+from app.models import JobListing, User
 
 
 class FakeGeminiClient:
@@ -212,7 +214,11 @@ def test_projects_tech_stack_adds_to_skills():
         user_seniority="mid",
         listing_seniority="mid",
         projects=[
-            {"title": "DevOps Project", "description": "CI/CD", "tech_stack": ["Docker", "Kubernetes"]},
+            {
+                "title": "DevOps Project",
+                "description": "CI/CD",
+                "tech_stack": ["Docker", "Kubernetes"],
+            },
         ],
     )
 
@@ -233,7 +239,11 @@ def test_combined_work_and_projects_boost_score():
             {"title": "React Developer", "description": "React ile frontend geliştirme"},
         ],
         projects=[
-            {"title": "DevOps Project", "description": "CI/CD", "tech_stack": ["Docker", "Kubernetes"]},
+            {
+                "title": "DevOps Project",
+                "description": "CI/CD",
+                "tech_stack": ["Docker", "Kubernetes"],
+            },
         ],
     )
 
@@ -244,6 +254,131 @@ def test_combined_work_and_projects_boost_score():
     assert result["score_breakdown"]["required"] == 60.0  # 3/3*60
     assert result["score_breakdown"]["nice_to_have"] == 20.0  # 1/1*20
     assert result["score"] == 100.0
+
+
+def test_projects_tech_stack_as_json_string_is_parsed():
+    """tech_stack DB'den JSON string olarak gelebilir - liste gibi parse edilmeli"""
+    result = calculate_exact_score(
+        user_skills=["Python"],
+        required_skills=["Python", "Docker"],
+        nice_to_have_skills=[],
+        user_seniority="mid",
+        listing_seniority="mid",
+        projects=[
+            {"title": "DevOps", "description": "CI/CD", "tech_stack": json.dumps(["Docker"])},
+        ],
+    )
+
+    assert "docker" in result["matched_skills"]
+
+
+def test_projects_tech_stack_invalid_json_string_is_ignored():
+    """tech_stack bozuk JSON string ise sessizce boş listeye düşmeli, çökmemeli"""
+    result = calculate_exact_score(
+        user_skills=["Python"],
+        required_skills=["Python"],
+        nice_to_have_skills=[],
+        user_seniority="mid",
+        listing_seniority="mid",
+        projects=[
+            {"title": "DevOps", "description": "", "tech_stack": "{not valid json"},
+        ],
+    )
+
+    assert result["score"] == 100.0
+
+
+def test_unknown_seniority_gets_neutral_score():
+    """Seniority bilinmiyorsa (None veya tanınmayan string) ne tam puan ne sıfır - nötr 10 puan"""
+    result = calculate_exact_score(
+        user_skills=["Python"],
+        required_skills=["Python"],
+        nice_to_have_skills=[],
+        user_seniority=None,
+        listing_seniority="mid",
+    )
+
+    # required: 60, nice: 20, seniority: 10 (nötr) -> 90
+    assert result["score"] == 90.0
+
+
+@pytest.mark.asyncio
+async def test_semantic_boost_empty_tool_call_returns_no_bonus():
+    """Gemini function calling'i hiç çağırmazsa (captured boş kalırsa) bonus sıfır olmalı"""
+    agent = MatchingAgent(client=FakeGeminiClient(fake_args=None))
+    # generate_with_tools çağrılır ama tools[0] hiç invoke edilmez -> captured boş kalır
+    agent.client.generate_with_tools = AsyncMock(return_value="ok")
+
+    result = await agent.match(
+        user_profile={"skills": ["Python"], "seniority": "mid"},
+        job_analysis={
+            "required_skills": ["Python", "React"],
+            "nice_to_have_skills": [],
+            "seniority": "mid",
+        },
+    )
+
+    assert result["semantic_matches"] == []
+    assert result["score_breakdown"]["semantic_bonus"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_semantic_boost_failure_falls_back_to_exact_score():
+    """Gemini çağrısı hata verirse eşleştirme çökmemeli, deterministik skorla devam etmeli"""
+    agent = MatchingAgent(client=FakeGeminiClient(fake_args=None))
+    agent.client.generate_with_tools = AsyncMock(side_effect=RuntimeError("gemini down"))
+
+    result = await agent.match(
+        user_profile={"skills": ["Python"], "seniority": "mid"},
+        job_analysis={
+            "required_skills": ["Python", "React"],
+            "nice_to_have_skills": [],
+            "seniority": "mid",
+        },
+    )
+
+    # required: 1/2*60=30 + nice 20 + seniority 20 = 70, bonus yok
+    assert result["score"] == 70.0
+    assert result["semantic_matches"] == []
+
+
+@pytest.mark.asyncio
+async def test_match_and_save_persists_match_row(test_session):
+    user_id = str(uuid.uuid4())
+    user = User(id=user_id, email=f"matchagent-{user_id}@example.com", hashed_password="x")
+    test_session.add(user)
+    await test_session.commit()
+
+    listing = JobListing(
+        created_by=user_id,
+        title="Backend Developer",
+        raw_text="a" * 60,
+        analysis_status="completed",
+    )
+    test_session.add(listing)
+    await test_session.commit()
+    await test_session.refresh(listing)
+
+    agent = MatchingAgent(client=FakeGeminiClient(None))
+
+    match = await agent.match_and_save(
+        db=test_session,
+        user_id=user_id,
+        listing_id=listing.id,
+        user_profile={"skills": ["Python"], "seniority": "mid"},
+        job_analysis={"required_skills": ["Python"], "nice_to_have_skills": [], "seniority": "mid"},
+    )
+
+    assert match.id is not None
+    assert match.user_id == user_id
+    assert match.listing_id == listing.id
+    assert match.score == 100.0
+
+
+def test_get_matching_agent_returns_singleton():
+    first = get_matching_agent()
+    second = get_matching_agent()
+    assert first is second
 
 
 @pytest.mark.asyncio

@@ -34,6 +34,16 @@ async def match_listing(
     listing = await listing_repo.get(payload.listing_id)
     if not listing or listing.created_by != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+    if listing.analysis_status != "completed":
+        # Analiz edilmemiş ilanda required/nice_to_have_skills boş gelir ve
+        # calculate_exact_score bunu "kriter yok, tam puan" sayar (60+20 puan) -
+        # kullanıcıya yanıltıcı yüksek bir skor (ör. %90) gösterir, eşleşen/eksik
+        # beceri listeleri de boş kalır. Bu yüzden analiz tamamlanmadan eşleştirme
+        # yapılmasını engelliyoruz.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Bu ilan henüz analiz edilmedi. Lütfen önce ilanı analiz edin.",
+        )
 
     match_repo = MatchRepository(db)
     cached = await match_repo.get_by_user_and_listing(user_id, payload.listing_id)

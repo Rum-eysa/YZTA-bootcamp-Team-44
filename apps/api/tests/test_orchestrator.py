@@ -142,6 +142,7 @@ async def test_full_flow_from_listing_text(test_session):
 async def test_flow_with_existing_listing_skips_analysis(test_session):
     user_id = await _seed_user(test_session)
     listing = JobListing(
+        created_by=user_id,
         title="Backend Developer",
         raw_text=LISTING_TEXT,
         parsed_json=json.dumps(ANALYSIS),
@@ -310,4 +311,27 @@ async def test_process_endpoint_unknown_listing_returns_404(client: AsyncClient,
     app.dependency_overrides[get_orchestrator] = lambda: _orchestrator()
 
     response = await client.post("/api/process", json={"listing_id": "does-not-exist"})
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_process_endpoint_rejects_other_users_listing(client: AsyncClient, test_session):
+    """Sahiplik: /api/process başkasının listing_id'siyle 404 dönmeli (US-040 genellemesi)"""
+    owner_id = await _seed_user(test_session)
+    listing = JobListing(
+        created_by=owner_id,
+        title="Backend Developer",
+        raw_text=LISTING_TEXT,
+        parsed_json=json.dumps(ANALYSIS),
+        analysis_status="completed",
+    )
+    test_session.add(listing)
+    await test_session.commit()
+    await test_session.refresh(listing)
+
+    attacker_id = await _seed_user(test_session)
+    app.dependency_overrides[get_current_user_id] = lambda: attacker_id
+    app.dependency_overrides[get_orchestrator] = lambda: _orchestrator()
+
+    response = await client.post("/api/process", json={"listing_id": listing.id})
     assert response.status_code == 404

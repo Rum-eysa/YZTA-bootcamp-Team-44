@@ -151,7 +151,11 @@ class ContextManager:
             select(JobListing).where(JobListing.id == listing_id)
         )
         listing = listing_result.scalar_one_or_none()
-        if not listing:
+        # Sahiplik: bağlam her zaman kullanıcıya özeldir - başka kullanıcının
+        # (veya sahipsiz) ilanına karşı CV/önyazı/eşleştirme üretilemez (US-040
+        # ile /api/match'e gelen kuralın tüm agent akışlarına genellenmesi).
+        # Aynı mesaj kullanılır ki ilanın varlığı sızdırılmasın.
+        if not listing or listing.created_by != user_id:
             raise ValueError(f"Listing not found: {listing_id}")
 
         # Match verisini yükle (varsa)
