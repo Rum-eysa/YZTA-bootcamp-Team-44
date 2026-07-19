@@ -45,12 +45,15 @@ async def test_agent_service_load_context_and_build_payload(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Platform Engineer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Go"], "seniority": "senior"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context = await agent_service.load_context(test_session, user_id, listing_id)

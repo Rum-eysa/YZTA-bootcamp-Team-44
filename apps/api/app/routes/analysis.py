@@ -1,5 +1,6 @@
 """Analiz Ajanı'nı tetikleyen endpoint"""
 import json
+from datetime import datetime, timezone
 
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.database import get_db
@@ -37,6 +38,7 @@ async def analyze_listing(
         seniority=result.get("seniority"),
         parsed_json=json.dumps(result, ensure_ascii=False),
         analysis_status="completed",
+        analyzed_at=datetime.now(timezone.utc),
         location=payload.location,
         employment_type=payload.employment_type,
         company_about=payload.company_about,

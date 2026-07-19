@@ -119,6 +119,34 @@ async def test_match_unknown_listing_returns_404(client: AsyncClient, test_sessi
 
 
 @pytest.mark.asyncio
+async def test_match_before_analysis_returns_422_without_calling_agent(
+    client: AsyncClient, test_session
+):
+    user_id = str(uuid.uuid4())
+    user = User(id=user_id, email=f"pending-{user_id}@example.com", hashed_password="x")
+    listing = JobListing(
+        created_by=user_id,
+        title="Pending analysis",
+        raw_text="a" * 60,
+        analysis_status="pending",
+    )
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
+    await test_session.commit()
+    await test_session.refresh(listing)
+    stub_agent = _StubMatchingAgent()
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    app.dependency_overrides[get_matching_agent] = lambda: stub_agent
+
+    response = await client.post("/api/match", json={"listing_id": listing.id})
+
+    assert response.status_code == 422
+    assert "henüz analiz edilmedi" in response.json()["detail"]
+    assert stub_agent.calls == 0
+
+
+@pytest.mark.asyncio
 async def test_match_requires_authentication(client: AsyncClient):
     response = await client.post("/api/match", json={"listing_id": "some-id"})
     assert response.status_code == 403

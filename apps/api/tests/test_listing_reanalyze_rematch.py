@@ -121,29 +121,29 @@ async def test_update_reanalyze_rematch_flow(client: AsyncClient, test_session):
     # Henüz reanalyze çağrılmadı - eski required_skills hâlâ duruyor
     assert update.json()["required_skills"] == ["Python", "FastAPI"]
 
-    # 4) Yeniden Analiz Et
+    # 4) Yeniden Analiz Et — eski skor kalır, outdated uyarısı gelir
     reanalyze = await client.post(f"/api/listings/{listing_id}/reanalyze", headers=headers)
     assert reanalyze.status_code == 200
     detail = reanalyze.json()
     assert detail["required_skills"] == ["Python", "FastAPI", "Kubernetes"]
     assert detail["nice_to_have"] == ["Docker", "AWS"]
     assert detail["seniority"] == "mid"
-    # Eski eşleşme geçersiz kılınmış olmalı (US-037 kabul kriteri)
-    assert detail["score"] is None
-    assert detail["matched_skills"] == []
-    assert detail["missing_skills"] == []
+    assert detail["score"] == 60.0
+    assert detail["match_outdated"] is True
 
     match_row = (
         await test_session.execute(select(Match).where(Match.listing_id == listing_id))
     ).scalar_one_or_none()
-    assert match_row is None
+    assert match_row is not None
+    assert match_row.score == 60.0
 
-    # 5) Eşleşmeyi Güncelle
+    # 5) Eşleşmeyi Güncelle — skor yenilenir, outdated kalkar
     rematch = await client.post(f"/api/listings/{listing_id}/rematch", headers=headers)
     assert rematch.status_code == 200
     rematch_detail = rematch.json()
     assert rematch_detail["score"] == 85.0
     assert rematch_detail["matched_skills"] == ["Python", "FastAPI", "Kubernetes"]
+    assert rematch_detail["match_outdated"] is False
 
     listing_row = (
         await test_session.execute(select(JobListing).where(JobListing.id == listing_id))

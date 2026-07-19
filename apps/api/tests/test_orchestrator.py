@@ -6,13 +6,12 @@ import json
 import uuid
 
 import pytest
-from httpx import AsyncClient
-
-from app.agents.orchestrator import ApplicationOrchestrator, get_orchestrator
+from app.agents.orchestrator import ApplicationOrchestrator, OrchestrationError, get_orchestrator
 from app.dependencies import get_current_user_id
 from app.exceptions import GeminiAPIException
 from app.main import app
 from app.models import Document, JobListing, Match, User
+from httpx import AsyncClient
 
 ANALYSIS = {
     "position_title": "Backend Developer",
@@ -127,8 +126,9 @@ async def test_full_flow_from_listing_text(test_session):
     assert result["listing_id"]
     assert result["analysis"]["position_title"] == "Backend Developer"
     assert result["match"]["score"] == 75.0
-    assert result["cover_letter"]["text"] == "Sayın Yetkili..."
-    assert result["cv"]["cv_url"].endswith(".pdf")
+    assert result["cover_letter_text"] == "Sayın Yetkili..."
+    assert result["cv_url"].endswith(".pdf")
+    assert result["errors"] == []
     steps = {s["step"]: s["status"] for s in result["timeline"]}
     assert steps == {
         "analysis": "completed",
@@ -142,6 +142,7 @@ async def test_full_flow_from_listing_text(test_session):
 async def test_flow_with_existing_listing_skips_analysis(test_session):
     user_id = await _seed_user(test_session)
     listing = JobListing(
+        created_by=user_id,
         title="Backend Developer",
         raw_text=LISTING_TEXT,
         parsed_json=json.dumps(ANALYSIS),
@@ -175,6 +176,34 @@ async def test_transient_analysis_error_is_retried(test_session):
 
 
 @pytest.mark.asyncio
+async def test_transient_error_backoff_and_gives_up_after_max_attempts(test_session):
+    """US-041: kalıcı hata max 2 denemede pes eder, denemeler arası backoff gerçekten bekler"""
+    user_id = await _seed_user(test_session)
+    always_fails = StubAnalysisAgent(fail_times=99)
+    orch = _orchestrator(analysis=always_fails)
+
+    with pytest.raises(OrchestrationError) as exc_info:
+        await orch.process(db=test_session, user_id=user_id, listing_text=LISTING_TEXT)
+
+    assert exc_info.value.step == "analysis"
+    assert always_fails.calls == 2  # 1 ilk deneme + 1 retry, sonra pes eder - 3. deneme yok
+
+
+@pytest.mark.asyncio
+async def test_retry_waits_with_exponential_backoff(test_session):
+    """2. deneme öncesi gerçekten bekleniyor (anında retry değil)"""
+    user_id = await _seed_user(test_session)
+    flaky = StubAnalysisAgent(fail_times=1)
+    orch = _orchestrator(analysis=flaky)
+
+    result = await orch.process(db=test_session, user_id=user_id, listing_text=LISTING_TEXT)
+
+    analysis_step = next(s for s in result["timeline"] if s["step"] == "analysis")
+    # _BASE_BACKOFF_SECONDS=0.2s bekleniyor olmalı (biraz tolerans ile)
+    assert analysis_step["duration_ms"] >= 180
+
+
+@pytest.mark.asyncio
 async def test_cover_letter_failure_does_not_break_cv(test_session):
     """Önyazı düşse bile CV üretilmeli - kısmi sonuç dayanıklılığı"""
     user_id = await _seed_user(test_session)
@@ -182,8 +211,10 @@ async def test_cover_letter_failure_does_not_break_cv(test_session):
 
     result = await orch.process(db=test_session, user_id=user_id, listing_text=LISTING_TEXT)
 
-    assert result["cover_letter"] is None
-    assert result["cv"]["cv_url"].endswith(".pdf")
+    assert result["cover_letter_text"] is None
+    assert result["cv_url"].endswith(".pdf")
+    assert len(result["errors"]) == 1
+    assert result["errors"][0].startswith("cover_letter:")
     steps = {s["step"]: s["status"] for s in result["timeline"]}
     assert steps["cover_letter"] == "failed"
     assert steps["cv"] == "completed"
@@ -251,8 +282,9 @@ async def test_process_endpoint_full_flow(client: AsyncClient, test_session):
     assert response.status_code == 200
     data = response.json()
     assert data["match"]["score"] == 75.0
-    assert data["cover_letter"]["text"]
-    assert data["cv"]["cv_url"]
+    assert data["cover_letter_text"]
+    assert data["cv_url"]
+    assert data["errors"] == []
     assert len(data["timeline"]) == 4
 
 
@@ -273,12 +305,33 @@ async def test_process_endpoint_validates_input(client: AsyncClient, test_sessio
 
 
 @pytest.mark.asyncio
-async def test_process_endpoint_unknown_listing_returns_404(
-    client: AsyncClient, test_session
-):
+async def test_process_endpoint_unknown_listing_returns_404(client: AsyncClient, test_session):
     user_id = await _seed_user(test_session)
     app.dependency_overrides[get_current_user_id] = lambda: user_id
     app.dependency_overrides[get_orchestrator] = lambda: _orchestrator()
 
     response = await client.post("/api/process", json={"listing_id": "does-not-exist"})
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_process_endpoint_rejects_other_users_listing(client: AsyncClient, test_session):
+    """Sahiplik: /api/process başkasının listing_id'siyle 404 dönmeli (US-040 genellemesi)"""
+    owner_id = await _seed_user(test_session)
+    listing = JobListing(
+        created_by=owner_id,
+        title="Backend Developer",
+        raw_text=LISTING_TEXT,
+        parsed_json=json.dumps(ANALYSIS),
+        analysis_status="completed",
+    )
+    test_session.add(listing)
+    await test_session.commit()
+    await test_session.refresh(listing)
+
+    attacker_id = await _seed_user(test_session)
+    app.dependency_overrides[get_current_user_id] = lambda: attacker_id
+    app.dependency_overrides[get_orchestrator] = lambda: _orchestrator()
+
+    response = await client.post("/api/process", json={"listing_id": listing.id})
     assert response.status_code == 404

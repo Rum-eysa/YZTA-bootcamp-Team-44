@@ -2,10 +2,15 @@ type ApiErrorPayload = {
   response?: {
     status?: number;
     data?: {
-      detail?: string;
+      detail?: unknown;
       error_code?: string;
     };
   };
+};
+
+type ValidationError = {
+  loc?: Array<string | number>;
+  msg?: string;
 };
 
 const QUOTA_PATTERNS = [
@@ -15,10 +20,33 @@ const QUOTA_PATTERNS = [
   /ai service rate limit/i,
 ];
 
+function parseValidationDetail(detail: unknown): string | undefined {
+  if (!Array.isArray(detail)) return undefined;
+
+  const messages = detail
+    .map((item) => {
+      if (typeof item === "string") return item;
+      if (!item || typeof item !== "object") return undefined;
+
+      const validationError = item as ValidationError;
+      if (typeof validationError.msg !== "string") return undefined;
+
+      const field = validationError.loc?.filter((part) => part !== "body").at(-1);
+      return field ? `${String(field)}: ${validationError.msg}` : validationError.msg;
+    })
+    .filter((message): message is string => Boolean(message));
+
+  return messages.length > 0 ? messages.join(" ") : undefined;
+}
+
+export function getApiErrorStatus(err: unknown): number | undefined {
+  return (err as ApiErrorPayload)?.response?.status;
+}
+
 export function getApiErrorMessage(
   err: unknown,
   fallback: string,
-  options?: { serviceUnavailable?: string }
+  options?: { network?: string; serviceUnavailable?: string }
 ): string {
   const response = (err as ApiErrorPayload)?.response;
   const status = response?.status;
@@ -29,7 +57,7 @@ export function getApiErrorMessage(
     return "AI servisi istek limitine ulaştı. Lütfen biraz bekleyip tekrar deneyin.";
   }
 
-  if (status === 503 || errorCode === "CV_GENERATION_ERROR") {
+  if ((status !== undefined && status >= 500) || errorCode === "CV_GENERATION_ERROR") {
     return (
       options?.serviceUnavailable ??
       "Servis şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin."
@@ -41,6 +69,13 @@ export function getApiErrorMessage(
       return "Günlük AI kotası doldu veya istek limiti aşıldı. Lütfen daha sonra tekrar deneyin.";
     }
     return detail;
+  }
+
+  const validationMessage = parseValidationDetail(detail);
+  if (validationMessage) return validationMessage;
+
+  if (!response) {
+    return options?.network ?? "Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
   }
 
   return fallback;

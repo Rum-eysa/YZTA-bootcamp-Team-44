@@ -4,6 +4,8 @@ import type { CoverLetterRequest, CoverLetterResponse } from "@/types/coverLette
 export async function generateCoverLetter(
   payload: CoverLetterRequest
 ): Promise<CoverLetterResponse> {
-  const { data } = await api.post<CoverLetterResponse>("/api/generate-cover-letter", payload);
+  const { data } = await api.post<CoverLetterResponse>("/api/generate-cover-letter", payload, {
+    timeout: 60_000,
+  });
   return data;
 }

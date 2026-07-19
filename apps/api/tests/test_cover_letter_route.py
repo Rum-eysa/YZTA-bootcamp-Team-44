@@ -3,12 +3,11 @@ import json
 import uuid
 
 import pytest
-from httpx import AsyncClient
-
 from app.agents.cover_letter import get_cover_letter_agent
 from app.dependencies import get_current_user_id
 from app.main import app
 from app.models import Document, JobListing, User
+from httpx import AsyncClient
 
 
 class _StubCoverLetterAgent:
@@ -49,13 +48,16 @@ def _clear_overrides():
 async def _seed_user_and_listing(test_session, user_id, company="Acme Yazılım A.Ş."):
     user = User(id=user_id, email=f"cl-{user_id}@example.com", hashed_password="x")
     listing = JobListing(
+        created_by=user_id,
         title="Backend Developer",
         company=company,
         raw_text="a" * 60,
         parsed_json=json.dumps({"position_title": "Backend Developer"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     await test_session.refresh(listing)
     return listing
@@ -68,9 +70,7 @@ async def test_generate_cover_letter_happy_path(client: AsyncClient, test_sessio
     app.dependency_overrides[get_current_user_id] = lambda: user_id
     app.dependency_overrides[get_cover_letter_agent] = lambda: _StubCoverLetterAgent()
 
-    response = await client.post(
-        "/api/generate-cover-letter", json={"listing_id": listing.id}
-    )
+    response = await client.post("/api/generate-cover-letter", json={"listing_id": listing.id})
 
     assert response.status_code == 200
     data = response.json()
@@ -95,25 +95,19 @@ async def test_generate_cover_letter_passes_company_name_to_agent(
 
 
 @pytest.mark.asyncio
-async def test_generate_cover_letter_missing_company_falls_back(
-    client: AsyncClient, test_session
-):
+async def test_generate_cover_letter_missing_company_falls_back(client: AsyncClient, test_session):
     user_id = str(uuid.uuid4())
     listing = await _seed_user_and_listing(test_session, user_id, company=None)
     app.dependency_overrides[get_current_user_id] = lambda: user_id
     app.dependency_overrides[get_cover_letter_agent] = lambda: _StubCoverLetterAgent()
 
-    response = await client.post(
-        "/api/generate-cover-letter", json={"listing_id": listing.id}
-    )
+    response = await client.post("/api/generate-cover-letter", json={"listing_id": listing.id})
 
     assert response.json()["company_name"] == "belirtilen şirket"
 
 
 @pytest.mark.asyncio
-async def test_generate_cover_letter_unknown_listing_returns_404(
-    client: AsyncClient, test_session
-):
+async def test_generate_cover_letter_unknown_listing_returns_404(client: AsyncClient, test_session):
     user_id = str(uuid.uuid4())
     user = User(id=user_id, email=f"cl2-{user_id}@example.com", hashed_password="x")
     test_session.add(user)
@@ -131,7 +125,26 @@ async def test_generate_cover_letter_unknown_listing_returns_404(
 
 @pytest.mark.asyncio
 async def test_generate_cover_letter_requires_authentication(client: AsyncClient):
-    response = await client.post(
-        "/api/generate-cover-letter", json={"listing_id": "some-id"}
-    )
+    response = await client.post("/api/generate-cover-letter", json={"listing_id": "some-id"})
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_generate_cover_letter_rejects_other_users_listing(client: AsyncClient, test_session):
+    """Sahiplik: başka kullanıcının ilanına karşı önyazı üretilemez (US-040 genellemesi)"""
+    owner_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, owner_id)
+
+    attacker_id = str(uuid.uuid4())
+    attacker = User(
+        id=attacker_id, email=f"cl-attacker-{attacker_id}@example.com", hashed_password="x"
+    )
+    test_session.add(attacker)
+    await test_session.commit()
+
+    app.dependency_overrides[get_current_user_id] = lambda: attacker_id
+    app.dependency_overrides[get_cover_letter_agent] = lambda: _StubCoverLetterAgent()
+
+    response = await client.post("/api/generate-cover-letter", json={"listing_id": listing.id})
+
+    assert response.status_code == 404

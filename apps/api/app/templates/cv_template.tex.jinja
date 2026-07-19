@@ -46,4 +46,22 @@
 \end{itemize}
 \BLOCK{endif}
 
+\BLOCK{if education}
+\section*{Eğitim}
+\begin{itemize}
+\BLOCK{for edu in education}
+\item \textbf{\VAR{edu.school}}\BLOCK{if edu.degree} — \VAR{edu.degree}\BLOCK{endif}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif} (\VAR{edu.period})\BLOCK{if edu.description}\\ \VAR{edu.description}\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if personal_info}
+\section*{Kişisel Bilgiler}
+\begin{itemize}
+\BLOCK{for label, value in personal_info}
+\item \textbf{\VAR{label}:} \VAR{value}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
 \end{document}
