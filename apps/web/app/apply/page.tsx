@@ -175,7 +175,7 @@ function ApplyContent() {
                 type="button"
                 loading={isSubmitting}
                 onClick={handleSubmit(onSubmit)}
-                className="shrink-0"
+                className="shrink-0 px-8 py-3.5 text-lg"
               >
                 İlanı Oluştur
               </Button>
@@ -372,7 +372,11 @@ function ApplyContent() {
               </div>
             </Card>
 
-            <Button type="submit" loading={isSubmitting} className="w-full md:hidden">
+            <Button
+              type="submit"
+              loading={isSubmitting}
+              className="w-full py-3.5 text-lg md:hidden"
+            >
               İlanı Oluştur
             </Button>
           </div>

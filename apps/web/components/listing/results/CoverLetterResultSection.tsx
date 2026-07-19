@@ -6,12 +6,14 @@ import { FormError } from "@/components/ui/FormError";
 import type { ListingDocument } from "@/types/listing";
 import { Clipboard, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
+import { StaleWarningIcon } from "./StaleWarningIcon";
 
 interface CoverLetterResultSectionProps {
   documents: ListingDocument[];
   score: number | null;
   loading: boolean;
   error?: string;
+  outdated?: boolean;
   onGenerate: () => void;
 }
 
@@ -20,6 +22,7 @@ export function CoverLetterResultSection({
   score,
   loading,
   error,
+  outdated = false,
   onGenerate,
 }: CoverLetterResultSectionProps) {
   const [copyFeedback, setCopyFeedback] = useState<string>();
@@ -47,7 +50,15 @@ export function CoverLetterResultSection({
   };
 
   return (
-    <Card title="Önyazı" className="border-primary/20 shadow-card">
+    <Card
+      title="Önyazı"
+      titleAddon={
+        outdated && text ? (
+          <StaleWarningIcon message="Bu önyazı eski. İlan yeniden analiz edildi; güncellemenizi öneririz." />
+        ) : undefined
+      }
+      className="border-primary/20 shadow-card"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-body-sm text-on-surface-variant">
           Şirkete ve pozisyona göre kişiselleştirilmiş bir başvuru metni oluşturun.

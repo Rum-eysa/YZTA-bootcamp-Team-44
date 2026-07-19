@@ -51,6 +51,10 @@ export interface ListingDetail {
   matched_skills: string[];
   missing_skills: string[];
   documents: ListingDocument[];
+  match_outdated?: boolean;
+  cv_outdated?: boolean;
+  cover_letter_outdated?: boolean;
+  analyzed_at?: string | null;
   created_at: string;
   updated_at: string;
 }

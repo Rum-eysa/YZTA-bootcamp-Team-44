@@ -3,6 +3,7 @@
 Not: analiz sonucunu DB'den okuma + created_by/JWT US-014 ile örtüşür.
 """
 import json
+from datetime import datetime, timezone
 from typing import Any, List, Optional
 
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
@@ -43,6 +44,27 @@ def _load_list(value: Optional[str]) -> List[str]:
     if isinstance(parsed, list):
         return [str(item) for item in parsed]
     return []
+
+
+def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _is_outdated(created_at: Optional[datetime], analyzed_at: Optional[datetime]) -> bool:
+    """Kayıt, son analiz zamanından önce oluşturulduysa eski kabul edilir."""
+    created = _as_utc(created_at)
+    analyzed = _as_utc(analyzed_at)
+    if created is None or analyzed is None:
+        return False
+    return created < analyzed
+
+
+def _now_utc() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 async def _get_owned_listing(
@@ -101,6 +123,7 @@ async def get_listing(
         .where(Document.listing_id == listing.id, Document.user_id == user_id)
         .order_by(Document.created_at.asc(), Document.id.asc())
     )
+    docs = list(docs_result.scalars().all())
     documents = [
         ListingDocument(
             id=doc.id,
@@ -108,8 +131,11 @@ async def get_listing(
             cv_url=doc.cv_url,
             cover_letter_text=doc.cover_letter_text,
         )
-        for doc in docs_result.scalars().all()
+        for doc in docs
     ]
+
+    latest_cv = next((doc for doc in reversed(docs) if doc.doc_type == "cv"), None)
+    latest_cover = next((doc for doc in reversed(docs) if doc.doc_type == "cover_letter"), None)
 
     # Score breakdown parse
     score_breakdown = None
@@ -145,6 +171,12 @@ async def get_listing(
         matched_skills=_load_list(match.matched_skills) if match else [],
         missing_skills=_load_list(match.missing_skills) if match else [],
         documents=documents,
+        match_outdated=_is_outdated(match.created_at if match else None, listing.analyzed_at),
+        cv_outdated=_is_outdated(latest_cv.created_at if latest_cv else None, listing.analyzed_at),
+        cover_letter_outdated=_is_outdated(
+            latest_cover.created_at if latest_cover else None, listing.analyzed_at
+        ),
+        analyzed_at=listing.analyzed_at,
         created_at=listing.created_at,
         updated_at=listing.updated_at,
     )
@@ -190,9 +222,9 @@ async def reanalyze_listing(
 ):
     """İlan metni/detayları değiştiğinde manuel olarak yeniden analiz eder (US-037).
 
-    required_skills/nice_to_have_skills/seniority güncel ilan metnine göre yenilenir;
-    bu ilan için önceden hesaplanmış eşleşme artık geçersiz olduğundan silinir - kullanıcı
-    "Eşleşmeyi Güncelle"ye basana kadar eski (yanıltıcı) skor gösterilmez.
+    required_skills/nice_to_have_skills/seniority güncel ilan metnine göre yenilenir.
+    Eski eşleşme/CV/önyazı silinmez; analyzed_at güncellenir ve istemci outdated
+    bayraklarıyla "eski veri" uyarısı gösterir.
     """
     repo = JobListingRepository(db)
     listing = await _get_owned_listing(listing_id, user_id, repo)
@@ -206,10 +238,8 @@ async def reanalyze_listing(
     listing.seniority = result.get("seniority") or ""
     listing.parsed_json = json.dumps(result, ensure_ascii=False)
     listing.analysis_status = "completed"
+    listing.analyzed_at = _now_utc()
     await repo.update(listing.id, listing)
-
-    match_repo = MatchRepository(db)
-    await match_repo.delete_by_user_and_listing(user_id, listing_id)
 
     return await get_listing(listing_id, user_id, db)
 

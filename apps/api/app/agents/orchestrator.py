@@ -17,6 +17,7 @@ Akış: Analiz -> Eşleştirme -> Önyazı -> CV
 import asyncio
 import json
 import time
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.agents.cover_letter import CoverLetterAgent, get_cover_letter_agent
@@ -151,6 +152,7 @@ class ApplicationOrchestrator:
                 seniority=analysis.get("seniority"),
                 parsed_json=json.dumps(analysis, ensure_ascii=False),
                 analysis_status="completed",
+                analyzed_at=datetime.now(timezone.utc),
                 created_by=user_id,
             )
             db.add(listing)
