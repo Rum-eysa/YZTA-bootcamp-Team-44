@@ -1,67 +1,24 @@
-\documentclass[10pt,a4paper]{article}
-\usepackage[margin=1.8cm]{geometry}
-\usepackage{enumitem}
-\usepackage{titlesec}
-\usepackage{xcolor}
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
 \usepackage{hyperref}
 
-\definecolor{accent}{HTML}{2C3E50}
-\titleformat{\section}{\large\bfseries\color{accent}}{}{0em}{}[\titlerule]
-\titlespacing{\section}{0pt}{10pt}{6pt}
-\setlist[itemize]{leftmargin=*, itemsep=2pt, topsep=2pt}
-\pagenumbering{gobble}
-\renewcommand{\familydefault}{\sfdefault}
-
 \begin{document}
-
-{\huge \bfseries \VAR{full_name}}\\[2pt]
-{\large \color{accent} \VAR{target_position}}\\[4pt]
-\VAR{email} \BLOCK{if phone} \textbullet{} \VAR{phone} \BLOCK{endif}
+\begin{center}
+    \textbf{\Huge {{ user_name }}} \\
+    \vspace{2mm}
+    {{ user_email }} | {{ user_phone }} | \href{ {{ user_linkedin }} }{LinkedIn}
+\end{center}
 
 \section*{Özet}
-\VAR{experience_summary}
-
-\section*{Beceriler}
-\VAR{all_skills | join(', ')}
+{{ summary_text }}
 
 \section*{Deneyim}
-\BLOCK{if work_experiences}
-\begin{itemize}
-\BLOCK{for exp in work_experiences}
-\item \textbf{\VAR{exp.title}} — \VAR{exp.company} (\VAR{exp.period})\BLOCK{if exp.description}\\ \VAR{exp.description}\BLOCK{endif}
-\BLOCK{endfor}
-\end{itemize}
-\BLOCK{else}
-\begin{itemize}
-\item Toplam \VAR{experience_years} yıl deneyim, \VAR{seniority} seviye
-\end{itemize}
-\BLOCK{endif}
-
-\BLOCK{if projects}
-\section*{Projeler}
-\begin{itemize}
-\BLOCK{for proj in projects}
-\item \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}\BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}
-\BLOCK{endfor}
-\end{itemize}
-\BLOCK{endif}
-
-\BLOCK{if education}
-\section*{Eğitim}
-\begin{itemize}
-\BLOCK{for edu in education}
-\item \textbf{\VAR{edu.school}}\BLOCK{if edu.degree} — \VAR{edu.degree}\BLOCK{endif}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif} (\VAR{edu.period})\BLOCK{if edu.description}\\ \VAR{edu.description}\BLOCK{endif}
-\BLOCK{endfor}
-\end{itemize}
-\BLOCK{endif}
-
-\BLOCK{if personal_info}
-\section*{Kişisel Bilgiler}
-\begin{itemize}
-\BLOCK{for label, value in personal_info}
-\item \textbf{\VAR{label}:} \VAR{value}
-\BLOCK{endfor}
-\end{itemize}
-\BLOCK{endif}
+{% for job in experiences %}
+\textbf{ {{ job.title }} } \hfill {{ job.date }} \\
+{{ job.company }} \\
+{{ job.description }} \vspace{2mm}
+{% endfor %}
 
 \end{document}
