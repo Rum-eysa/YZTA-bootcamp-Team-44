@@ -484,6 +484,10 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
   ![Daily Scrum — Profil sunumu](docs/sprint-2/daily-scrum-profil-sunumu.png)
 
+  *Ana sayfada yapılabilecek değişikliklerin konuşulması — Serkan’ın ekran paylaşımı:*
+
+  ![Daily Scrum — Ana sayfa sunumu](docs/sprint-2/daily-scrum-anasayfa-sunumu.png)
+
 - **Ürün Geliştirme Durumu:** CareerTrack artık ilan eklemeden sonuç üretimine kadar tek akışta çalışır. `/apply` → analiz → `/listings/:id` üzerinde skor gauge, beceri karşılaştırması, ilana özel CV (önizle/indir) ve önyazı (üret/kopyala) sunulur; ilan değişince yeniden analiz ve eşleşme güncellenebilir. Profilde iş deneyimi ve proje CRUD, seed ile demo verisi, Railway/Vercel staging hazırdır.
 
   *Giriş ekranı:*
