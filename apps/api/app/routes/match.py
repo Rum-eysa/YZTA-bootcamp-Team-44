@@ -4,6 +4,7 @@ import json
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.repositories.job_listing import JobListingRepository
 from app.repositories.match import MatchRepository
 from app.schemas.match import MatchRequest, MatchResponse
 from app.services.context import (
@@ -24,7 +25,16 @@ async def match_listing(
     agent: MatchingAgent = Depends(get_matching_agent),
     db: AsyncSession = Depends(get_db),
 ):
-    """Kullanıcı profili ile ilanı eşleştirir, matches tablosuna kaydeder (cache'li)"""
+    """Kullanıcı profili ile ilanı eşleştirir, matches tablosuna kaydeder (cache'li)
+
+    Yalnızca çağıran kullanıcının kendi oluşturduğu (created_by) ilanlarda çalışır -
+    aksi halde başka bir kullanıcının özel ilan içeriğine karşı eşleştirme
+    yapılabilir/kaydedilebilirdi (US-040)."""
+    listing_repo = JobListingRepository(db)
+    listing = await listing_repo.get(payload.listing_id)
+    if not listing or listing.created_by != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+
     match_repo = MatchRepository(db)
     cached = await match_repo.get_by_user_and_listing(user_id, payload.listing_id)
     if cached:
