@@ -24,12 +24,12 @@ Takım 44
 
 ## Takım Rolleri
 
-| Rol | Kişi | GitHub |
-|-----|------|--------|
-| Product Owner | Rumeysa AĞIL| [@Rum-eysa](https://github.com/Rum-eysa) |
-| Scrum Master | Serkan YILDIZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
-| Developer | Zeynep Maide DEMİR| [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-| Developer | Filiz Buzkıran | [@lizlavigne](https://github.com/lizlavigne) |
+| Rol | Kişi | GitHub | LinkedIn |
+|-----|------|--------|----------|
+| Product Owner | Rumeysa AĞIL | [@Rum-eysa](https://github.com/Rum-eysa) | [@rumeysaagil](https://www.linkedin.com/in/rumeysaagil/) |
+| Scrum Master | Serkan YILDIZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) | [@serkan0yldz](https://www.linkedin.com/in/serkan0yldz/) |
+| Developer | Zeynep Maide DEMİR | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) | [@zeynep-maide-demir](https://www.linkedin.com/in/zeynep-maide-demir/) |
+| Developer | Filiz Buzkıran | [@lizlavigne](https://github.com/lizlavigne) | [@filizbuzkiran](https://www.linkedin.com/in/filizbuzkiran) |
 
 ## Ürün İsmi
 
