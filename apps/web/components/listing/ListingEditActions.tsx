@@ -12,7 +12,7 @@ export function ListingEditActions({
   isSaving,
 }: ListingEditActionsProps) {
   return (
-    <div className="flex w-full flex-col gap-sm sm:flex-row sm:justify-end">
+    <div className="sticky bottom-0 z-50 flex w-full flex-col gap-sm bg-white py-4 shadow-md sm:flex-row sm:justify-end">
       <Button
         type="button"
         variant="outline"
