@@ -3,7 +3,7 @@ import json
 import uuid
 
 import pytest
-from app.models import JobListing, Match, Project, User, WorkExperience
+from app.models import EducationRecord, JobListing, Match, Project, User, WorkExperience
 from app.services.context import (
     ContextManager,
     job_analysis_from_context,
@@ -28,6 +28,7 @@ async def test_context_manager_loads_user_and_listing(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps(
@@ -39,7 +40,9 @@ async def test_context_manager_loads_user_and_listing(test_session):
         ),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     await test_session.refresh(user)
     await test_session.refresh(listing)
@@ -73,12 +76,15 @@ async def test_context_manager_loads_match_if_exists(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
     await test_session.refresh(user)
     await test_session.refresh(listing)
@@ -120,12 +126,15 @@ async def test_context_manager_returns_none_for_match_if_not_exists(test_session
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context_manager = ContextManager(test_session)
@@ -149,6 +158,7 @@ async def test_context_manager_loads_work_experiences(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
@@ -166,7 +176,9 @@ async def test_context_manager_loads_work_experiences(test_session):
         title="Junior Developer",
         description="Full stack development",
     )
-    test_session.add_all([user, listing, exp1, exp2])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add_all([listing, exp1, exp2])
     await test_session.commit()
 
     context_manager = ContextManager(test_session)
@@ -177,6 +189,53 @@ async def test_context_manager_loads_work_experiences(test_session):
     assert context["experiences"][0]["title"] == "Senior Developer"
     assert context["experiences"][1]["company"] == "Startup Inc"
     assert context["experiences"][1]["title"] == "Junior Developer"
+
+
+@pytest.mark.asyncio
+async def test_context_manager_loads_education(test_session):
+    """ContextManager eğitim kayıtlarını yükleyebilmeli"""
+    user_id = str(uuid.uuid4())
+    listing_id = str(uuid.uuid4())
+
+    user = User(
+        id=user_id,
+        email="context-edu@example.com",
+        hashed_password="x",
+        skills=json.dumps(["Python"]),
+        seniority="mid",
+    )
+    listing = JobListing(
+        id=listing_id,
+        created_by=user_id,
+        title="Backend Developer",
+        raw_text="a" * 60,
+        parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
+        analysis_status="completed",
+    )
+    edu1 = EducationRecord(
+        user_id=user_id,
+        school="ODTÜ",
+        degree="Lisans",
+        field_of_study="Bilgisayar Mühendisliği",
+    )
+    edu2 = EducationRecord(
+        user_id=user_id,
+        school="Lise",
+        degree="Lise Diploması",
+    )
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
+    await test_session.commit()
+    test_session.add_all([edu1, edu2])
+    await test_session.commit()
+
+    context_manager = ContextManager(test_session)
+    context = await context_manager.load(user_id, listing_id)
+
+    assert len(context["education"]) == 2
+    schools = {edu["school"] for edu in context["education"]}
+    assert schools == {"ODTÜ", "Lise"}
 
 
 @pytest.mark.asyncio
@@ -194,6 +253,7 @@ async def test_context_manager_loads_projects(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
@@ -245,6 +305,7 @@ async def test_context_helpers_build_agent_payloads(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         company="Acme Corp",
         raw_text="a" * 60,
@@ -258,7 +319,9 @@ async def test_context_helpers_build_agent_payloads(test_session):
         ),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context = await ContextManager(test_session).load(user_id, listing_id)
@@ -275,9 +338,60 @@ async def test_context_helpers_build_agent_payloads(test_session):
     assert agent_profile["skills"] == ["Python"]
     assert agent_profile["work_experiences"] == []
     assert agent_profile["projects"] == []
+    assert agent_profile["education"] == []
+    assert agent_profile["gender"] is None
+    assert agent_profile["military_status"] is None
 
     gaps = matching_gaps_from_context(context)
     assert gaps == {}
+
+
+@pytest.mark.asyncio
+async def test_user_profile_for_agents_passes_through_personal_info_and_education(
+    test_session,
+):
+    """Dolu kişisel bilgiler + eğitim, CV/önyazı ajanı profiline gerçekten geçmeli"""
+    user_id = str(uuid.uuid4())
+    listing_id = str(uuid.uuid4())
+
+    user = User(
+        id=user_id,
+        email="personal@example.com",
+        hashed_password="x",
+        skills=json.dumps(["Python"]),
+        seniority="mid",
+        gender="Kadın",
+        nationality="TC",
+        driver_license="B",
+        military_status="Muaf",
+        birth_year=1997,
+    )
+    listing = JobListing(
+        id=listing_id,
+        created_by=user_id,
+        title="Backend Developer",
+        raw_text="a" * 60,
+        parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
+        analysis_status="completed",
+    )
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
+    await test_session.commit()
+    edu = EducationRecord(user_id=user_id, school="ODTÜ", degree="Lisans")
+    test_session.add(edu)
+    await test_session.commit()
+
+    context = await ContextManager(test_session).load(user_id, listing_id)
+    agent_profile = user_profile_for_agents(context)
+
+    assert agent_profile["gender"] == "Kadın"
+    assert agent_profile["nationality"] == "TC"
+    assert agent_profile["driver_license"] == "B"
+    assert agent_profile["military_status"] == "Muaf"
+    assert agent_profile["birth_year"] == 1997
+    assert len(agent_profile["education"]) == 1
+    assert agent_profile["education"][0]["school"] == "ODTÜ"
 
 
 @pytest.mark.asyncio
@@ -335,12 +449,15 @@ async def test_context_manager_returns_json_serializable_context(test_session):
     )
     listing = JobListing(
         id=listing_id,
+        created_by=user_id,
         title="Backend Developer",
         raw_text="a" * 60,
         parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
         analysis_status="completed",
     )
-    test_session.add_all([user, listing])
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
     await test_session.commit()
 
     context_manager = ContextManager(test_session)

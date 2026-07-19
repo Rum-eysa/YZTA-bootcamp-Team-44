@@ -12,7 +12,6 @@ import google.generativeai as genai
 from app.config import settings
 from app.exceptions import GeminiAPIException
 from app.logging_config import get_logger
-from app.redis_client import get_redis
 from google.api_core.exceptions import DeadlineExceeded, ResourceExhausted, ServiceUnavailable
 
 logger = get_logger("gemini_client")
@@ -87,30 +86,13 @@ class GeminiClient:
         self.model = genai.GenerativeModel(self.model_name)
 
     async def _check_quota(self, cost: int = 1) -> None:
-        """Redis üzerinden dakikalık + günlük ücretsiz tier kotasını kontrol eder.
+        """Uygulama tarafı Redis kotası kapalı.
 
-        cost: bu çağrının gerçek Gemini API isteği olarak maliyeti. Function
-        calling (generate_with_tools) round-trip başına ~2 gerçek istek harcar
-        (prompt + tool-result), o yüzden 1 olarak sayılırsa kota gerçekte
-        sandığımızdan hızlı tükenir."""
-        redis = get_redis()
-        minute_key = "gemini:quota:minute"
-        day_key = "gemini:quota:day"
-
-        minute_count = await redis.incrby(minute_key, cost)
-        if minute_count == cost:
-            await redis.expire(minute_key, 60)
-
-        day_count = await redis.incrby(day_key, cost)
-        if day_count == cost:
-            await redis.expire(day_key, 24 * 60 * 60)
-
-        if minute_count > FREE_TIER_RPM:
-            logger.warning("gemini_rate_limited", scope="minute", count=minute_count)
-            raise GeminiAPIException("AI service rate limit exceeded, please retry shortly")
-        if day_count > FREE_TIER_RPD:
-            logger.warning("gemini_rate_limited", scope="day", count=day_count)
-            raise GeminiAPIException("Daily AI quota exceeded")
+        Daha önce dakikalık/günlük ücretsiz tier koruması vardı; yerel geliştirme
+        ve testleri engellediği için no-op bırakıldı. Google API'nin kendi
+        limitleri hâlâ geçerli olabilir. cost parametresi geriye dönük uyumluluk
+        için korunur."""
+        return None
 
     def _check_context_budget(self, prompt: str) -> None:
         """Hafıza katmanından beslenen promptlar (profil+geçmiş+ilan) 200k token'ı

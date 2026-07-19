@@ -65,6 +65,7 @@ class JobListing(Base):
     analysis_status: Mapped[str] = mapped_column(
         String(20), default="pending"
     )  # pending/completed/failed
+    analyzed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # US-053†: İlan detay/düzenleme ek alanları (kullanıcı tarafından düzenlenebilir)
     location: Mapped[str] = mapped_column(String(255), nullable=True)

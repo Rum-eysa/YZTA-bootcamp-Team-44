@@ -78,7 +78,8 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 - [GitHub Projects Backlog](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553)
 - Sprint planları ve görev takibi burada güncellenmektedir
-- Sprint 1 detayları için [Sprint 1](#sprint-1) bölümüne bakınız
+- Sprint 1 detayları için [Sprint 1](#sprint-1), Sprint 2 için [Sprint 2](#sprint-2) bölümüne bakınız
+- Sprint 2 yapılan/eksik listesi: [`docs/Sprint-2-Yapilanlar-ve-Eksikler.md`](docs/Sprint-2-Yapilanlar-ve-Eksikler.md)
 
 ## Sprint Planı
 
@@ -93,25 +94,25 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
   ![GitHub Project Board](docs/sprint-1/github-project-board.png)
 
-- **Sprint Puanlaması:** Sprint 1 planı (19 Haziran – 5 Temmuz) toplam **62 story point** (12 user story). Story point'ler görev karmaşıklığına göre planlanmıştır (3–8 SP arası). Kod denetimi sonucu: **8 story tamamlandı**, **4 story kısmen tamamlandı** — kazanılan **~54 / 62 SP (%87)**. 
+- **Sprint Puanlaması:** Sprint 1 planı (19 Haziran – 5 Temmuz) toplam **62 story point** (12 user story). Story point'ler görev karmaşıklığına göre planlanmıştır (3–8 SP arası). Kod denetimi sonucu: **12 story tamamlandı** — kazanılan **62 / 62 SP (%100)**. 
 
-  | Story | Başlık | SP | Öncelik | Durum | Kazanılan | Eksik (Sprint 2'ye taşınan) | Sorumlu |
-  | ----- | ------ | -- | ------- | ----- | --------- | --------------------------- | ------- |
-  | US-001 | Proje Altyapısı Kurulumu | 8 | must-have | ✅ Tamamlandı | 8 | — | [@Rum-eysa](https://github.com/Rum-eysa) |
-  | US-002 | Supabase Kurulumu | 5 | must-have | ⚠️ Kısmen | 3 | Supabase Auth/Storage yok; yalnızca DB bağlantısı + MinIO | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-003 | Veritabanı Şeması | 5 | must-have | ✅ Tamamlandı | 5 | `agent_tasks` migration drift (minor) | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-004 | SPIKE: LaTeX → PDF (Tectonic + Docker) | 8 | must-have | ✅ Tamamlandı | 8 | — | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
-  | US-005 | Authentication Sistemi | 5 | must-have | ✅ Tamamlandı | 5 | `/api/analyze` JWT korumasız (minor) | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-006 | Frontend: Ana Layout + Header + Sidebar | 5 | must-have | ⚠️ Kısmen | 3 | Sidebar, mobil hamburger, dark mode | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) |
-  | US-007 | Frontend: Login & Register Sayfaları | 5 | must-have | ✅ Tamamlandı | 5 | Server logout / token refresh UI (minor) | [@lizlavigne](https://github.com/lizlavigne) |
-  | US-008 | Frontend: Kullanıcı Profil Formu | 5 | high | ⚠️ Kısmen | 3 | `seniority`, `experience_years`, `tone_preference`; deneyim/eğitim CRUD | [@lizlavigne](https://github.com/lizlavigne) |
-  | US-009 | Frontend: İlan Girişi (metin / URL) | 3 | must-have | ⚠️ Kısmen | 2 | URL input gizli; ilan metadata API'ye gitmiyor | [@lizlavigne](https://github.com/lizlavigne) |
-  | US-010 | Seed Verisi | 3 | high | ⚠️ Kısmen | 2 | `matches` / `documents` seed yok | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | US-011 | Temel Agent Sınıfı + Logging Framework | 5 | high | ✅ Tamamlandı | 5 | — (+ 4 domain agent bonus) | [@Rum-eysa](https://github.com/Rum-eysa) |
-  | US-012 | Gemini API İstemci Wrapper'ı | 5 | must-have | ✅ Tamamlandı | 5 | — | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) |
-  | | **Toplam** | **62** | | **8 tam · 4 kısmen** | **~54** | **~8 SP borç → Sprint 2** | |
+  | Story | Başlık | SP | Öncelik | Durum | Kazanılan |
+  | ----- | ------ | -- | ------- | ----- | --------- |
+  | US-001 | Proje Altyapısı Kurulumu | 8 | must-have | ✅ Tamamlandı | 8 |
+  | US-002 | Supabase Kurulumu | 5 | must-have | ✅ Tamamlandı | 5 |
+  | US-003 | Veritabanı Şeması | 5 | must-have | ✅ Tamamlandı | 5 |
+  | US-004 | SPIKE: LaTeX → PDF (Tectonic + Docker) | 8 | must-have | ✅ Tamamlandı | 8 |
+  | US-005 | Authentication Sistemi | 5 | must-have | ✅ Tamamlandı | 5 |
+  | US-006 | Frontend: Ana Layout + Header + Sidebar | 5 | must-have | ✅ Tamamlandı | 5 |
+  | US-007 | Frontend: Login & Register Sayfaları | 5 | must-have | ✅ Tamamlandı | 5 |
+  | US-008 | Frontend: Kullanıcı Profil Formu | 5 | high | ✅ Tamamlandı | 5 |
+  | US-009 | Frontend: İlan Girişi (metin / URL) | 3 | must-have | ✅ Tamamlandı | 3 |
+  | US-010 | Seed Verisi | 3 | high | ✅ Tamamlandı | 3 |
+  | US-011 | Temel Agent Sınıfı + Logging Framework | 5 | high | ✅ Tamamlandı | 5 |
+  | US-012 | Gemini API İstemci Wrapper'ı | 5 | must-have | ✅ Tamamlandı | 5 |
+  |  | **Toplam** | **62** |  | **12 tamamlandı** | **62** |
 
-  **Özet:** Planlanan 62 SP'nin ~54'ü kazanıldı. Kısmi story'lerde toplam ~8 SP'lik iş Sprint 2 borç listesine taşındı. Sprint 1 kapsamı dışında erken tamamlanan bonus işler: 4 AI agent modülü, `POST /api/analyze`, MinIO depolama (~62 pytest).
+  **Özet:** Planlanan 62 SP’nin tamamı kazanıldı (**62 / 62, %100**). Sprint 1 kapsamı dışında erken tamamlanan bonus işler: 4 AI agent modülü, `POST /api/analyze`, MinIO depolama (~62 pytest).
 
 - **Daily Scrum:** Ekip 2 günde bir Slack Huddle üzerinden senkron toplantı yapmıştır. 
 
@@ -133,7 +134,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
   ![Ürün durumu — İlan Ekle](docs/sprint-1/urun-durumu-ilan-ekle.png)
 
-- **Sprint Review:** Sprint 1 hedeflerinin büyük çoğunluğu tamamlandı (**~54 / 62 SP, %87**). Çıkan ürün testlerde kritik bir sorun göstermemiştir. 
+- **Sprint Review:** Sprint 1 hedeflerinin tamamı kapanmıştır (**62 / 62 SP, %100**). Çıkan ürün testlerde kritik bir sorun göstermemiştir. 
 
   **Tamamlananlar:**
   - Monorepo altyapısı: FastAPI + Next.js + Docker Compose (PostgreSQL, Redis, MinIO)
@@ -146,7 +147,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
   **Alınan kararlar:**
   - US-004: Standalone compiler kaldırıldı; Tectonic API Docker image içine gömüldü
   - `applications` CRUD yerine agent odaklı veri modeli benimsendi
-  - İlan analizi sonuçları şimdilik frontend'de sessionStorage ile tutuluyor; kalıcı başvuru takibi Sprint 2'ye planlandı
+  - İlan analizi ve üretilen dokümanlar veritabanında kalıcı olarak saklanır; kullanıcı akışı kanonik ilan detay rotasına yönlenir
   - CV/önyazı üretimi backend'de hazır; kullanıcı arayüzüne uçtan uca entegrasyon Sprint 2 kapsamına alındı
 
 - **Sprint Retrospective:** 
@@ -161,27 +162,378 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 ### Sprint 2
 
 <details id="sprint-2">
-<summary><strong>Sprint 2 ilerleme durumu için tıklayın</strong></summary>
+<summary><strong>Sprint 2 detayları için tıklayın</strong></summary>
 
 <br>
 
-**Backend — tamamlanan (PR #50 + sonrası):**
-- `POST /api/match` — eşleştirme skoru (deterministik formül + Gemini semantik bonus, cache'li; Gemini erişilemezse deterministik skora düşer)
-- `POST /api/generate-cover-letter` — şirkete özel önyazı (ilanın `company_name`'i prompt'a işlenir)
-- `POST /api/generate-cv` — LaTeX/Tectonic ile PDF CV, MinIO'ya yüklenir
-- `POST /api/analyze` — URL'den ilan çekme desteği eklendi
-- Supabase RLS + sahiplik politikaları (migration 003)
-- Ajan birim test kapsamı %89 (81 test, CI yeşil)
-- Seed: matches/documents demo kayıtları eklendi
+- **Product Backlog:** Sprint 2 görevleri [GitHub Projects](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553) üzerinden yönetilmiştir. Sprint 1 borçları (`US-002†`…`US-010†`), çekirdek agent/UI story’leri (`US-013`…`US-035`) ve wishlist/borç kartları (`US-036`…`US-042`) bu sprintte takip edilmiştir.
 
-**Frontend — tamamlanan:**
-- CareerTrack arayüzü: landing, login/register, profil, ilan girişi (metin + URL)
-- Sonuç sayfası: analiz çıktısı + **uygunluk skoru göstergesi** + eşleşen/eksik beceri karşılaştırması + **önyazı üret/kopyala** + **CV üret/indir** bölümleri (`/analyze/[id]`)
+  ![GitHub Project Board — Sprint 2](docs/sprint-2/github-project-board.png)
 
-**Devam eden / Sprint 3'e kalan:**
-- İş deneyimi & proje şeması + CRUD (US-013/019/020)
-- Orkestratör + hafıza katmanı (US-030, US-017)
-- E2E entegrasyon testleri, Sentry, staging deploy
+- **Sprint Puanlaması:** Sprint 2 planı toplam **~90 story point** (35 user story: borç + çekirdek + US-036…042). Kod denetimi sonucu: **35 story tamamlandı** — kazanılan **~90 / 90 SP (%100)**.
+
+
+<table width="100%">
+<thead>
+<tr>
+<th width="12%">Story</th>
+<th width="40%">Başlık</th>
+<th width="8%">SP</th>
+<th width="12%">Öncelik</th>
+<th width="18%">Durum</th>
+<th width="10%">Kazanılan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-002†</td>
+<td>Supabase Borç Kapatma</td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-006†</td>
+<td>Layout Borç Kapatma</td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-008†</td>
+<td>Profil Borç Kapatma</td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-009†</td>
+<td>İlan Girişi Borç Kapatma</td>
+<td>1</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td>US-010†</td>
+<td>Seed Borç Kapatma</td>
+<td>1</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td>US-013</td>
+<td>İş Deneyimi & Proje Şeması</td>
+<td>3</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-014</td>
+<td>Analysis Agent: Tamamlama</td>
+<td>1</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td>US-015</td>
+<td>CV Generation Agent: API Wiring</td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-016</td>
+<td>Matching Agent: API Wiring</td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-017</td>
+<td>Memory Layer: Context Manager</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-018</td>
+<td>Logging + Sentry</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-019</td>
+<td>Frontend: İş Deneyimi CRUD</td>
+<td>4</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>4</td>
+</tr>
+<tr>
+<td>US-020</td>
+<td>Frontend: Proje CRUD</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-021</td>
+<td>Matching: Skor Sistemi</td>
+<td>3</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-022</td>
+<td>Cover Letter Agent: API Wiring</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-023</td>
+<td>API: <code>/api/match</code></td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-024</td>
+<td>Score Gauge (ilan detay)</td>
+<td>5</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-025</td>
+<td>API: generate-cv & cover-letter</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-026</td>
+<td>Skill Comparison Table</td>
+<td>5</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-027</td>
+<td>CV Preview + Download</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-028</td>
+<td>Cover Letter View</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-029</td>
+<td>Job Form → <code>/api/analyze</code></td>
+<td>2</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-030</td>
+<td>Orchestrator</td>
+<td>5</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-031</td>
+<td>API E2E Testler</td>
+<td>1</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td>US-032</td>
+<td>Results API Integration</td>
+<td>4</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>4</td>
+</tr>
+<tr>
+<td>US-033</td>
+<td>Agent Unit Tests (%80+)</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-034</td>
+<td>E2E Integration Tests</td>
+<td>5</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-035</td>
+<td>Staging Deploy</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-036</td>
+<td>Kaydet Butonu UX</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-037</td>
+<td>Yeniden Analiz & Eşleştirme</td>
+<td>5</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-038</td>
+<td>Zengin Seed</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-039</td>
+<td><code>/results</code> → <code>/listings/:id</code></td>
+<td>3</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-040</td>
+<td>Match sahiplik kontrolü</td>
+<td>1</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td>US-041</td>
+<td>Orchestrator sıra/retry uyumu</td>
+<td>2</td>
+<td>medium</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-042</td>
+<td>CV route 422/503 testleri</td>
+<td>1</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Toplam</strong></td>
+<td><strong>~90</strong></td>
+<td></td>
+<td><strong>35 tamamlandı</strong></td>
+<td><strong>~90</strong></td>
+</tr>
+</tbody>
+</table>
+
+  **Özet:** Planlanan ~90 SP’nin tamamı kazanıldı (**~90 / 90, %100**). Sprint 1 sonrası öne çıkanlar: tek kanonik ilan detay sayfası, eşleşme/CV/önyazı uçtan uca UI, deneyim-proje CRUD, ContextManager + Orchestrator, yeniden analiz/eşleştirme, zengin seed, staging deploy ve agent test coverage gate.
+
+- **Daily Scrum:** Ekip Slack Huddle üzerinden senkron toplantı yapmıştır.
+
+  *Profil / frontend ilerleme paylaşımı — Serkan’ın ekran paylaşımı:*
+
+  ![Daily Scrum — Profil sunumu](docs/sprint-2/daily-scrum-profil-sunumu.png)
+
+- **Ürün Geliştirme Durumu:** CareerTrack artık ilan eklemeden sonuç üretimine kadar tek akışta çalışır. `/apply` → analiz → `/listings/:id` üzerinde skor gauge, beceri karşılaştırması, ilana özel CV (önizle/indir) ve önyazı (üret/kopyala) sunulur; ilan değişince yeniden analiz ve eşleşme güncellenebilir. Profilde iş deneyimi ve proje CRUD, seed ile demo verisi, Railway/Vercel staging hazırdır.
+
+  *Giriş ekranı:*
+
+  ![Ürün durumu — Giriş](docs/sprint-2/urun-durumu-giris.png)
+
+  *Profil — deneyim, eğitim ve projeler:*
+
+  ![Ürün durumu — Profil](docs/sprint-2/urun-durumu-profil.png)
+
+  *Başvurulan ilanlar listesi:*
+
+  ![Ürün durumu — İlanlar](docs/sprint-2/urun-durumu-ilanlar.png)
+
+  *İlan detay — düzenleme, skor özeti ve Yeniden Analiz:*
+
+  ![Ürün durumu — İlan detay](docs/sprint-2/urun-durumu-ilan-detay.png)
+
+  *Uygunluk sonucu — skor gauge ve beceri tablosu:*
+
+  ![Ürün durumu — Uygunluk](docs/sprint-2/urun-durumu-uygunluk.png)
+
+  *İlana özel CV önizleme / indirme:*
+
+  ![Ürün durumu — CV](docs/sprint-2/urun-durumu-cv.png)
+
+  *Önyazı üretimi — kopyala ve sayaç:*
+
+  ![Ürün durumu — Önyazı](docs/sprint-2/urun-durumu-onyazi.png)
+
+- **Sprint Review:** Sprint 2 hedeflerinin tamamı kapanmıştır (**~90 / 90 SP, %100**).
+
+  **Tamamlananlar:**
+  - Sprint 1 borçları: layout/sidebar, profil alanları, ilan girişi, seed (matches/documents + zengin profil verisi), Supabase kapsam dokümantasyonu
+  - Backend: iş deneyimi/proje şeması + CRUD; ContextManager; Orchestrator (`POST /api/process`); `POST /api/match`, `generate-cv`, `generate-cover-letter`; ilan sahipliği; reanalyze/rematch + `analyzed_at`
+  - Frontend: tek sayfa `/listings/:id` (US-039); skor gauge, beceri tablosu, CV önizleme, önyazı view; landing fark vurgusu
+  - Kalite: agent unit testleri + CI `%80` gate, E2E entegrasyon testleri, Sentry/observability
+  - Deploy: Railway backend + Vercel frontend; `docs/deploy.md` / `docs/DEPLOY_STAGING.md`
+
+  **Alınan kararlar:**
+  - `/results` tamamen kaldırıldı; kanonik rota `/listings/:id`
+  - İlan değişince otomatik yeniden skor yok — kullanıcı **Yeniden Analiz Et** / **Eşleşmeyi Güncelle** ile tetikler (US-037)
+  - ATS odaklı LaTeX şablon yenileme ve CV’ye sertifika/dil/sosyal alanların tam aktarımı Sprint 3’e alındı (US-043/044)
+  - Staging/production URL’leri demo için donduruldu; UAT checklist Sprint 3’te kapanacak
+
+- **Sprint Retrospective:**
+
+  - **İyi giden:** Agent API’ler ile frontend sonuç UI’si aynı sprintte birleşti; board’daki Done kartları ürünle hizalandı.
+  - **İyileştirme:** Wishlist maddeleri yeni story (US-036…042) olarak açıldı; 
+  - **Sprint 3 planlandı:** ATS CV şablonu, tam profil→CV, UAT ve demo prova.
 
 </details>
 
@@ -233,12 +585,15 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │       │   ├── register/            # Kayıt
 │       │   ├── profile/             # Profil formu
 │       │   ├── apply/               # İlan girişi
-│       │   └── analyze/[id]/      # Analiz sonuçları
+│       │   └── listings/[listingId]/ # Kalıcı ilan ve analiz detayları
 │       ├── components/              # UI ve layout bileşenleri
-│       ├── lib/                     # API client, validations
+│       ├── lib/api/                 # Endpoint bazlı API istemcileri
+│       ├── components/providers/    # Auth ve React Query sağlayıcıları
 │       └── Dockerfile
 │
-├── docs/sprint-1/                   # Sprint dokümantasyon görselleri
+├── docs/sprint-1/                   # Sprint 1 dokümantasyon görselleri
+├── docs/sprint-2/                   # Sprint 2 dokümantasyon görselleri
+├── docs/Sprint-2-Yapilanlar-ve-Eksikler.md  # Sprint 2 yapılan / eksik listesi
 ├── .github/workflows/ci.yml         # CI/CD pipeline
 ├── docker-compose.yml               # Development (postgres, redis, minio, api, web)
 ├── docker-compose.prod.yml          # Production environment
@@ -250,7 +605,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 | Katman | Teknoloji | Amaç |
 | --- | --- | --- |
-| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS | Duyarlı kullanıcı arayüzü |
+| **Frontend** | Next.js 14, React 18, TypeScript, TailwindCSS, TanStack React Query | Duyarlı arayüz ve sunucu durumu yönetimi |
 | **Backend** | FastAPI, SQLAlchemy 2.0, Pydantic V2 | Yüksek performanslı async API |
 | **Veritabanı** | PostgreSQL 15 / Supabase | Ana veri depolama |
 | **Önbellek** | Redis 7 | Token blacklist ve önbellekleme |
@@ -261,6 +616,15 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 | **Test** | Pytest, pytest-asyncio, Coverage | Birim ve entegrasyon testleri |
 | **CI/CD** | GitHub Actions | Otomatik test ve build |
 | **Kod Kalitesi** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
+
+### Frontend veri akışı
+
+`POST /api/analyze` başarılı olduğunda arayüz doğrudan
+`/listings/{listing_id}` rotasına gider. Bu kanonik sayfa ilanı
+`GET /api/listings/{listing_id}` ile veritabanından yükler; eşleştirme, yeniden analiz,
+CV ve önyazı mutasyonları React Query önbelleğini güncelledikten sonra aynı ilan
+sorgusunu geçersiz kılar. Böylece sayfa yenilendiğinde tüm kalıcı veriler API'den
+yeniden alınır.
 
 ## Hızlı Başlangıç
 
@@ -289,6 +653,24 @@ make migrate
 # (İsteğe bağlı) Demo kullanıcıları yükle
 make seed
 ```
+
+### Demo Hesaplar
+
+`make seed` sonrası aşağıdaki hesaplarla giriş yapılabilir (tümü için şifre: `seedpass123`):
+
+| E-posta | Seviye | Hedef Pozisyon |
+| --- | --- | --- |
+| `junior.dev@example.com` | junior | Python Backend Developer Intern |
+| `mid.dev@example.com` | mid | Java Backend Developer |
+| `ai.engineer@example.com` | senior | AI Engineer |
+| `fullstack.multi@example.com` | mid | Full Stack Developer |
+| `senior.dev@example.com` | senior | Senior Backend Engineer |
+
+Her hesapta iş deneyimi, proje, eğitim ve sertifika kayıtları önceden dolu gelir; diğer seed kullanıcıları için bkz. `apps/api/scripts/seed_database.py`.
+
+### Staging / Canlı Ortam
+
+Staging kurulum rehberi için [`docs/DEPLOY_STAGING.md`](docs/DEPLOY_STAGING.md), canlı URL'ler ve go-live kontrol listesi için [`docs/deploy.md`](docs/deploy.md).
 
 ### Erişim Noktaları
 

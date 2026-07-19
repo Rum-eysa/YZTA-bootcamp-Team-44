@@ -10,8 +10,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
-    "@uiw/react-md-editor": "^4.1.1",
+    "@tanstack/react-query": "^5.101.2",
     "@uiw/react-markdown-preview": "^4.1.1",
+    "@uiw/react-md-editor": "^4.1.1",
     "axios": "^1.6.2",
     "clsx": "^2.0.0",
     "lucide-react": "^0.294.0",

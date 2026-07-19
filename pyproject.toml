@@ -69,12 +69,14 @@ markers = [
 
 [tool.coverage.run]
 source = ["apps/api/app"]
+branch = true
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
 ]
 
 [tool.coverage.report]
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
