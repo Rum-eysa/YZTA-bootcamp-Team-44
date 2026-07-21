@@ -49,6 +49,7 @@ async def generate_cover_letter(
         matching_gaps=matching_gaps,
         tone_preference=context["user"].get("tone_preference") or "professional",
         company_name=context["listing"].get("company"),
+        extra_prompt=payload.extra_prompt,
     )
 
     return CoverLetterResponse(

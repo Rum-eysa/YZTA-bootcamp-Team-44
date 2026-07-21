@@ -186,7 +186,8 @@ function ListingDetailContent() {
   });
 
   const coverLetterMutation = useMutation({
-    mutationFn: () => generateCoverLetter({ listing_id: listingId }),
+    mutationFn: (extraPrompt?: string) =>
+      generateCoverLetter({ listing_id: listingId, extra_prompt: extraPrompt }),
     onSuccess: async (result) => {
       queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
         current
@@ -244,9 +245,9 @@ function ListingDetailContent() {
     cvMutation.mutate();
   };
 
-  const handleGenerateCoverLetter = () => {
+  const handleGenerateCoverLetter = (extraPrompt?: string) => {
     coverLetterMutation.reset();
-    coverLetterMutation.mutate();
+    coverLetterMutation.mutate(extraPrompt);
   };
 
   const handleCancel = () => {
