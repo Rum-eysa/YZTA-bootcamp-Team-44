@@ -16,7 +16,7 @@
 
 {\huge \bfseries \VAR{full_name}}\\[2pt]
 {\large \color{accent} \VAR{target_position}}\\[4pt]
-\VAR{email} \BLOCK{if phone} \textbullet{} \VAR{phone} \BLOCK{endif}
+\VAR{email} \BLOCK{if phone} \textbullet{} \VAR{phone} \BLOCK{endif}\BLOCK{if location} \textbullet{} \VAR{location}\BLOCK{endif}
 
 \section*{Özet}
 \VAR{experience_summary}
@@ -51,6 +51,52 @@
 \begin{itemize}
 \BLOCK{for edu in education}
 \item \textbf{\VAR{edu.school}}\BLOCK{if edu.degree} — \VAR{edu.degree}\BLOCK{endif}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif} (\VAR{edu.period})\BLOCK{if edu.description}\\ \VAR{edu.description}\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if certificates}
+\section*{Sertifikalar}
+\begin{itemize}
+\BLOCK{for cert in certificates}
+\item \textbf{\VAR{cert.title}}\BLOCK{if cert.issuer} — \VAR{cert.issuer}\BLOCK{endif}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if languages}
+\section*{Diller}
+\begin{itemize}
+\BLOCK{for lang in languages}
+\item \textbf{\VAR{lang.name}}\BLOCK{if lang.level} — \VAR{lang.level}\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if required_skills or nice_to_have_skills}
+\section*{Hedef Pozisyon Gereksinimleri}
+\BLOCK{if required_skills}
+\textbf{Aranan Beceriler:} \VAR{required_skills | join(', ')}\\
+\BLOCK{endif}
+\BLOCK{if nice_to_have_skills}
+\textbf{Tercih Edilen Beceriler:} \VAR{nice_to_have_skills | join(', ')}
+\BLOCK{endif}
+\BLOCK{endif}
+
+\BLOCK{if social_links}
+\section*{Sosyal Bağlantılar}
+\begin{itemize}
+\BLOCK{for link in social_links}
+\item \textbf{\VAR{link.platform}:} \VAR{link.url}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if references}
+\section*{Referanslar}
+\begin{itemize}
+\BLOCK{for ref in references}
+\item \textbf{\VAR{ref.name}}\BLOCK{if ref.title} — \VAR{ref.title}\BLOCK{endif}\BLOCK{if ref.company}, \VAR{ref.company}\BLOCK{endif}\BLOCK{if ref.contact} (\VAR{ref.contact})\BLOCK{endif}
 \BLOCK{endfor}
 \end{itemize}
 \BLOCK{endif}

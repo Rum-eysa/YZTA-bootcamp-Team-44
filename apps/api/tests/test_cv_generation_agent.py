@@ -289,3 +289,69 @@ async def test_render_latex_omits_education_section_when_empty():
     )
     assert "Eğitim" not in tex
     assert "Kişisel Bilgiler" not in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_includes_location_certificates_languages_social_and_references():
+    """US-044: ContextManager'dan gelen tüm ek profil alanları şablona basılmalı"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    profile = {
+        "full_name": "Ayşe Yılmaz",
+        "skills": ["Python"],
+        "location": "İstanbul, Türkiye",
+        "certificates": [
+            {"title": "AWS Certified Developer", "issuer": "Amazon", "issue_date": "2023-05-01"}
+        ],
+        "languages": [{"name": "İngilizce", "level": "İleri"}],
+        "social_links": [{"platform": "GitHub", "url": "https://github.com/ayse"}],
+        "references": [{"name": "Mehmet Öz", "title": "Tech Lead", "company": "Acme"}],
+    }
+    tex = agent._render_latex(profile, {"position_title": "Dev"})
+
+    assert "İstanbul, Türkiye" in tex
+    assert "AWS Certified Developer" in tex
+    assert "İngilizce" in tex
+    assert "github.com/ayse" in tex
+    assert "Mehmet Öz" in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_includes_job_requirements_section():
+    """US-044: ilanın required/nice-to-have becerileri CV'de hedef pozisyon bölümünde görünmeli"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    tex = agent._render_latex(
+        {"full_name": "Ayşe", "skills": ["Python"]},
+        {
+            "position_title": "Dev",
+            "required_skills": ["Python", "FastAPI"],
+            "nice_to_have_skills": ["Docker"],
+        },
+    )
+
+    assert "Hedef Pozisyon Gereksinimleri" in tex
+    assert "Python, FastAPI" in tex
+    assert "Docker" in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_omits_optional_sections_when_empty():
+    agent = CVGenerationAgent(storage=MagicMock())
+    tex = agent._render_latex(
+        {"full_name": "Ayşe", "skills": ["Python"]}, {"position_title": "Dev"}
+    )
+
+    assert "Sertifikalar" not in tex
+    assert "Diller" not in tex
+    assert "Sosyal Bağlantılar" not in tex
+    assert "Referanslar" not in tex
+    assert "Hedef Pozisyon Gereksinimleri" not in tex
+
+
+@pytest.mark.asyncio
+async def test_generate_raises_when_pdf_has_zero_pages():
+    """US-015: PDF derlenmiş olsa da sayfa okunamıyorsa/0 sayfaysa temiz hata dönmeli"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake-no-pages")
+
+    with pytest.raises(CVGenerationException, match="en az 1 sayfa"):
+        await agent.generate({"full_name": "Ayşe"}, {"position_title": "Dev"})

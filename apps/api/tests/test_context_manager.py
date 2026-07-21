@@ -3,7 +3,18 @@ import json
 import uuid
 
 import pytest
-from app.models import EducationRecord, JobListing, Match, Project, User, WorkExperience
+from app.models import (
+    Certificate,
+    EducationRecord,
+    JobListing,
+    Language,
+    Match,
+    Project,
+    Reference,
+    SocialLink,
+    User,
+    WorkExperience,
+)
 from app.services.context import (
     ContextManager,
     job_analysis_from_context,
@@ -392,6 +403,61 @@ async def test_user_profile_for_agents_passes_through_personal_info_and_educatio
     assert agent_profile["birth_year"] == 1997
     assert len(agent_profile["education"]) == 1
     assert agent_profile["education"][0]["school"] == "ODTÜ"
+
+
+@pytest.mark.asyncio
+async def test_context_manager_loads_certificates_languages_social_links_and_references(
+    test_session,
+):
+    """US-044: ContextManager sertifika/dil/sosyal bağlantı/referans yükleyebilmeli"""
+    user_id = str(uuid.uuid4())
+    listing_id = str(uuid.uuid4())
+
+    user = User(
+        id=user_id,
+        email="context-extras@example.com",
+        hashed_password="x",
+        skills=json.dumps(["Python"]),
+        seniority="mid",
+        location="İstanbul",
+    )
+    listing = JobListing(
+        id=listing_id,
+        created_by=user_id,
+        title="Backend Developer",
+        raw_text="a" * 60,
+        parsed_json=json.dumps({"required_skills": ["Python"], "seniority": "mid"}),
+        analysis_status="completed",
+    )
+    test_session.add(user)
+    await test_session.commit()
+    test_session.add(listing)
+    await test_session.commit()
+
+    cert = Certificate(user_id=user_id, title="AWS Certified Developer", issuer="Amazon")
+    lang = Language(user_id=user_id, name="İngilizce", level="İleri")
+    link = SocialLink(user_id=user_id, platform="GitHub", url="https://github.com/example")
+    ref = Reference(user_id=user_id, name="Mehmet Öz", title="Tech Lead", company="Acme")
+    test_session.add_all([cert, lang, link, ref])
+    await test_session.commit()
+
+    context = await ContextManager(test_session).load(user_id, listing_id)
+
+    assert len(context["certificates"]) == 1
+    assert context["certificates"][0]["title"] == "AWS Certified Developer"
+    assert len(context["languages"]) == 1
+    assert context["languages"][0]["name"] == "İngilizce"
+    assert len(context["social_links"]) == 1
+    assert context["social_links"][0]["platform"] == "GitHub"
+    assert len(context["references"]) == 1
+    assert context["references"][0]["name"] == "Mehmet Öz"
+
+    agent_profile = user_profile_for_agents(context)
+    assert agent_profile["location"] == "İstanbul"
+    assert agent_profile["certificates"][0]["title"] == "AWS Certified Developer"
+    assert agent_profile["languages"][0]["name"] == "İngilizce"
+    assert agent_profile["social_links"][0]["platform"] == "GitHub"
+    assert agent_profile["references"][0]["name"] == "Mehmet Öz"
 
 
 @pytest.mark.asyncio

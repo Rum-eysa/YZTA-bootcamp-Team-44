@@ -8,6 +8,7 @@ hata (HTML fallback şu an implement edilmedi - Sprint 3'te değerlendirilecek).
 import asyncio
 import re
 import tempfile
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
@@ -17,6 +18,8 @@ from app.models import Document
 from app.observability import agent_run
 from app.services.storage import StorageService, get_storage_service
 from jinja2 import Environment, FileSystemLoader
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("cv_generation_agent")
@@ -115,6 +118,14 @@ def _sorted_education(education: list[dict[str, Any]]) -> list[dict[str, Any]]:
     )
 
 
+def _pdf_page_count(pdf_bytes: bytes) -> int:
+    """PDF sayfa sayısını döner; okunamazsa 0 (US-015: en az 1 sayfa doğrulaması)"""
+    try:
+        return len(PdfReader(BytesIO(pdf_bytes)).pages)
+    except PdfReadError:
+        return 0
+
+
 class CVGenerationException(APIException):
     def __init__(self, detail: str = "CV oluşturulamadı"):
         super().__init__(detail, status_code=422, error_code="CV_GENERATION_ERROR")
@@ -193,6 +204,39 @@ class CVGenerationAgent:
                 for edu in education
             ],
             personal_info=personal_info,
+            location=latex_escape(user_profile.get("location") or ""),
+            certificates=[
+                {
+                    "title": latex_escape(cert.get("title")),
+                    "issuer": latex_escape(cert.get("issuer")),
+                    "issue_date": latex_escape(cert.get("issue_date")),
+                }
+                for cert in (user_profile.get("certificates") or [])
+            ],
+            languages=[
+                {"name": latex_escape(lang.get("name")), "level": latex_escape(lang.get("level"))}
+                for lang in (user_profile.get("languages") or [])
+            ],
+            social_links=[
+                {
+                    "platform": latex_escape(link.get("platform")),
+                    "url": latex_escape(link.get("url")),
+                }
+                for link in (user_profile.get("social_links") or [])
+            ],
+            references=[
+                {
+                    "name": latex_escape(ref.get("name")),
+                    "title": latex_escape(ref.get("title")),
+                    "company": latex_escape(ref.get("company")),
+                    "contact": latex_escape(ref.get("contact")),
+                }
+                for ref in (user_profile.get("references") or [])
+            ],
+            required_skills=[latex_escape(s) for s in (job_analysis.get("required_skills") or [])],
+            nice_to_have_skills=[
+                latex_escape(s) for s in (job_analysis.get("nice_to_have_skills") or [])
+            ],
         )
 
     async def _compile_with_tectonic(self, tex_source: str, max_retries: int = 2) -> bytes:
@@ -253,6 +297,8 @@ class CVGenerationAgent:
             pdf_bytes = await self._compile_with_tectonic(tex_source)
             if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
                 raise CVGenerationException("Üretilen dosya geçerli bir PDF değil")
+            if _pdf_page_count(pdf_bytes) < 1:
+                raise CVGenerationException("Üretilen PDF en az 1 sayfa içermeli")
             return pdf_bytes
 
     async def generate_and_save(
