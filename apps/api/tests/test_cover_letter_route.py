@@ -13,6 +13,7 @@ from httpx import AsyncClient
 class _StubCoverLetterAgent:
     def __init__(self):
         self.last_company_name = None
+        self.last_extra_prompt = None
 
     async def generate_and_save(
         self,
@@ -24,8 +25,10 @@ class _StubCoverLetterAgent:
         matching_gaps,
         tone_preference="professional",
         company_name=None,
+        extra_prompt=None,
     ):
         self.last_company_name = company_name
+        self.last_extra_prompt = extra_prompt
         document = Document(
             user_id=user_id,
             listing_id=listing_id,
@@ -127,6 +130,57 @@ async def test_generate_cover_letter_unknown_listing_returns_404(client: AsyncCl
 async def test_generate_cover_letter_requires_authentication(client: AsyncClient):
     response = await client.post("/api/generate-cover-letter", json={"listing_id": "some-id"})
     assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_generate_cover_letter_passes_extra_prompt_to_agent(
+    client: AsyncClient, test_session
+):
+    """US-049: extra_prompt gönderildiğinde agent'a iletilmeli"""
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    stub_agent = _StubCoverLetterAgent()
+    app.dependency_overrides[get_cover_letter_agent] = lambda: stub_agent
+
+    await client.post(
+        "/api/generate-cover-letter",
+        json={"listing_id": listing.id, "extra_prompt": "Takım çalışmasını vurgula"},
+    )
+
+    assert stub_agent.last_extra_prompt == "Takım çalışmasını vurgula"
+
+
+@pytest.mark.asyncio
+async def test_generate_cover_letter_without_extra_prompt_passes_none(
+    client: AsyncClient, test_session
+):
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    stub_agent = _StubCoverLetterAgent()
+    app.dependency_overrides[get_cover_letter_agent] = lambda: stub_agent
+
+    await client.post("/api/generate-cover-letter", json={"listing_id": listing.id})
+
+    assert stub_agent.last_extra_prompt is None
+
+
+@pytest.mark.asyncio
+async def test_generate_cover_letter_rejects_too_long_extra_prompt(
+    client: AsyncClient, test_session
+):
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    app.dependency_overrides[get_cover_letter_agent] = lambda: _StubCoverLetterAgent()
+
+    response = await client.post(
+        "/api/generate-cover-letter",
+        json={"listing_id": listing.id, "extra_prompt": "a" * 501},
+    )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio
