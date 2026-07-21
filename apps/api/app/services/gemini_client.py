@@ -63,6 +63,21 @@ PROMPT_TEMPLATES: dict[str, str] = {
         "işareti kullanma - sadece düz metin, paragraflar halinde.\n"
         "- Sadece önyazı metnini döndür, açıklama veya giriş cümlesi ekleme."
     ),
+    "cv_summary": (
+        "Aşağıdaki aday profili ve ilan bilgilerine göre CV'nin en üstünde yer alacak "
+        "kısa bir 'Özet' bölümü yaz (2-4 cümle).\n\n"
+        "Aday profili: {user_profile}\nİlan analizi: {job_analysis}\n"
+        "Eşleştirme durumu: {matching_gaps}\n\n"
+        "Strateji: {strategy}\n\n"
+        "{extra_prompt_section}"
+        "Kurallar:\n"
+        "- Sadece verilen profil bilgilerine dayan; uydurma unvan, yıl veya başarı ekleme.\n"
+        "- İlanın pozisyonuna ve gereksinimlerine özel referans ver, genel/şablon "
+        "ifadelerden kaçın.\n"
+        '- Üçüncü şahıs/nötr bir dille yaz ("Ben..." diye başlama).\n'
+        "- Sadece 2-4 cümlelik düz metin döndür - markdown, başlık, madde işareti yok.\n"
+        "- Türkçe yaz. Sadece özet metnini döndür, açıklama veya giriş cümlesi ekleme."
+    ),
 }
 
 

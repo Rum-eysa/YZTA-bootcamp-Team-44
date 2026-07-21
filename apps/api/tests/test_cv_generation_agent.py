@@ -11,7 +11,27 @@ from app.agents.cv_generation import (
     get_cv_generation_agent,
     latex_escape,
 )
-from app.exceptions import ValidationException
+from app.exceptions import GeminiAPIException, ValidationException
+
+
+class FakeGeminiClient:
+    """generate_text çağrısını simüle eder, gönderilen prompt'u yakalar"""
+
+    def __init__(self, fake_text: str = "Yapay zeka ile yazılmış kısa bir özet metni."):
+        self.fake_text = fake_text
+        self.last_prompt: str | None = None
+        self.call_count = 0
+        self.generate_text = AsyncMock(side_effect=self._generate)
+
+    async def _generate(self, prompt: str, temperature: float = 0.7):
+        self.call_count += 1
+        self.last_prompt = prompt
+        return self.fake_text
+
+
+class FailingGeminiClient:
+    def __init__(self):
+        self.generate_text = AsyncMock(side_effect=GeminiAPIException("quota exceeded"))
 
 
 def test_latex_escape_handles_special_characters():
@@ -355,3 +375,102 @@ async def test_generate_raises_when_pdf_has_zero_pages():
 
     with pytest.raises(CVGenerationException, match="en az 1 sayfa"):
         await agent.generate({"full_name": "Ayşe"}, {"position_title": "Dev"})
+
+
+@pytest.mark.asyncio
+async def test_no_extra_prompt_never_calls_gemini():
+    """US-050: extra_prompt verilmezse CV üretimi tamamen deterministik kalmalı,
+    Gemini'ye hiç istek atılmamalı (kota/gecikme eklenmez)"""
+    fake_client = FakeGeminiClient()
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(
+            {"full_name": "Ayşe", "experience_summary": "Orijinal özet"},
+            {"position_title": "Dev"},
+        )
+
+    assert fake_client.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_extra_prompt_triggers_ai_summary_and_overrides_experience_summary():
+    """US-050: extra_prompt verilirse Özet bölümü Gemini çıktısıyla değişmeli"""
+    fake_client = FakeGeminiClient(fake_text="Takım çalışmasına yatkın, hızlı öğrenen bir aday.")
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(
+            {"full_name": "Ayşe", "experience_summary": "Orijinal özet"},
+            {"position_title": "Dev"},
+            extra_prompt="Takım çalışmasını vurgula",
+        )
+
+    assert fake_client.call_count == 1
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "Takım çalışmasına yatkın" in tex_source
+    assert "Orijinal özet" not in tex_source
+    assert "Takım çalışmasını vurgula" in fake_client.last_prompt
+    assert '"""' in fake_client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_ai_summary_low_score_uses_potential_strategy():
+    """US-050: eşleşme skoru düşükse CV özeti de potansiyel vurgusu stratejisini kullanmalı"""
+    fake_client = FakeGeminiClient()
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(
+            {"full_name": "Ayşe"},
+            {"position_title": "Dev"},
+            matching_gaps={"score": 25},
+            extra_prompt="motivasyonumu öne çıkar",
+        )
+
+    assert "POTANSİYEL vurgusu" in fake_client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_gemini_failure_falls_back_to_original_summary_without_failing():
+    """US-050: Gemini kota/hata verirse CV üretimi başarısız olmamalı, orijinal özete dönülmeli"""
+    agent = CVGenerationAgent(storage=MagicMock(), client=FailingGeminiClient())
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        pdf_bytes = await agent.generate(
+            {"full_name": "Ayşe", "experience_summary": "Orijinal özet"},
+            {"position_title": "Dev"},
+            extra_prompt="Takım çalışmasını vurgula",
+        )
+
+    assert pdf_bytes == b"%PDF-fake"
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "Orijinal özet" in tex_source
+
+
+@pytest.mark.asyncio
+async def test_extra_prompt_reaches_generate_and_save():
+    fake_client = FakeGeminiClient(fake_text="AI özet.")
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    db = MagicMock()
+    db.add = MagicMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate_and_save(
+            db=db,
+            user_id="user-1",
+            listing_id="listing-1",
+            user_profile={"full_name": "Ayşe"},
+            job_analysis={"position_title": "Dev"},
+            extra_prompt="Staj motivasyonumu öne çıkar",
+        )
+
+    assert fake_client.call_count == 1
+    assert "Staj motivasyonumu öne çıkar" in fake_client.last_prompt
