@@ -48,7 +48,7 @@ def upgrade() -> None:
         return
 
     for table in TABLES:
-        op.execute(f'ALTER TABLE {table} ENABLE ROW LEVEL SECURITY')
+        op.execute(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY')
 
 
 def downgrade() -> None:
@@ -60,4 +60,4 @@ def downgrade() -> None:
         return
 
     for table in TABLES:
-        op.execute(f'ALTER TABLE {table} DISABLE ROW LEVEL SECURITY')
+        op.execute(f'ALTER TABLE "{table}" DISABLE ROW LEVEL SECURITY')
