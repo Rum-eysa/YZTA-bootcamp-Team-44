@@ -9,7 +9,18 @@ import json
 from typing import Any
 
 from app.logging_config import get_logger
-from app.models import EducationRecord, JobListing, Match, Project, User, WorkExperience
+from app.models import (
+    Certificate,
+    EducationRecord,
+    JobListing,
+    Language,
+    Match,
+    Project,
+    Reference,
+    SocialLink,
+    User,
+    WorkExperience,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,6 +83,10 @@ def user_profile_for_agents(context: dict[str, Any]) -> dict[str, Any]:
         "work_experiences": context.get("experiences") or [],
         "projects": context.get("projects") or [],
         "education": context.get("education") or [],
+        "certificates": context.get("certificates") or [],
+        "languages": context.get("languages") or [],
+        "social_links": context.get("social_links") or [],
+        "references": context.get("references") or [],
         "birth_year": user.get("birth_year"),
         "gender": user.get("gender"),
         "nationality": user.get("nationality"),
@@ -182,6 +197,36 @@ class ContextManager:
         )
         education_records = education_result.scalars().all()
 
+        # Sertifikaları yükle
+        certificates_result = await self.db.execute(
+            select(Certificate)
+            .where(Certificate.user_id == user_id)
+            .order_by(Certificate.issue_date.desc().nullslast())
+        )
+        certificates = certificates_result.scalars().all()
+
+        # Dilleri yükle
+        languages_result = await self.db.execute(
+            select(Language).where(Language.user_id == user_id).order_by(Language.created_at.desc())
+        )
+        languages = languages_result.scalars().all()
+
+        # Sosyal bağlantıları yükle
+        social_links_result = await self.db.execute(
+            select(SocialLink)
+            .where(SocialLink.user_id == user_id)
+            .order_by(SocialLink.created_at.desc())
+        )
+        social_links = social_links_result.scalars().all()
+
+        # Referansları yükle
+        references_result = await self.db.execute(
+            select(Reference)
+            .where(Reference.user_id == user_id)
+            .order_by(Reference.created_at.desc())
+        )
+        references = references_result.scalars().all()
+
         # Context'i oluştur
         parsed_json = _parse_json(listing.parsed_json, {})
         if not isinstance(parsed_json, dict):
@@ -230,6 +275,10 @@ class ContextManager:
             "experiences": [],
             "projects": [],
             "education": [],
+            "certificates": [],
+            "languages": [],
+            "social_links": [],
+            "references": [],
         }
 
         # Match varsa ekle
@@ -281,6 +330,41 @@ class ContextManager:
                 }
             )
 
+        # Sertifikaları ekle
+        for cert in certificates:
+            context["certificates"].append(
+                {
+                    "id": cert.id,
+                    "title": cert.title,
+                    "issuer": cert.issuer,
+                    "issue_date": cert.issue_date.isoformat() if cert.issue_date else None,
+                    "url": cert.url,
+                }
+            )
+
+        # Dilleri ekle
+        for lang in languages:
+            context["languages"].append({"id": lang.id, "name": lang.name, "level": lang.level})
+
+        # Sosyal bağlantıları ekle
+        for link in social_links:
+            context["social_links"].append(
+                {"id": link.id, "platform": link.platform, "url": link.url}
+            )
+
+        # Referansları ekle
+        for ref in references:
+            context["references"].append(
+                {
+                    "id": ref.id,
+                    "name": ref.name,
+                    "title": ref.title,
+                    "company": ref.company,
+                    "contact": ref.contact,
+                    "notes": ref.notes,
+                }
+            )
+
         logger.info(
             "context_loaded",
             user_id=user_id,
@@ -289,6 +373,10 @@ class ContextManager:
             experiences_count=len(experiences),
             projects_count=len(projects),
             education_count=len(education_records),
+            certificates_count=len(certificates),
+            languages_count=len(languages),
+            social_links_count=len(social_links),
+            references_count=len(references),
         )
 
         return context
