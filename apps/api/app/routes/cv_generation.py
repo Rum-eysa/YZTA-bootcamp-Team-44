@@ -7,7 +7,12 @@ from app.agents.cv_generation import (
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.schemas.cv_generation import CVGenerationRequest, CVGenerationResponse
-from app.services.context import ContextManager, job_analysis_from_context, user_profile_for_agents
+from app.services.context import (
+    ContextManager,
+    job_analysis_from_context,
+    matching_gaps_from_context,
+    user_profile_for_agents,
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +42,7 @@ async def generate_cv(
 
     user_profile = user_profile_for_agents(context)
     job_analysis = job_analysis_from_context(context)
+    matching_gaps = matching_gaps_from_context(context)
 
     try:
         document = await agent.generate_and_save(
@@ -45,6 +51,8 @@ async def generate_cv(
             listing_id=context["listing"]["id"],
             user_profile=user_profile,
             job_analysis=job_analysis,
+            matching_gaps=matching_gaps,
+            extra_prompt=payload.extra_prompt,
         )
     except CVGenerationException:
         # Zaten temiz, kullanıcı dostu bir mesajla 422 - global handler'a bırak

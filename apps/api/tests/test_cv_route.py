@@ -11,7 +11,22 @@ from httpx import AsyncClient
 
 
 class _StubCVAgent:
-    async def generate_and_save(self, db, user_id, listing_id, user_profile, job_analysis):
+    def __init__(self):
+        self.last_extra_prompt = None
+        self.last_matching_gaps = None
+
+    async def generate_and_save(
+        self,
+        db,
+        user_id,
+        listing_id,
+        user_profile,
+        job_analysis,
+        matching_gaps=None,
+        extra_prompt=None,
+    ):
+        self.last_extra_prompt = extra_prompt
+        self.last_matching_gaps = matching_gaps
         document = Document(
             user_id=user_id,
             listing_id=listing_id,
@@ -27,14 +42,32 @@ class _StubCVAgent:
 class _StubCVAgentLatexFailure:
     """US-042: Tectonic/LaTeX derlemesi başarısız - agent'ın kendi temiz 422 hatası"""
 
-    async def generate_and_save(self, db, user_id, listing_id, user_profile, job_analysis):
+    async def generate_and_save(
+        self,
+        db,
+        user_id,
+        listing_id,
+        user_profile,
+        job_analysis,
+        matching_gaps=None,
+        extra_prompt=None,
+    ):
         raise CVGenerationException("CV PDF oluşturulamadı: LaTeX derlemesi başarısız oldu.")
 
 
 class _StubCVAgentServiceUnavailable:
     """US-042: beklenmeyen alt sistem hatası (ör. MinIO'ya erişilemiyor)"""
 
-    async def generate_and_save(self, db, user_id, listing_id, user_profile, job_analysis):
+    async def generate_and_save(
+        self,
+        db,
+        user_id,
+        listing_id,
+        user_profile,
+        job_analysis,
+        matching_gaps=None,
+        extra_prompt=None,
+    ):
         raise ConnectionError("connection refused")
 
 
@@ -132,6 +165,50 @@ async def test_generate_cv_service_unavailable_returns_503(client: AsyncClient, 
     assert "şu anda kullanılamıyor" in body["detail"]
     assert "Traceback" not in response.text
     assert "connection refused" not in response.text
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_passes_extra_prompt_to_agent(client: AsyncClient, test_session):
+    """US-050: extra_prompt gönderildiğinde agent'a iletilmeli"""
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    stub_agent = _StubCVAgent()
+    app.dependency_overrides[get_cv_generation_agent] = lambda: stub_agent
+
+    await client.post(
+        "/api/generate-cv",
+        json={"listing_id": listing.id, "extra_prompt": "Staj motivasyonumu öne çıkar"},
+    )
+
+    assert stub_agent.last_extra_prompt == "Staj motivasyonumu öne çıkar"
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_without_extra_prompt_passes_none(client: AsyncClient, test_session):
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    stub_agent = _StubCVAgent()
+    app.dependency_overrides[get_cv_generation_agent] = lambda: stub_agent
+
+    await client.post("/api/generate-cv", json={"listing_id": listing.id})
+
+    assert stub_agent.last_extra_prompt is None
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_rejects_too_long_extra_prompt(client: AsyncClient, test_session):
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    app.dependency_overrides[get_cv_generation_agent] = lambda: _StubCVAgent()
+
+    response = await client.post(
+        "/api/generate-cv", json={"listing_id": listing.id, "extra_prompt": "a" * 501}
+    )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio

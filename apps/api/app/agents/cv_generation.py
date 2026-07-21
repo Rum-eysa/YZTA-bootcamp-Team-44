@@ -6,16 +6,20 @@ yok, glibc uyumsuzluğu vardı). Derleme başarısız olursa 1 retry, sonra temi
 hata (HTML fallback şu an implement edilmedi - Sprint 3'te değerlendirilecek).
 """
 import asyncio
+import json
 import re
 import tempfile
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
-from app.exceptions import APIException, ValidationException
+from app.agents.prompt_safety import build_extra_prompt_section
+from app.agents.strategy import select_strategy
+from app.exceptions import APIException, GeminiAPIException, ValidationException
 from app.logging_config import get_logger
 from app.models import Document
 from app.observability import agent_run
+from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
 from app.services.storage import StorageService, get_storage_service
 from jinja2 import Environment, FileSystemLoader
 from pypdf import PdfReader
@@ -23,6 +27,9 @@ from pypdf.errors import PdfReadError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("cv_generation_agent")
+
+# CV özeti LLM çıktısı panoya değil PDF'e gidiyor ama yine de markdown eklerse temizler
+_MARKDOWN_ARTIFACTS = re.compile(r"[*_#`]+")
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 
@@ -132,13 +139,48 @@ class CVGenerationException(APIException):
 
 
 class CVGenerationAgent:
-    def __init__(self, storage: Optional[StorageService] = None):
+    def __init__(
+        self,
+        storage: Optional[StorageService] = None,
+        client: Optional[GeminiClient] = None,
+    ):
         self.storage = storage or get_storage_service()
+        self._client = client
+
+    @property
+    def client(self) -> GeminiClient:
+        """Lazy: extra_prompt verilmediği sürece Gemini'ye hiç ihtiyaç duyulmaz -
+        CV üretiminin varsayılan (LLM'siz, deterministik) yolu kotayı tüketmemeli."""
+        if self._client is None:
+            self._client = get_gemini_client()
+        return self._client
+
+    async def _generate_ai_summary(
+        self,
+        user_profile: dict[str, Any],
+        job_analysis: dict[str, Any],
+        matching_gaps: dict[str, Any],
+        extra_prompt: str,
+    ) -> str:
+        """US-050: extra_prompt verildiğinde 'Özet' bölümünü Gemini ile, ekstra
+        vurgu notunu ve düşük-skor stratejisini dikkate alarak yeniden yazdırır."""
+        strategy = select_strategy(matching_gaps)
+        prompt = render_prompt(
+            "cv_summary",
+            user_profile=json.dumps(user_profile, ensure_ascii=False),
+            job_analysis=json.dumps(job_analysis, ensure_ascii=False),
+            matching_gaps=json.dumps(matching_gaps, ensure_ascii=False),
+            strategy=strategy,
+            extra_prompt_section=build_extra_prompt_section(extra_prompt),
+        )
+        raw_text = await self.client.generate_text(prompt, temperature=0.7)
+        return _MARKDOWN_ARTIFACTS.sub("", raw_text).strip()
 
     def _render_latex(
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
+        ai_summary: Optional[str] = None,
     ) -> str:
         skills = sorted(set(user_profile.get("skills") or []))
         relevant_projects = _rank_projects(
@@ -169,7 +211,7 @@ class CVGenerationAgent:
             email=latex_escape(user_profile.get("email") or ""),
             phone=latex_escape(user_profile.get("phone") or ""),
             experience_summary=latex_escape(
-                user_profile.get("experience_summary") or "Deneyim özeti eklenmedi."
+                ai_summary or user_profile.get("experience_summary") or "Deneyim özeti eklenmedi."
             ),
             all_skills=[latex_escape(s) for s in skills],
             experience_years=latex_escape(user_profile.get("experience_years") or "belirtilmemiş"),
@@ -285,6 +327,8 @@ class CVGenerationAgent:
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
+        matching_gaps: Optional[dict[str, Any]] = None,
+        extra_prompt: Optional[str] = None,
     ) -> bytes:
         if not user_profile:
             raise ValidationException("user_profile zorunludur")
@@ -293,7 +337,19 @@ class CVGenerationAgent:
             "cv_generation",
             position=(job_analysis or {}).get("position_title"),
         ):
-            tex_source = self._render_latex(user_profile, job_analysis or {})
+            ai_summary = None
+            if extra_prompt:
+                # US-050: ekstra prompt verilmişse Özet bölümü Gemini ile yeniden
+                # yazılır; LLM çağrısı başarısız olursa CV üretimini bozmadan
+                # profildeki mevcut özete sessizce geri dönülür.
+                try:
+                    ai_summary = await self._generate_ai_summary(
+                        user_profile, job_analysis or {}, matching_gaps or {}, extra_prompt
+                    )
+                except GeminiAPIException as exc:
+                    logger.warning("cv_ai_summary_failed", error=str(exc))
+
+            tex_source = self._render_latex(user_profile, job_analysis or {}, ai_summary)
             pdf_bytes = await self._compile_with_tectonic(tex_source)
             if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
                 raise CVGenerationException("Üretilen dosya geçerli bir PDF değil")
@@ -308,8 +364,12 @@ class CVGenerationAgent:
         listing_id: Optional[str],
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
+        matching_gaps: Optional[dict[str, Any]] = None,
+        extra_prompt: Optional[str] = None,
     ) -> Document:
-        pdf_bytes = await self.generate(user_profile, job_analysis)
+        pdf_bytes = await self.generate(
+            user_profile, job_analysis, matching_gaps=matching_gaps, extra_prompt=extra_prompt
+        )
         cv_url = self.storage.upload_cv(user_id, pdf_bytes)
 
         document = Document(user_id=user_id, listing_id=listing_id, doc_type="cv", cv_url=cv_url)

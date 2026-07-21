@@ -3,17 +3,22 @@
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
+import { Textarea } from "@/components/ui/Textarea";
 import type { ListingDocument } from "@/types/listing";
 import { Download, ExternalLink, FileText } from "lucide-react";
 import { useState } from "react";
 import { StaleWarningIcon } from "./StaleWarningIcon";
+
+// US-050: extra_prompt karakter sınırı backend şeması ile hizalı
+// (bkz. apps/api/app/schemas/cv_generation.py EXTRA_PROMPT_MAX_LENGTH)
+const EXTRA_PROMPT_MAX_LENGTH = 500;
 
 interface CvResultSectionProps {
   documents: ListingDocument[];
   loading: boolean;
   error?: string;
   outdated?: boolean;
-  onGenerate: () => void;
+  onGenerate: (extraPrompt?: string) => void;
 }
 
 export function CvResultSection({
@@ -23,8 +28,11 @@ export function CvResultSection({
   outdated = false,
   onGenerate,
 }: CvResultSectionProps) {
-  const cv = [...documents].reverse().find((document) => document.doc_type === "cv");
+  const cv = [...documents]
+    .reverse()
+    .find((document) => document.doc_type === "cv");
   const [downloadError, setDownloadError] = useState<string>();
+  const [extraPrompt, setExtraPrompt] = useState("");
 
   const handleDownload = async () => {
     if (!cv?.cv_url) return;
@@ -44,7 +52,7 @@ export function CvResultSection({
       URL.revokeObjectURL(objectUrl);
     } catch {
       setDownloadError(
-        "PDF doğrudan indirilemedi. Dosyayı yeni sekmede açıp tarayıcınızdan indirebilirsiniz."
+        "PDF doğrudan indirilemedi. Dosyayı yeni sekmede açıp tarayıcınızdan indirebilirsiniz.",
       );
     }
   };
@@ -59,13 +67,26 @@ export function CvResultSection({
       }
       className="border-primary/20 shadow-card"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-body-sm text-on-surface-variant">
-          Profiliniz ve ilan gereksinimleriyle uyumlu PDF özgeçmiş oluşturun.
-        </p>
+      <p className="text-body-sm text-on-surface-variant">
+        Profiliniz ve ilan gereksinimleriyle uyumlu PDF özgeçmiş oluşturun.
+      </p>
+
+      <div className="mt-3">
+        <Textarea
+          label="Ekstra vurgu notu (isteğe bağlı)"
+          placeholder='Ör. "takım çalışmasını vurgula", "eşleşme düşükse motivasyonumu öne çıkar"'
+          value={extraPrompt}
+          onChange={(event) => setExtraPrompt(event.target.value)}
+          maxLength={EXTRA_PROMPT_MAX_LENGTH}
+          showCount
+          rows={2}
+        />
+      </div>
+
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           type="button"
-          onClick={onGenerate}
+          onClick={() => onGenerate(extraPrompt.trim() || undefined)}
           loading={loading}
           variant="secondary"
           className="shrink-0"
@@ -117,7 +138,8 @@ export function CvResultSection({
             />
           </div>
           <p className="text-label-md text-on-surface-variant">
-            PDF tarayıcıda görüntülenemiyorsa yeni sekmede açabilir veya indirebilirsiniz.
+            PDF tarayıcıda görüntülenemiyorsa yeni sekmede açabilir veya
+            indirebilirsiniz.
           </p>
         </div>
       ) : (

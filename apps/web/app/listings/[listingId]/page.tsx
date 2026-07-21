@@ -42,7 +42,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const EXPERIENCE_OPTIONS = ["Seçiniz", "Junior", "Mid", "Senior"];
-const EDUCATION_OPTIONS = ["Seçiniz", "Lise", "Lisans", "Yüksek Lisans", "Doktora"];
+const EDUCATION_OPTIONS = [
+  "Seçiniz",
+  "Lise",
+  "Lisans",
+  "Yüksek Lisans",
+  "Doktora",
+];
 const MILITARY_OPTIONS = ["Seçiniz", "Yapıldı", "Muaf", "Tecilli"];
 
 const listingQueryKey = (listingId: string) => ["listing", listingId] as const;
@@ -130,16 +136,18 @@ function ListingDetailContent() {
   const matchMutation = useMutation({
     mutationFn: () => matchListing({ listing_id: listingId }),
     onSuccess: async (result) => {
-      queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
-        current
-          ? {
-              ...current,
-              score: result.score,
-              score_breakdown: result.score_breakdown,
-              matched_skills: result.matched_skills,
-              missing_skills: result.missing_skills,
-            }
-          : current
+      queryClient.setQueryData<ListingDetail>(
+        listingQueryKey(listingId),
+        (current) =>
+          current
+            ? {
+                ...current,
+                score: result.score,
+                score_breakdown: result.score_breakdown,
+                matched_skills: result.matched_skills,
+                missing_skills: result.missing_skills,
+              }
+            : current,
       );
       await invalidateListing();
     },
@@ -163,23 +171,28 @@ function ListingDetailContent() {
   });
 
   const cvMutation = useMutation({
-    mutationFn: () => generateCv({ listing_id: listingId }),
+    mutationFn: (extraPrompt?: string) =>
+      generateCv({ listing_id: listingId, extra_prompt: extraPrompt }),
     onSuccess: async (result) => {
-      queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
-        current
-          ? {
-              ...current,
-              documents: [
-                ...current.documents.filter((document) => document.id !== result.document_id),
-                {
-                  id: result.document_id,
-                  doc_type: "cv",
-                  cv_url: result.cv_url,
-                  cover_letter_text: null,
-                },
-              ],
-            }
-          : current
+      queryClient.setQueryData<ListingDetail>(
+        listingQueryKey(listingId),
+        (current) =>
+          current
+            ? {
+                ...current,
+                documents: [
+                  ...current.documents.filter(
+                    (document) => document.id !== result.document_id,
+                  ),
+                  {
+                    id: result.document_id,
+                    doc_type: "cv",
+                    cv_url: result.cv_url,
+                    cover_letter_text: null,
+                  },
+                ],
+              }
+            : current,
       );
       await invalidateListing();
     },
@@ -189,21 +202,25 @@ function ListingDetailContent() {
     mutationFn: (extraPrompt?: string) =>
       generateCoverLetter({ listing_id: listingId, extra_prompt: extraPrompt }),
     onSuccess: async (result) => {
-      queryClient.setQueryData<ListingDetail>(listingQueryKey(listingId), (current) =>
-        current
-          ? {
-              ...current,
-              documents: [
-                ...current.documents.filter((document) => document.id !== result.document_id),
-                {
-                  id: result.document_id,
-                  doc_type: "cover_letter",
-                  cv_url: null,
-                  cover_letter_text: result.cover_letter_text,
-                },
-              ],
-            }
-          : current
+      queryClient.setQueryData<ListingDetail>(
+        listingQueryKey(listingId),
+        (current) =>
+          current
+            ? {
+                ...current,
+                documents: [
+                  ...current.documents.filter(
+                    (document) => document.id !== result.document_id,
+                  ),
+                  {
+                    id: result.document_id,
+                    doc_type: "cover_letter",
+                    cv_url: null,
+                    cover_letter_text: result.cover_letter_text,
+                  },
+                ],
+              }
+            : current,
       );
       await invalidateListing();
     },
@@ -240,9 +257,9 @@ function ListingDetailContent() {
     rematchMutation.mutate();
   };
 
-  const handleGenerateCv = () => {
+  const handleGenerateCv = (extraPrompt?: string) => {
     cvMutation.reset();
-    cvMutation.mutate();
+    cvMutation.mutate(extraPrompt);
   };
 
   const handleGenerateCoverLetter = (extraPrompt?: string) => {
@@ -257,7 +274,8 @@ function ListingDetailContent() {
   const handleSave = () => {
     if (!form) return;
     updateMutation.reset();
-    const clean = (v: string) => (v.trim() === "" || v === "Seçiniz" ? null : v.trim());
+    const clean = (v: string) =>
+      v.trim() === "" || v === "Seçiniz" ? null : v.trim();
     const payload: ListingUpdate = {
       company: clean(form.company),
       title: clean(form.title),
@@ -278,20 +296,24 @@ function ListingDetailContent() {
   const matchError = matchMutation.isError
     ? getApiErrorMessage(
         matchMutation.error,
-        "Uygunluk hesaplanamadı. Lütfen profilinizi kontrol edip tekrar deneyin."
+        "Uygunluk hesaplanamadı. Lütfen profilinizi kontrol edip tekrar deneyin.",
       )
     : undefined;
   const rematchError = rematchMutation.isError
     ? getApiErrorMessage(
         rematchMutation.error,
-        "Eşleşme güncellenemedi. Lütfen tekrar deneyin."
+        "Eşleşme güncellenemedi. Lütfen tekrar deneyin.",
       )
     : undefined;
   const cvError = cvMutation.isError
-    ? getApiErrorMessage(cvMutation.error, "CV oluşturulamadı. Lütfen tekrar deneyin.", {
-        serviceUnavailable:
-          "CV oluşturma servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
-      })
+    ? getApiErrorMessage(
+        cvMutation.error,
+        "CV oluşturulamadı. Lütfen tekrar deneyin.",
+        {
+          serviceUnavailable:
+            "CV oluşturma servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
+        },
+      )
     : undefined;
   const coverLetterError = coverLetterMutation.isError
     ? getApiErrorMessage(
@@ -300,7 +322,7 @@ function ListingDetailContent() {
         {
           serviceUnavailable:
             "Önyazı servisi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
-        }
+        },
       )
     : undefined;
 
@@ -340,7 +362,9 @@ function ListingDetailContent() {
   if (!listing || !form) {
     return (
       <main className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-xl text-center">
-        <h1 className="text-headline-lg-mobile font-semibold mb-2">İlan bulunamadı</h1>
+        <h1 className="text-headline-lg-mobile font-semibold mb-2">
+          İlan bulunamadı
+        </h1>
         <p className="text-body-sm text-on-surface-variant mb-6">
           {listingQuery.isError
             ? "İlan yüklenemedi veya erişim yetkiniz yok."
@@ -354,7 +378,9 @@ function ListingDetailContent() {
   }
 
   const matchScore =
-    listing.score == null ? null : Math.min(100, Math.max(0, Math.round(listing.score)));
+    listing.score == null
+      ? null
+      : Math.min(100, Math.max(0, Math.round(listing.score)));
 
   const steps = [
     {
@@ -365,7 +391,10 @@ function ListingDetailContent() {
     },
     {
       label: "Eşleşme Skoru Hesaplandı",
-      desc: listing.score != null ? `CV'niz ile ilan eşleştirildi (%${Math.round(listing.score)}).` : "Henüz hesaplanmadı.",
+      desc:
+        listing.score != null
+          ? `CV'niz ile ilan eşleştirildi (%${Math.round(listing.score)}).`
+          : "Henüz hesaplanmadı.",
       done: listing.score != null,
       active: listing.score == null && listing.analysis_status === "completed",
     },
@@ -450,20 +479,31 @@ function ListingDetailContent() {
                   onChange={(e) => update("location", e.target.value)}
                 />
               </div>
-              <p className="text-label-md text-on-surface-variant">{daysAgo(listing.created_at)}</p>
+              <p className="text-label-md text-on-surface-variant">
+                {daysAgo(listing.created_at)}
+              </p>
             </div>
           </div>
 
           <div className="w-full shrink-0 space-y-3 md:w-auto">
             <div className="flex items-stretch gap-md">
               <div className="flex-1 space-y-1 md:w-44">
-                <label className="text-label-md text-on-surface-variant">Başvuru Aşaması</label>
+                <label className="text-label-md text-on-surface-variant">
+                  Başvuru Aşaması
+                </label>
                 <select
                   className="input-field py-2"
                   value={form.application_stage}
-                  onChange={(e) => update("application_stage", e.target.value as ApplicationStage)}
+                  onChange={(e) =>
+                    update(
+                      "application_stage",
+                      e.target.value as ApplicationStage,
+                    )
+                  }
                 >
-                  {(Object.keys(APPLICATION_STAGE_LABELS) as ApplicationStage[]).map((s) => (
+                  {(
+                    Object.keys(APPLICATION_STAGE_LABELS) as ApplicationStage[]
+                  ).map((s) => (
                     <option key={s} value={s}>
                       {APPLICATION_STAGE_LABELS[s]}
                     </option>
@@ -473,7 +513,7 @@ function ListingDetailContent() {
               <div
                 className={cn(
                   "flex min-w-[104px] flex-col items-center justify-center rounded-xl px-5 py-2 text-center",
-                  scoreSummaryClasses(matchScore)
+                  scoreSummaryClasses(matchScore),
                 )}
               >
                 <p className="text-[32px] font-bold leading-none">
@@ -516,7 +556,8 @@ function ListingDetailContent() {
             }
           >
             <p className="mb-3 text-label-md text-on-surface-variant">
-              İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz edin.
+              İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz
+              edin.
             </p>
             <textarea
               className="w-full h-48 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
@@ -526,7 +567,9 @@ function ListingDetailContent() {
             />
             {listing.required_skills.length > 0 && (
               <div className="mt-4">
-                <p className="text-label-md text-on-surface-variant mb-2">ZORUNLU BECERİLER</p>
+                <p className="text-label-md text-on-surface-variant mb-2">
+                  ZORUNLU BECERİLER
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {listing.required_skills.map((s) => (
                     <span
@@ -541,7 +584,9 @@ function ListingDetailContent() {
             )}
             {listing.nice_to_have.length > 0 && (
               <div className="mt-3">
-                <p className="text-label-md text-on-surface-variant mb-2">TERCİH SEBEBİ</p>
+                <p className="text-label-md text-on-surface-variant mb-2">
+                  TERCİH SEBEBİ
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {listing.nice_to_have.map((s) => (
                     <span
@@ -559,7 +604,7 @@ function ListingDetailContent() {
                 reanalyzeMutation.isError
                   ? getApiErrorMessage(
                       reanalyzeMutation.error,
-                      "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin."
+                      "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin.",
                     )
                   : undefined
               }
@@ -604,7 +649,9 @@ function ListingDetailContent() {
           <Card title="Aday Kriterleri">
             <div className="space-y-md">
               <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">Deneyim Seviyesi</label>
+                <label className="text-label-md text-on-surface-variant">
+                  Deneyim Seviyesi
+                </label>
                 <select
                   className="input-field"
                   value={form.experience_level}
@@ -616,7 +663,9 @@ function ListingDetailContent() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">Askerlik Durumu</label>
+                <label className="text-label-md text-on-surface-variant">
+                  Askerlik Durumu
+                </label>
                 <select
                   className="input-field"
                   value={form.military_status}
@@ -628,7 +677,9 @@ function ListingDetailContent() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">Eğitim Seviyesi</label>
+                <label className="text-label-md text-on-surface-variant">
+                  Eğitim Seviyesi
+                </label>
                 <select
                   className="input-field"
                   value={form.education_level}
@@ -640,7 +691,9 @@ function ListingDetailContent() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">Yabancı Dil</label>
+                <label className="text-label-md text-on-surface-variant">
+                  Yabancı Dil
+                </label>
                 <TagInput
                   value={form.languages}
                   onChange={(v) => update("languages", v)}
@@ -684,18 +737,21 @@ function ListingDetailContent() {
                     <p
                       className={cn(
                         "text-body-sm font-semibold break-words",
-                        step.done || step.active ? "text-on-surface" : "text-on-surface-variant"
+                        step.done || step.active
+                          ? "text-on-surface"
+                          : "text-on-surface-variant",
                       )}
                     >
                       {step.label}
                     </p>
-                    <p className="text-label-md text-on-surface-variant break-words">{step.desc}</p>
+                    <p className="text-label-md text-on-surface-variant break-words">
+                      {step.desc}
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
           </Card>
-
         </div>
       </div>
 
