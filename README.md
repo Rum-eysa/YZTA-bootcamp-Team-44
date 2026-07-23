@@ -678,11 +678,12 @@ Staging kurulum rehberi için [`docs/DEPLOY_STAGING.md`](docs/DEPLOY_STAGING.md)
 
 ### Erişim Noktaları
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Dokümantasyonu**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **MinIO Console**: http://localhost:9001
+- **Frontend**: https://yzta-bootcamp-team-44.vercel.app
+- **Backend API**: yzta-bootcamp-team-44-production.up.railway.app/docs
+- **API Dokümantasyonu**: https://yzta-bootcamp-team-44-produc
+tion.up.railway.app/docs
+- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railw
+ay.app/redoc
 
 ## Geliştirme
 
@@ -753,8 +754,10 @@ docker-compose exec api pytest tests/ --cov=app --cov-report=html
 
 ## API Dokümantasyonu
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: https://yzta-bootcamp-team-44-production.up.
+railway.app/docs
+- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railw
+ay.app/redoc
 
 ## Code Quality
 
