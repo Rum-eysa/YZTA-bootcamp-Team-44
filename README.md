@@ -679,9 +679,7 @@ Staging kurulum rehberi için [`docs/DEPLOY_STAGING.md`](docs/DEPLOY_STAGING.md)
 ### Erişim Noktaları
 
 - **Frontend**: https://yzta-bootcamp-team-44.vercel.app
-- **Backend API**: yzta-bootcamp-team-44-production.up.railway.app/docs
-- **API Dokümantasyonu**: https://yzta-bootcamp-team-44-production.up.railway.app/docs
-- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railway.app/redoc
+- **Backend API**: https://yzta-bootcamp-team-44-production.up.railway.app/docs
 
 ## Geliştirme
 
@@ -750,11 +748,6 @@ make test
 docker-compose exec api pytest tests/ --cov=app --cov-report=html
 ```
 
-## API Dokümantasyonu
-
-- **Swagger UI**: https://yzta-bootcamp-team-44-production.up.railway.app/docs
-- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railway.app/redoc
-
 ## Code Quality
 
 ### Pre-commit Hooks
@@ -784,16 +777,6 @@ npm run lint
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
-
-### Production Kontrol Listesi
-
-- [ ] Environment değişkenleri yapılandırıldı
-- [ ] `JWT_SECRET` güçlü değerle değiştirildi
-- [ ] `DEBUG` `false` olarak ayarlandı
-- [ ] Database yedeği alındı
-- [ ] Migration'lar uygulandı
-- [ ] Tüm testler geçti
-- [ ] Health check endpoint çalışıyor
 
 ## API Endpoint'leri
 
