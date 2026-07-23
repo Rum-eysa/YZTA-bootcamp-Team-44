@@ -680,10 +680,8 @@ Staging kurulum rehberi için [`docs/DEPLOY_STAGING.md`](docs/DEPLOY_STAGING.md)
 
 - **Frontend**: https://yzta-bootcamp-team-44.vercel.app
 - **Backend API**: yzta-bootcamp-team-44-production.up.railway.app/docs
-- **API Dokümantasyonu**: https://yzta-bootcamp-team-44-produc
-tion.up.railway.app/docs
-- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railw
-ay.app/redoc
+- **API Dokümantasyonu**: https://yzta-bootcamp-team-44-production.up.railway.app/docs
+- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railway.app/redoc
 
 ## Geliştirme
 
@@ -754,10 +752,8 @@ docker-compose exec api pytest tests/ --cov=app --cov-report=html
 
 ## API Dokümantasyonu
 
-- **Swagger UI**: https://yzta-bootcamp-team-44-production.up.
-railway.app/docs
-- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railw
-ay.app/redoc
+- **Swagger UI**: https://yzta-bootcamp-team-44-production.up.railway.app/docs
+- **ReDoc**: https://yzta-bootcamp-team-44-production.up.railway.app/redoc
 
 ## Code Quality
 
