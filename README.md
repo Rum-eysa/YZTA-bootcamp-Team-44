@@ -560,12 +560,18 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │   │   │   ├── users.py         # User management (/api/users)
 │   │   │   │   ├── profiles.py      # Profile update (/api/profiles)
 │   │   │   │   ├── analysis.py      # İlan analizi (/api/analyze)
+│   │   │   │   ├── listings.py      # İlan CRUD (/api/listings)
+│   │   │   │   ├── match.py         # Eşleştirme (/api/match)
+│   │   │   │   ├── cv_generation.py # CV üretimi (/api/generate-cv)
+│   │   │   │   ├── cover_letter.py  # Önyazı üretimi (/api/generate-cover-letter)
+│   │   │   │   ├── orchestrator.py  # Orkestratör (/api/orchestrator)
 │   │   │   │   ├── agents.py        # Agent task API (/api/agents)
 │   │   │   │   └── health.py        # Health checks (/health)
 │   │   │   ├── services/            # Business logic layer
 │   │   │   │   ├── auth.py          # JWT, token blacklist
 │   │   │   │   ├── user.py          # User service
 │   │   │   │   ├── agent.py         # Agent task orchestration
+│   │   │   │   ├── context.py       # ContextManager (profil verisi toplama)
 │   │   │   │   ├── gemini_client.py # Google Gemini wrapper
 │   │   │   │   ├── storage.py       # MinIO PDF depolama
 │   │   │   │   └── listing_fetch.py # URL'den ilan metni çekme
@@ -573,7 +579,10 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │   │   │   ├── listing_analysis.py
 │   │   │   │   ├── matching.py
 │   │   │   │   ├── cv_generation.py
-│   │   │   │   └── cover_letter.py
+│   │   │   │   ├── cover_letter.py
+│   │   │   │   ├── orchestrator.py  # Ajanları zincirleyen orkestratör
+│   │   │   │   ├── strategy.py      # Düşük-skor / ekstra-prompt stratejisi
+│   │   │   │   └── prompt_safety.py # Prompt injection savunması (extra_prompt delimiting)
 │   │   │   ├── repositories/        # Veritabanı erişim katmanı
 │   │   │   └── schemas/             # Pydantic request/response modelleri
 │   │   ├── scripts/
@@ -589,6 +598,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │       │   ├── register/            # Kayıt
 │       │   ├── profile/             # Profil formu
 │       │   ├── apply/               # İlan girişi
+│       │   ├── results/             # Eşleştirme sonuç ekranı
 │       │   └── listings/[listingId]/ # Kalıcı ilan ve analiz detayları
 │       ├── components/              # UI ve layout bileşenleri
 │       ├── lib/api/                 # Endpoint bazlı API istemcileri
@@ -597,7 +607,14 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │
 ├── docs/sprint-1/                   # Sprint 1 dokümantasyon görselleri
 ├── docs/sprint-2/                   # Sprint 2 dokümantasyon görselleri
+├── docs/sprints/                    # Sprint review/retro/UAT raporları
+├── docs/deploy.md                   # Go-live checklist + canlı URL'ler
+├── docs/DEPLOY_STAGING.md           # Staging kurulum rehberi (Railway + Vercel)
 ├── docs/Sprint-2-Yapilanlar-ve-Eksikler.md  # Sprint 2 yapılan / eksik listesi
+├── ARCHITECTURE.md                  # Sistem tasarımı dokümanı
+├── CHANGELOG.md                     # Sürüm geçmişi
+├── CONTRIBUTING.md                  # Katkı rehberi
+├── railway.json                     # Railway deploy config (Dockerfile/start/healthcheck)
 ├── .github/workflows/ci.yml         # CI/CD pipeline
 ├── docker-compose.yml               # Development (postgres, redis, minio, api, web)
 ├── docker-compose.prod.yml          # Production environment
