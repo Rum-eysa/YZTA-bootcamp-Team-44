@@ -98,8 +98,28 @@ PROMPT_TEMPLATES: dict[str, str] = {
         "- Şüpheye düştüğünde öğeyi DAHİL et, dışlama.\n"
         "- Tamamen alakasız alandaki (ör. farklı bir meslek/teknoloji yığını) öğeleri çıkar.\n"
         "- Sadece yukarıda verilen index numaralarını kullan, yeni index üretme.\n"
-        "- experience_indices, project_indices ve certificate_indices alanlarını içeren "
-        "bir JSON döndür."
+        "- DAHİL ettiğin her deneyim ve proje için, açıklamasını bu ilanın diline ve "
+        "önceliklerine göre yeniden yaz (experience_rewrites/project_rewrites): aynı "
+        "gerçekleri/sayıları koru, uydurma bilgi ekleme, sadece ilanla örtüşen kısımları "
+        "öne çıkar ve gereksiz tekrarları çıkar. Değişiklik gerekmiyorsa metni olduğu "
+        "gibi döndür - her dahil edilen öğe için bir rewrite girişi olmalı.\n"
+        "- experience_indices, project_indices, certificate_indices, experience_rewrites "
+        "ve project_rewrites alanlarını içeren bir JSON döndür."
+    ),
+    "cv_shorten_content": (
+        "Aşağıdaki CV içeriği (deneyim ve proje açıklamaları) derlenen PDF'i 1 sayfayı "
+        "aşacak şekilde uzattı. Anlam kaybı olmadan, önemli bilgi/sayı/etkiyi koruyarak "
+        "her açıklamayı fark edilir şekilde kısalt (mümkünse yaklaşık yarısına).\n\n"
+        "İlan pozisyonu: {position_title}\n\n"
+        "Deneyimler (index: başlık - şirket | açıklama):\n{experiences}\n\n"
+        "Projeler (index: başlık [tech stack] | açıklama):\n{projects}\n\n"
+        "Kurallar:\n"
+        "- Uydurma bilgi/başarı ekleme, sadece verilen metni kısalt ve sadeleştir.\n"
+        "- Somut sayı/teknoloji/etki varsa koru, süslemeleri ve tekrarları çıkar.\n"
+        "- Her açıklama en fazla 1-2 kısa cümle olmalı.\n"
+        "- Sadece yukarıda verilen index numaralarını kullan, yeni index üretme.\n"
+        "- Yukarıda verilen HER deneyim ve proje için bir rewrite girişi döndür.\n"
+        "- experience_rewrites ve project_rewrites alanlarını içeren bir JSON döndür."
     ),
 }
 
