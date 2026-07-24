@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FileCheck2, ListChecks, Sparkles, Target } from "lucide-react";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthAwareLink } from "@/components/common/AuthAwareLink";
 
 const DIFFERENTIATORS = [
@@ -26,10 +26,8 @@ const DIFFERENTIATORS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-surface-bright">
-      <AppHeader />
-
-      <main className="max-w-container-max mx-auto px-margin-mobile md:px-lg py-16">
+    <AppLayout guard={false}>
+      <div className="px-margin-mobile md:px-lg py-16">
         <div className="text-center max-w-3xl mx-auto">
           <span className="inline-flex items-center gap-1.5 text-body-sm font-semibold text-primary bg-primary-container/40 px-3 py-1 rounded-full">
             <Sparkles className="w-4 h-4" />
@@ -116,7 +114,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

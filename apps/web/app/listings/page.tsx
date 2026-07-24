@@ -69,7 +69,7 @@ function ListingsContent() {
   }, [listings, stageFilter, sortKey]);
 
   return (
-    <div className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-lg md:py-xl space-y-lg">
+    <div className="w-full max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-lg md:py-xl space-y-lg">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-md">
         <div>
           <h1 className="text-headline-lg-mobile md:text-headline-lg font-bold text-on-surface">
@@ -137,34 +137,35 @@ function ListingsContent() {
         </div>
       )}
 
-      <div className="space-y-md">
+      <div className="w-full space-y-md">
         {visible.map((listing) => (
           <Link
             key={listing.id}
             href={`/listings/${listing.id}`}
-            className="block bg-surface-container-lowest rounded-xl p-4 md:p-5 border border-outline-variant hover:border-primary hover:shadow-card-hover transition-all"
+            className="block w-full bg-surface-container-lowest rounded-xl p-4 md:p-5 border border-outline-variant hover:border-primary hover:shadow-card-hover transition-all"
           >
-            <div className="flex flex-col md:flex-row md:items-center gap-md">
-              <div className="w-12 h-12 rounded-lg overflow-hidden border border-outline-variant bg-surface flex items-center justify-center shrink-0">
-                {logos[listing.id] ? (
-                  <Image
-                    src={logos[listing.id]}
-                    alt="Şirket logosu"
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <Building2 className="w-6 h-6 text-on-surface-variant" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-label-md text-on-surface-variant font-semibold uppercase tracking-wide">
-                  {listing.company || "Şirket belirtilmedi"}
-                </p>
-                <h2 className="text-title-md font-semibold text-on-surface break-words">
+            <div className="flex flex-col gap-md">
+              <div className="min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-outline-variant bg-surface flex items-center justify-center shrink-0">
+                    {logos[listing.id] ? (
+                      <Image
+                        src={logos[listing.id]}
+                        alt="Şirket logosu"
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <Building2 className="w-6 h-6 text-on-surface-variant" />
+                    )}
+                  </div>
+                  <p className="text-label-md text-on-surface-variant font-semibold uppercase tracking-wide truncate">
+                    {listing.company || "Şirket belirtilmedi"}
+                  </p>
+                </div>
+                <h2 className="text-title-md font-semibold text-on-surface break-words mt-2">
                   {listing.title || "Pozisyon belirtilmedi"}
                 </h2>
                 <div className="flex flex-wrap items-center gap-x-md gap-y-xs mt-1 text-body-sm text-on-surface-variant">
@@ -178,9 +179,9 @@ function ListingsContent() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-md md:gap-lg shrink-0">
-                <div className="text-center min-w-[72px]">
-                  <div className="flex items-center justify-center gap-1 text-primary font-bold">
+              <div className="flex w-full items-center justify-between gap-md">
+                <div className="text-left min-w-[72px]">
+                  <div className="flex items-center justify-start gap-1 text-primary font-bold">
                     <Zap className="w-4 h-4" />
                     {listing.score != null ? `%${Math.round(listing.score)}` : "—"}
                   </div>
