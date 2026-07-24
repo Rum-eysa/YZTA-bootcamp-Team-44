@@ -86,7 +86,8 @@ CV_CONTENT_FILTER_SCHEMA: dict[str, Any] = {
 
 def _describe_experiences(experiences: list[dict[str, Any]]) -> str:
     lines = [
-        f"{i}: {exp.get('title') or ''} - {exp.get('company') or ''} | {exp.get('description') or ''}"
+        f"{i}: {exp.get('title') or ''} - {exp.get('company') or ''} "
+        f"| {exp.get('description') or ''}"
         for i, exp in enumerate(experiences)
     ]
     return "\n".join(lines) or "(yok)"
@@ -94,7 +95,8 @@ def _describe_experiences(experiences: list[dict[str, Any]]) -> str:
 
 def _describe_projects(projects: list[dict[str, Any]]) -> str:
     lines = [
-        f"{i}: {p.get('title') or ''} [{', '.join(p.get('tech_stack') or [])}] | {p.get('description') or ''}"
+        f"{i}: {p.get('title') or ''} [{', '.join(p.get('tech_stack') or [])}] "
+        f"| {p.get('description') or ''}"
         for i, p in enumerate(projects)
     ]
     return "\n".join(lines) or "(yok)"
