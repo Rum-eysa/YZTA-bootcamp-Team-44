@@ -242,6 +242,10 @@ function ListingDetailContent() {
     setSaved(false);
   };
 
+  const listingDetailsUnsaved = Boolean(
+    form && listing && form.raw_text !== (listing.raw_text ?? ""),
+  );
+
   const handleMatch = () => {
     matchMutation.reset();
     matchMutation.mutate();
@@ -544,6 +548,16 @@ function ListingDetailContent() {
 
           <Card
             title="İlan Detayları"
+            titleAddon={
+              listingDetailsUnsaved ? (
+                <span
+                  className="shrink-0 text-label-md font-medium text-error"
+                  role="status"
+                >
+                  Kaydedilmedi
+                </span>
+              ) : undefined
+            }
             action={
               <Button
                 variant="outline"

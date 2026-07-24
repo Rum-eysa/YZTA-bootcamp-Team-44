@@ -163,6 +163,9 @@ async def test_generate_and_save_persists_document():
     db.add = MagicMock()
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
+    empty_result = MagicMock()
+    empty_result.scalar_one_or_none.return_value = None
+    db.execute = AsyncMock(return_value=empty_result)
 
     document = await agent.generate_and_save(
         db=db,
@@ -178,9 +181,67 @@ async def test_generate_and_save_persists_document():
     assert document.user_id == "user-1"
     assert document.listing_id == "listing-1"
     assert document.cover_letter_text == _words(350)
+    db.execute.assert_awaited()
     db.add.assert_called_once()
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_previous_cover_letter_reaches_prompt():
+    """Yeniden üretimde eski önyazı prompt'a eklenmeli"""
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+    previous = "Sayın Yetkili, önceki önyazı metnim buradadır ve takım çalışmasını anlatır."
+
+    await agent.generate(
+        USER_PROFILE,
+        JOB_ANALYSIS,
+        MATCHING_GAPS,
+        previous_cover_letter=previous,
+    )
+
+    assert previous in client.last_prompt
+    assert "daha önce üretilmiş önyazı" in client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_generate_and_save_loads_latest_previous_cover_letter():
+    """Kayıtlı önceki önyazı yoksa bile execute çağrılır; varsa prompt'a girer"""
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+    previous = "Önceki özel önyazı içeriği XYZ-123."
+    existing = MagicMock()
+    existing.cover_letter_text = previous
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = existing
+    db = MagicMock()
+    db.add = MagicMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+    db.execute = AsyncMock(return_value=result)
+
+    await agent.generate_and_save(
+        db=db,
+        user_id="user-1",
+        listing_id="listing-1",
+        user_profile=USER_PROFILE,
+        job_analysis=JOB_ANALYSIS,
+        matching_gaps=MATCHING_GAPS,
+        company_name="Acme",
+    )
+
+    assert previous in client.last_prompt
+
+
+@pytest.mark.asyncio
+async def test_no_previous_cover_letter_omits_section():
+    client = FakeGeminiClient(_words(350))
+    agent = CoverLetterAgent(client=client)
+
+    await agent.generate(USER_PROFILE, JOB_ANALYSIS, MATCHING_GAPS)
+
+    assert "daha önce üretilmiş önyazı" not in client.last_prompt
 
 
 def test_get_cover_letter_agent_returns_singleton():
@@ -254,6 +315,9 @@ async def test_extra_prompt_reaches_generate_and_save():
     db.add = MagicMock()
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
+    empty_result = MagicMock()
+    empty_result.scalar_one_or_none.return_value = None
+    db.execute = AsyncMock(return_value=empty_result)
 
     await agent.generate_and_save(
         db=db,

@@ -108,6 +108,7 @@ function ProfileContent() {
   const [editingSocialLink, setEditingSocialLink] = useState<SocialLink | null>(null);
   const [referenceModalOpen, setReferenceModalOpen] = useState(false);
   const [editingReference, setEditingReference] = useState<Reference | null>(null);
+  const [collectionsLoaded, setCollectionsLoaded] = useState(false);
 
   const displayProfile = profile || user;
 
@@ -183,14 +184,26 @@ function ProfileContent() {
 
   useEffect(() => {
     if (!displayProfile?.id) return;
-    loadExperiences();
-    loadProjects();
-    loadEducation();
-    loadCertificates();
-    loadExams();
-    loadLanguages();
-    loadSocialLinks();
-    loadReferences();
+    let cancelled = false;
+    setCollectionsLoaded(false);
+
+    void (async () => {
+      await Promise.all([
+        loadExperiences(),
+        loadProjects(),
+        loadEducation(),
+        loadCertificates(),
+        loadExams(),
+        loadLanguages(),
+        loadSocialLinks(),
+        loadReferences(),
+      ]);
+      if (!cancelled) setCollectionsLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     displayProfile?.id,
     loadExperiences,
@@ -476,7 +489,9 @@ function ProfileContent() {
             }
           >
             <div className="space-y-md">
-              {experiences.length === 0 ? (
+              {!collectionsLoaded ? (
+                <Spinner label="Yükleniyor..." className="py-sm" />
+              ) : experiences.length === 0 ? (
                 <p className="text-body-sm text-on-surface-variant">
                   Henüz iş deneyimi eklenmedi. &quot;Ekle&quot; butonuna tıklayarak
                   ekleyebilirsiniz.
@@ -544,7 +559,9 @@ function ProfileContent() {
             }
           >
             <div className="space-y-md">
-              {education.length === 0 ? (
+              {!collectionsLoaded ? (
+                <Spinner label="Yükleniyor..." className="py-sm" />
+              ) : education.length === 0 ? (
                 <p className="text-body-sm text-on-surface-variant">
                   Henüz eğitim bilgisi eklenmedi. &quot;Ekle&quot; butonuna tıklayarak ekleyebilirsiniz.
                 </p>
@@ -613,7 +630,9 @@ function ProfileContent() {
             }
           >
             <div className="space-y-md">
-              {projects.length === 0 ? (
+              {!collectionsLoaded ? (
+                <Spinner label="Yükleniyor..." className="py-sm" />
+              ) : projects.length === 0 ? (
                 <p className="text-body-sm text-on-surface-variant">
                   Henüz proje eklenmedi. &quot;Ekle&quot; butonuna tıklayarak ekleyebilirsiniz.
                 </p>
@@ -751,7 +770,9 @@ function ProfileContent() {
               </button>
             }
           >
-            {certificates.length === 0 ? (
+            {!collectionsLoaded ? (
+              <Spinner label="Yükleniyor..." className="py-sm" />
+            ) : certificates.length === 0 ? (
               <p className="text-body-sm text-on-surface-variant italic">Henüz eklenmedi</p>
             ) : (
               <div className="space-y-sm">
@@ -807,7 +828,9 @@ function ProfileContent() {
               </button>
             }
           >
-            {exams.length === 0 ? (
+            {!collectionsLoaded ? (
+              <Spinner label="Yükleniyor..." className="py-sm" />
+            ) : exams.length === 0 ? (
               <p className="text-body-sm text-on-surface-variant italic">Henüz eklenmedi</p>
             ) : (
               <div className="space-y-sm">
@@ -860,7 +883,9 @@ function ProfileContent() {
               </button>
             }
           >
-            {languages.length === 0 ? (
+            {!collectionsLoaded ? (
+              <Spinner label="Yükleniyor..." className="py-sm" />
+            ) : languages.length === 0 ? (
               <p className="text-body-sm text-on-surface-variant italic">Henüz eklenmedi</p>
             ) : (
               <div className="space-y-sm">
@@ -913,7 +938,9 @@ function ProfileContent() {
               </button>
             }
           >
-            {socialLinks.length === 0 ? (
+            {!collectionsLoaded ? (
+              <Spinner label="Yükleniyor..." className="py-sm" />
+            ) : socialLinks.length === 0 ? (
               <span className="flex items-center gap-xs text-body-sm text-on-surface-variant italic">
                 <Link2 className="w-4 h-4" /> Henüz eklenmedi
               </span>
@@ -965,7 +992,9 @@ function ProfileContent() {
               </button>
             }
           >
-            {references.length === 0 ? (
+            {!collectionsLoaded ? (
+              <Spinner label="Yükleniyor..." className="py-sm" />
+            ) : references.length === 0 ? (
               <p className="text-body-sm text-on-surface-variant italic">Henüz eklenmedi</p>
             ) : (
               <div className="space-y-sm">

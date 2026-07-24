@@ -32,6 +32,7 @@ export function CoverLetterResultSection({
 }: CoverLetterResultSectionProps) {
   const [copyFeedback, setCopyFeedback] = useState<string>();
   const [extraPrompt, setExtraPrompt] = useState("");
+  const [showEditPrompt, setShowEditPrompt] = useState(false);
   const coverLetter = [...documents]
     .reverse()
     .find((document) => document.doc_type === "cover_letter");
@@ -69,25 +70,35 @@ export function CoverLetterResultSection({
         Şirkete ve pozisyona göre kişiselleştirilmiş bir başvuru metni oluşturun.
       </p>
 
-      <div className="mt-3">
-        <Textarea
-          label="Ekstra vurgu notu (isteğe bağlı)"
-          placeholder='Ör. "takım çalışmasını vurgula", "staj motivasyonumu öne çıkar"'
-          value={extraPrompt}
-          onChange={(event) => setExtraPrompt(event.target.value)}
-          maxLength={EXTRA_PROMPT_MAX_LENGTH}
-          showCount
-          rows={2}
-        />
-      </div>
+      {showEditPrompt && (
+        <div className="mt-3">
+          <Textarea
+            label="Ekstra vurgu notu (isteğe bağlı)"
+            placeholder='Ör. "takım çalışmasını vurgula", "staj motivasyonumu öne çıkar"'
+            value={extraPrompt}
+            onChange={(event) => setExtraPrompt(event.target.value)}
+            maxLength={EXTRA_PROMPT_MAX_LENGTH}
+            showCount
+            rows={2}
+          />
+        </div>
+      )}
 
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowEditPrompt((open) => !open)}
+          className="shrink-0 sm:mr-auto"
+        >
+          Düzenleme Promtu
+        </Button>
         <Button
           type="button"
           onClick={() => onGenerate(extraPrompt.trim() || undefined)}
           loading={loading}
           variant="secondary"
-          className="shrink-0"
+          className="shrink-0 sm:ml-auto"
         >
           <Sparkles className="h-4 w-4" />
           {text ? "Önyazıyı Yeniden Oluştur" : "Önyazı Oluştur"}
@@ -122,11 +133,19 @@ export function CoverLetterResultSection({
 
       {text ? (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-label-md text-on-surface-variant">
+          <article className="max-h-[520px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-outline-variant bg-surface-container-low p-4 text-body-sm leading-relaxed text-on-surface">
+            {text}
+          </article>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-label-md text-on-surface-variant sm:mr-auto">
               {counts.words} kelime • {counts.characters} karakter
             </p>
-            <Button type="button" variant="outline" onClick={handleCopy}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCopy}
+              className="shrink-0 sm:ml-auto"
+            >
               <Clipboard className="h-4 w-4" />
               Kopyala
             </Button>
@@ -136,9 +155,6 @@ export function CoverLetterResultSection({
               {copyFeedback}
             </p>
           )}
-          <article className="max-h-[520px] overflow-y-auto whitespace-pre-wrap rounded-xl border border-outline-variant bg-surface-container-low p-4 text-body-sm leading-relaxed text-on-surface">
-            {text}
-          </article>
         </div>
       ) : (
         !loading && (
