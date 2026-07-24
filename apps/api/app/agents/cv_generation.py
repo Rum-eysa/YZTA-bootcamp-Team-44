@@ -271,7 +271,9 @@ class CVGenerationAgent:
         filtered_certificates = _select_indices(
             user_profile.get("certificates") or [], selection.get("certificate_indices") or []
         )
-        relevant_projects = _rank_projects(filtered_projects, job_analysis, limit=_MAX_PROJECTS_ON_CV)
+        relevant_projects = _rank_projects(
+            filtered_projects, job_analysis, limit=_MAX_PROJECTS_ON_CV
+        )
         experiences = _sorted_experiences(filtered_experiences)
         education = _sorted_education(user_profile.get("education") or [])
 
