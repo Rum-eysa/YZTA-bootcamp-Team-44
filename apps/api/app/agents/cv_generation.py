@@ -71,6 +71,55 @@ _jinja_env.filters["latex_escape"] = latex_escape
 
 _MAX_PROJECTS_ON_CV = 3
 
+# generate_json'a verilen response_schema - google-generativeai SDK OpenAPI benzeri
+# tip adları bekler (büyük harf "OBJECT"/"ARRAY"/"INTEGER").
+CV_CONTENT_FILTER_SCHEMA: dict[str, Any] = {
+    "type": "OBJECT",
+    "properties": {
+        "experience_indices": {"type": "ARRAY", "items": {"type": "INTEGER"}},
+        "project_indices": {"type": "ARRAY", "items": {"type": "INTEGER"}},
+        "certificate_indices": {"type": "ARRAY", "items": {"type": "INTEGER"}},
+    },
+    "required": ["experience_indices", "project_indices", "certificate_indices"],
+}
+
+
+def _describe_experiences(experiences: list[dict[str, Any]]) -> str:
+    lines = [
+        f"{i}: {exp.get('title') or ''} - {exp.get('company') or ''} "
+        f"| {exp.get('description') or ''}"
+        for i, exp in enumerate(experiences)
+    ]
+    return "\n".join(lines) or "(yok)"
+
+
+def _describe_projects(projects: list[dict[str, Any]]) -> str:
+    lines = [
+        f"{i}: {p.get('title') or ''} [{', '.join(p.get('tech_stack') or [])}] "
+        f"| {p.get('description') or ''}"
+        for i, p in enumerate(projects)
+    ]
+    return "\n".join(lines) or "(yok)"
+
+
+def _describe_certificates(certificates: list[dict[str, Any]]) -> str:
+    lines = [
+        f"{i}: {c.get('title') or ''} - {c.get('issuer') or ''}" for i, c in enumerate(certificates)
+    ]
+    return "\n".join(lines) or "(yok)"
+
+
+def _select_indices(items: list[dict[str, Any]], indices: list[int]) -> list[dict[str, Any]]:
+    """LLM'in seçtiği index'lere göre alt küme döner. Seçim boşsa veya tamamen
+    geçersizse (LLM hatalı/boş döndürdüyse) hepsini gösterir - bir öğeyi yanlışlıkla
+    CV'den tamamen düşürmek, alakasız bir öğeyi göstermekten daha kötü bir hata."""
+    if not items:
+        return []
+    valid = {i for i in indices if isinstance(i, int) and 0 <= i < len(items)}
+    if not valid:
+        return items
+    return [item for i, item in enumerate(items) if i in valid]
+
 
 def _rank_projects(
     projects: list[dict[str, Any]], job_analysis: dict[str, Any], limit: int
@@ -176,17 +225,58 @@ class CVGenerationAgent:
         raw_text = await self.client.generate_text(prompt, temperature=0.7)
         return _MARKDOWN_ARTIFACTS.sub("", raw_text).strip()
 
+    @staticmethod
+    def _has_filterable_content(user_profile: dict[str, Any]) -> bool:
+        return bool(
+            user_profile.get("work_experiences")
+            or user_profile.get("projects")
+            or user_profile.get("certificates")
+        )
+
+    async def _select_relevant_content(
+        self, user_profile: dict[str, Any], job_analysis: dict[str, Any]
+    ) -> dict[str, list[int]]:
+        """Ekip kararı: profildeki TÜM deneyim/proje/sertifikayı basmak yerine, sadece
+        bu ilanla alakalı olanları LLM'e seçtir - aksi halde tamamen ilgisiz geçmiş
+        işler/projeler CV'yi şişiriyordu."""
+        prompt = render_prompt(
+            "cv_content_filter",
+            experiences=_describe_experiences(user_profile.get("work_experiences") or []),
+            projects=_describe_projects(user_profile.get("projects") or []),
+            certificates=_describe_certificates(user_profile.get("certificates") or []),
+            position_title=job_analysis.get("position_title") or "belirtilmemiş",
+            required_skills=", ".join(job_analysis.get("required_skills") or []) or "belirtilmemiş",
+            nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "yok",
+        )
+        result = await self.client.generate_json(prompt, response_schema=CV_CONTENT_FILTER_SCHEMA)
+        return {
+            "experience_indices": result.get("experience_indices") or [],
+            "project_indices": result.get("project_indices") or [],
+            "certificate_indices": result.get("certificate_indices") or [],
+        }
+
     def _render_latex(
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
         ai_summary: Optional[str] = None,
+        content_selection: Optional[dict[str, list[int]]] = None,
     ) -> str:
         skills = sorted(set(user_profile.get("skills") or []))
-        relevant_projects = _rank_projects(
-            user_profile.get("projects") or [], job_analysis, limit=_MAX_PROJECTS_ON_CV
+        selection = content_selection or {}
+        filtered_projects = _select_indices(
+            user_profile.get("projects") or [], selection.get("project_indices") or []
         )
-        experiences = _sorted_experiences(user_profile.get("work_experiences") or [])
+        filtered_experiences = _select_indices(
+            user_profile.get("work_experiences") or [], selection.get("experience_indices") or []
+        )
+        filtered_certificates = _select_indices(
+            user_profile.get("certificates") or [], selection.get("certificate_indices") or []
+        )
+        relevant_projects = _rank_projects(
+            filtered_projects, job_analysis, limit=_MAX_PROJECTS_ON_CV
+        )
+        experiences = _sorted_experiences(filtered_experiences)
         education = _sorted_education(user_profile.get("education") or [])
 
         # Kişisel bilgiler - TR CV geleneği (yalnızca doldurulmuşsa gösterilir)
@@ -253,7 +343,7 @@ class CVGenerationAgent:
                     "issuer": latex_escape(cert.get("issuer")),
                     "issue_date": latex_escape(cert.get("issue_date")),
                 }
-                for cert in (user_profile.get("certificates") or [])
+                for cert in filtered_certificates
             ],
             languages=[
                 {"name": latex_escape(lang.get("name")), "level": latex_escape(lang.get("level"))}
@@ -349,7 +439,21 @@ class CVGenerationAgent:
                 except GeminiAPIException as exc:
                     logger.warning("cv_ai_summary_failed", error=str(exc))
 
-            tex_source = self._render_latex(user_profile, job_analysis or {}, ai_summary)
+            content_selection = None
+            if self._has_filterable_content(user_profile):
+                # Ekip kararı: içerik ilanla alakalı olanlarla sınırlansın. LLM
+                # başarısız olursa filtrelemeden vazgeçilir, tüm içerik gösterilir -
+                # CV üretimi bu yüzden asla kırılmaz.
+                try:
+                    content_selection = await self._select_relevant_content(
+                        user_profile, job_analysis or {}
+                    )
+                except GeminiAPIException as exc:
+                    logger.warning("cv_content_filter_failed", error=str(exc))
+
+            tex_source = self._render_latex(
+                user_profile, job_analysis or {}, ai_summary, content_selection
+            )
             pdf_bytes = await self._compile_with_tectonic(tex_source)
             if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
                 raise CVGenerationException("Üretilen dosya geçerli bir PDF değil")

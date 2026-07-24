@@ -6,6 +6,7 @@ from app.agents.cv_generation import (
     CVGenerationAgent,
     CVGenerationException,
     _rank_projects,
+    _select_indices,
     _sorted_education,
     _sorted_experiences,
     get_cv_generation_agent,
@@ -22,6 +23,13 @@ class FakeGeminiClient:
         self.last_prompt: str | None = None
         self.call_count = 0
         self.generate_text = AsyncMock(side_effect=self._generate)
+        self.generate_json = AsyncMock(
+            return_value={
+                "experience_indices": [],
+                "project_indices": [],
+                "certificate_indices": [],
+            }
+        )
 
     async def _generate(self, prompt: str, temperature: float = 0.7):
         self.call_count += 1
@@ -32,6 +40,7 @@ class FakeGeminiClient:
 class FailingGeminiClient:
     def __init__(self):
         self.generate_text = AsyncMock(side_effect=GeminiAPIException("quota exceeded"))
+        self.generate_json = AsyncMock(side_effect=GeminiAPIException("quota exceeded"))
 
 
 def test_latex_escape_handles_special_characters():
@@ -474,3 +483,81 @@ async def test_extra_prompt_reaches_generate_and_save():
 
     assert fake_client.call_count == 1
     assert "Staj motivasyonumu öne çıkar" in fake_client.last_prompt
+
+
+# --- İçerik filtreleme (otomatik, ekip kararı) ------------------------------
+
+
+def test_select_indices_empty_selection_falls_back_to_all():
+    """LLM boş/geçersiz seçim döndürürse hiçbir şey kaybetmemeli - hepsini göster"""
+    items = [{"title": "A"}, {"title": "B"}]
+    assert _select_indices(items, []) == items
+    assert _select_indices(items, [5, -1]) == items
+
+
+def test_select_indices_applies_valid_subset():
+    items = [{"title": "A"}, {"title": "B"}, {"title": "C"}]
+    assert [i["title"] for i in _select_indices(items, [0, 2])] == ["A", "C"]
+
+
+def test_select_indices_empty_items_returns_empty():
+    assert _select_indices([], [0, 1]) == []
+
+
+@pytest.mark.asyncio
+async def test_no_filterable_content_never_calls_content_filter():
+    """Profilde deneyim/proje/sertifika yoksa filtreleme için Gemini'ye hiç gidilmemeli"""
+    fake_client = FakeGeminiClient()
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate({"full_name": "Ayşe"}, {"position_title": "Dev"})
+
+    fake_client.generate_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_filterable_content_triggers_content_filter_and_applies_selection():
+    """Profilde deneyim/proje varsa LLM'e sorulmalı ve seçilen index'ler dışındaki
+    öğeler CV'den çıkarılmalı"""
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(
+        return_value={"experience_indices": [1], "project_indices": [], "certificate_indices": []}
+    )
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [
+            {"title": "Muhasebe Uzmanı", "company": "X", "description": "Alakasız iş"},
+            {"title": "Backend Developer", "company": "Y", "description": "FastAPI ile geliştirdi"},
+        ],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(profile, {"position_title": "Backend Developer"})
+
+    fake_client.generate_json.assert_awaited_once()
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "Backend Developer" in tex_source
+    assert "Muhasebe Uzmanı" not in tex_source
+
+
+@pytest.mark.asyncio
+async def test_content_filter_failure_falls_back_to_showing_everything():
+    """Gemini hata verirse (kota vb.) CV üretimi kırılmamalı, tüm içerik gösterilmeli"""
+    failing_client = FailingGeminiClient()
+    agent = CVGenerationAgent(storage=MagicMock(), client=failing_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [{"title": "Backend Developer", "company": "Y", "description": "..."}],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        pdf_bytes = await agent.generate(profile, {"position_title": "Backend Developer"})
+
+    assert pdf_bytes == b"%PDF-fake"
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "Backend Developer" in tex_source
