@@ -1,23 +1,26 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
-
 const DEFAULT_MESSAGE =
   "Bu veri eski. İlan yeniden analiz edildi; güncellemenizi öneririz.";
 
 interface StaleWarningIconProps {
+  /** Hover / erişilebilirlik için uzun açıklama */
   message?: string;
+  /** Başlığın yanında görünen kısa uyarı metni */
+  label?: string;
 }
 
-export function StaleWarningIcon({ message = DEFAULT_MESSAGE }: StaleWarningIconProps) {
+export function StaleWarningIcon({
+  message = DEFAULT_MESSAGE,
+  label = "Güncel değil",
+}: StaleWarningIconProps) {
   return (
     <span
-      className="inline-flex shrink-0 text-red-600"
+      className="shrink-0 text-label-md font-medium text-error"
       title={message}
-      aria-label={message}
-      role="img"
+      role="status"
     >
-      <AlertCircle className="h-5 w-5" aria-hidden="true" />
+      {label}
     </span>
   );
 }

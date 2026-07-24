@@ -9,10 +9,11 @@ import json
 from typing import Any, Optional
 
 import google.generativeai as genai
+from google.api_core.exceptions import DeadlineExceeded, ResourceExhausted, ServiceUnavailable
+
 from app.config import settings
 from app.exceptions import GeminiAPIException
 from app.logging_config import get_logger
-from google.api_core.exceptions import DeadlineExceeded, ResourceExhausted, ServiceUnavailable
 
 logger = get_logger("gemini_client")
 
@@ -51,6 +52,7 @@ PROMPT_TEMPLATES: dict[str, str] = {
         "Aday profili: {user_profile}\nİlan analizi: {job_analysis}\n"
         "Eşleştirme eksikleri: {matching_gaps}\n\n"
         "Strateji: {strategy}\n\n"
+        "{previous_cover_letter_section}"
         "{extra_prompt_section}"
         "Kurallar:\n"
         "- Bu önyazı SADECE {company_name} için yazılıyor. Şirket adını en az bir kez "
@@ -59,6 +61,9 @@ PROMPT_TEMPLATES: dict[str, str] = {
         "her cümle bu ilana ve bu şirkete özel olmalı.\n"
         "- Adayın eşleşen becerilerini somut örneklerle vurgula.\n"
         "- Eksik becerileri gizleme ama öğrenmeye açık/ilgili deneyimle telafi ederek yumuşat.\n"
+        "- Önceki önyazı verildiyse onu görüp temel al; ekstra düzenleme notu varsa ona göre "
+        "revize et, yoksa profil/ilan/eşleştirme güncelliğine göre iyileştir. "
+        "Kelimesi kelimesine kopyalama.\n"
         "- Panoya kopyalanıp doğrudan gönderilecek, o yüzden markdown, başlık, yıldız "
         "işareti kullanma - sadece düz metin, paragraflar halinde.\n"
         "- Sadece önyazı metnini döndür, açıklama veya giriş cümlesi ekleme."

@@ -33,6 +33,7 @@ export function CvResultSection({
     .find((document) => document.doc_type === "cv");
   const [downloadError, setDownloadError] = useState<string>();
   const [extraPrompt, setExtraPrompt] = useState("");
+  const [showEditPrompt, setShowEditPrompt] = useState(false);
 
   const handleDownload = async () => {
     if (!cv?.cv_url) return;
@@ -71,25 +72,35 @@ export function CvResultSection({
         Profiliniz ve ilan gereksinimleriyle uyumlu PDF özgeçmiş oluşturun.
       </p>
 
-      <div className="mt-3">
-        <Textarea
-          label="Ekstra vurgu notu (isteğe bağlı)"
-          placeholder='Ör. "takım çalışmasını vurgula", "eşleşme düşükse motivasyonumu öne çıkar"'
-          value={extraPrompt}
-          onChange={(event) => setExtraPrompt(event.target.value)}
-          maxLength={EXTRA_PROMPT_MAX_LENGTH}
-          showCount
-          rows={2}
-        />
-      </div>
+      {showEditPrompt && (
+        <div className="mt-3">
+          <Textarea
+            label="Ekstra vurgu notu (isteğe bağlı)"
+            placeholder='Ör. "takım çalışmasını vurgula", "eşleşme düşükse motivasyonumu öne çıkar"'
+            value={extraPrompt}
+            onChange={(event) => setExtraPrompt(event.target.value)}
+            maxLength={EXTRA_PROMPT_MAX_LENGTH}
+            showCount
+            rows={2}
+          />
+        </div>
+      )}
 
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowEditPrompt((open) => !open)}
+          className="shrink-0 sm:mr-auto"
+        >
+          Düzenleme Promtu
+        </Button>
         <Button
           type="button"
           onClick={() => onGenerate(extraPrompt.trim() || undefined)}
           loading={loading}
           variant="secondary"
-          className="shrink-0"
+          className="shrink-0 sm:ml-auto"
         >
           <FileText className="h-4 w-4" />
           {cv ? "CV’yi Yeniden Oluştur" : "CV Oluştur"}
@@ -110,26 +121,6 @@ export function CvResultSection({
 
       {cv?.cv_url ? (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap justify-end gap-2">
-            <a
-              href={cv.cv_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-primary px-4 py-2 text-label-md font-semibold text-primary transition-colors hover:bg-primary hover:text-on-primary"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Yeni Sekmede Aç
-            </a>
-            <Button
-              type="button"
-              onClick={() => void handleDownload()}
-              className="inline-flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              PDF İndir
-            </Button>
-          </div>
-          <FormError message={downloadError} />
           <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
             <iframe
               src={cv.cv_url}
@@ -137,6 +128,29 @@ export function CvResultSection({
               className="h-[520px] w-full"
             />
           </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                window.open(cv.cv_url!, "_blank", "noopener,noreferrer")
+              }
+              className="shrink-0 sm:mr-auto"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Yeni Sekmede Aç
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void handleDownload()}
+              className="shrink-0 sm:ml-auto"
+            >
+              <Download className="h-4 w-4" />
+              PDF İndir
+            </Button>
+          </div>
+          <FormError message={downloadError} />
           <p className="text-label-md text-on-surface-variant">
             PDF tarayıcıda görüntülenemiyorsa yeni sekmede açabilir veya
             indirebilirsiniz.

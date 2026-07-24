@@ -8,6 +8,9 @@ import json
 import re
 from typing import Any, Optional
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.agents.prompt_safety import build_extra_prompt_section as _build_extra_prompt_section
 from app.agents.strategy import STRATEGY_POTENTIAL as _STRATEGY_POTENTIAL
 from app.agents.strategy import select_strategy as _select_strategy
@@ -16,7 +19,6 @@ from app.logging_config import get_logger
 from app.models import Document
 from app.observability import agent_run
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("cover_letter_agent")
 
@@ -29,13 +31,55 @@ TONE_DISPLAY_NAMES = {
 _MIN_WORDS = 250
 _MAX_WORDS = 600
 
+# Önceki önyazı prompt'a eklenirken taşmayı önlemek için (≈600 kelime + tampon)
+_PREVIOUS_COVER_LETTER_MAX_LENGTH = 5000
+
 # Panoya kopyalamaya hazır düz metin için - LLM markdown eklerse temizler
 _MARKDOWN_ARTIFACTS = re.compile(r"[*_#`]+")
+_FENCE = '"""'
 
 
 def _sanitize(text: str) -> str:
     text = _MARKDOWN_ARTIFACTS.sub("", text)
     return text.strip()
+
+
+def _build_previous_cover_letter_section(previous: Optional[str]) -> str:
+    """Yeniden üretimde mevcut önyazıyı prompt'a güvenli şekilde ekler."""
+    if not previous or not previous.strip():
+        return ""
+    text = previous.strip()[:_PREVIOUS_COVER_LETTER_MAX_LENGTH].replace(_FENCE, "'")
+    return (
+        "Bu ilan için daha önce üretilmiş önyazı aşağıda üç tırnak arasında verilmiştir. "
+        "Yeniden yazarken bu metni GÖR ve temel al; güçlü kısımları koruyabilir, "
+        "zayıf kısımları iyileştirebilirsin. Kullanıcının ekstra düzenleme notu varsa ona göre "
+        "revize et. Önceki metni kelimesi kelimesine kopyalama; güncel profil, ilan ve "
+        "eşleştirme bilgilerine uyumlu yeni bir önyazı üret:\n"
+        f"{_FENCE}\n{text}\n{_FENCE}\n\n"
+    )
+
+
+async def _latest_cover_letter_text(
+    db: AsyncSession,
+    user_id: str,
+    listing_id: Optional[str],
+) -> Optional[str]:
+    if not listing_id:
+        return None
+    result = await db.execute(
+        select(Document)
+        .where(
+            Document.user_id == user_id,
+            Document.listing_id == listing_id,
+            Document.doc_type == "cover_letter",
+        )
+        .order_by(Document.created_at.desc(), Document.id.desc())
+        .limit(1)
+    )
+    document = result.scalar_one_or_none()
+    if document is None or not document.cover_letter_text:
+        return None
+    return document.cover_letter_text
 
 
 class CoverLetterAgent:
@@ -52,6 +96,7 @@ class CoverLetterAgent:
         tone_preference: str = "professional",
         company_name: Optional[str] = None,
         extra_prompt: Optional[str] = None,
+        previous_cover_letter: Optional[str] = None,
     ) -> str:
         if not user_profile or not job_analysis:
             raise ValidationException("user_profile ve job_analysis zorunludur")
@@ -69,6 +114,9 @@ class CoverLetterAgent:
                 job_analysis=json.dumps(job_analysis, ensure_ascii=False),
                 matching_gaps=json.dumps(matching_gaps, ensure_ascii=False),
                 strategy=strategy,
+                previous_cover_letter_section=_build_previous_cover_letter_section(
+                    previous_cover_letter
+                ),
                 extra_prompt_section=_build_extra_prompt_section(extra_prompt),
             )
 
@@ -90,6 +138,9 @@ class CoverLetterAgent:
                 score=matching_gaps.get("score"),
                 low_score_strategy=low_score,
                 extra_prompt_used=bool(extra_prompt),
+                previous_cover_letter_used=bool(
+                    previous_cover_letter and previous_cover_letter.strip()
+                ),
             )
             return text
 
@@ -104,8 +155,16 @@ class CoverLetterAgent:
         tone_preference: str = "professional",
         company_name: Optional[str] = None,
         extra_prompt: Optional[str] = None,
+        previous_cover_letter: Optional[str] = None,
     ) -> Document:
-        """Önyazıyı üretir ve `documents` tablosuna kaydeder"""
+        """Önyazıyı üretir ve `documents` tablosuna kaydeder.
+
+        previous_cover_letter verilmezse aynı ilan için en son kayıtlı önyazı
+        otomatik yüklenir (yeniden üretimde agent eski metni görsün diye).
+        """
+        if previous_cover_letter is None:
+            previous_cover_letter = await _latest_cover_letter_text(db, user_id, listing_id)
+
         text = await self.generate(
             user_profile,
             job_analysis,
@@ -113,6 +172,7 @@ class CoverLetterAgent:
             tone_preference,
             company_name,
             extra_prompt=extra_prompt,
+            previous_cover_letter=previous_cover_letter,
         )
 
         document = Document(
