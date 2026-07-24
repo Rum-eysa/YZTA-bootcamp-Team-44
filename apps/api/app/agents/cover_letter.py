@@ -8,9 +8,6 @@ import json
 import re
 from typing import Any, Optional
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.agents.prompt_safety import build_extra_prompt_section as _build_extra_prompt_section
 from app.agents.strategy import STRATEGY_POTENTIAL as _STRATEGY_POTENTIAL
 from app.agents.strategy import select_strategy as _select_strategy
@@ -19,6 +16,8 @@ from app.logging_config import get_logger
 from app.models import Document
 from app.observability import agent_run
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger("cover_letter_agent")
 
