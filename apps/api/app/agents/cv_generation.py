@@ -416,7 +416,7 @@ class CVGenerationAgent:
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
         ai_summary: Optional[str] = None,
-        content_selection: Optional[dict[str, list[int]]] = None,
+        content_selection: Optional[dict[str, Any]] = None,
     ) -> str:
         skills = sorted(set(user_profile.get("skills") or []))
         selection = content_selection or {}
