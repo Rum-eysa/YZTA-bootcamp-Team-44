@@ -78,6 +78,25 @@ PROMPT_TEMPLATES: dict[str, str] = {
         "- Sadece 2-4 cümlelik düz metin döndür - markdown, başlık, madde işareti yok.\n"
         "- Türkçe yaz. Sadece özet metnini döndür, açıklama veya giriş cümlesi ekleme."
     ),
+    "cv_content_filter": (
+        "Bir adayın profilindeki iş deneyimi, proje ve sertifikalarından hangilerinin "
+        "aşağıdaki iş ilanıyla İLGİLİ olduğunu belirle; CV'ye sadece bu ilanla alakalı "
+        "öğeler basılacak.\n\n"
+        "İş deneyimleri (index: başlık - şirket | açıklama):\n{experiences}\n\n"
+        "Projeler (index: başlık [tech stack] | açıklama):\n{projects}\n\n"
+        "Sertifikalar (index: başlık - veren kurum):\n{certificates}\n\n"
+        "İlan pozisyonu: {position_title}\n"
+        "Zorunlu beceriler: {required_skills}\n"
+        "Tercih edilen beceriler: {nice_to_have_skills}\n\n"
+        "Kurallar:\n"
+        "- Sadece bu ilanla gerçekten ilgili olan (aynı/yakın teknoloji, alan veya rol) "
+        "öğelerin index'lerini seç.\n"
+        "- Şüpheye düştüğünde öğeyi DAHİL et, dışlama.\n"
+        "- Tamamen alakasız alandaki (ör. farklı bir meslek/teknoloji yığını) öğeleri çıkar.\n"
+        "- Sadece yukarıda verilen index numaralarını kullan, yeni index üretme.\n"
+        "- experience_indices, project_indices ve certificate_indices alanlarını içeren "
+        "bir JSON döndür."
+    ),
 }
 
 
