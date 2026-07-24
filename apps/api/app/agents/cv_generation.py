@@ -73,14 +73,31 @@ _MAX_PROJECTS_ON_CV = 3
 
 # generate_json'a verilen response_schema - google-generativeai SDK OpenAPI benzeri
 # tip adları bekler (büyük harf "OBJECT"/"ARRAY"/"INTEGER").
+_REWRITE_ITEM_SCHEMA: dict[str, Any] = {
+    "type": "OBJECT",
+    "properties": {"index": {"type": "INTEGER"}, "description": {"type": "STRING"}},
+    "required": ["index", "description"],
+}
+
 CV_CONTENT_FILTER_SCHEMA: dict[str, Any] = {
     "type": "OBJECT",
     "properties": {
         "experience_indices": {"type": "ARRAY", "items": {"type": "INTEGER"}},
         "project_indices": {"type": "ARRAY", "items": {"type": "INTEGER"}},
         "certificate_indices": {"type": "ARRAY", "items": {"type": "INTEGER"}},
+        "experience_rewrites": {"type": "ARRAY", "items": _REWRITE_ITEM_SCHEMA},
+        "project_rewrites": {"type": "ARRAY", "items": _REWRITE_ITEM_SCHEMA},
     },
     "required": ["experience_indices", "project_indices", "certificate_indices"],
+}
+
+CV_SHORTEN_SCHEMA: dict[str, Any] = {
+    "type": "OBJECT",
+    "properties": {
+        "experience_rewrites": {"type": "ARRAY", "items": _REWRITE_ITEM_SCHEMA},
+        "project_rewrites": {"type": "ARRAY", "items": _REWRITE_ITEM_SCHEMA},
+    },
+    "required": ["experience_rewrites", "project_rewrites"],
 }
 
 
@@ -119,6 +136,35 @@ def _select_indices(items: list[dict[str, Any]], indices: list[int]) -> list[dic
     if not valid:
         return items
     return [item for i, item in enumerate(items) if i in valid]
+
+
+def _select_and_rewrite(
+    items: list[dict[str, Any]], indices: list[int], rewrites: dict[int, str]
+) -> list[dict[str, Any]]:
+    """_select_indices ile aynı fail-open seçim mantığı; ek olarak seçilen öğelerin
+    description alanını (varsa) ilana göre yeniden yazılmış/kısaltılmış metinle
+    değiştirir. Rewrite verilmemiş bir öğe orijinal metniyle kalır (fail-open)."""
+    if not items:
+        return []
+    valid = {i for i in indices if isinstance(i, int) and 0 <= i < len(items)}
+    chosen = valid if valid else set(range(len(items)))
+    result = []
+    for i, item in enumerate(items):
+        if i not in chosen:
+            continue
+        rewritten = rewrites.get(i)
+        result.append({**item, "description": rewritten} if rewritten else item)
+    return result
+
+
+def _rewrites_to_map(rewrite_items: list[dict[str, Any]]) -> dict[int, str]:
+    """generate_json'dan gelen [{index, description}, ...] listesini index->metin
+    sözlüğüne çevirir; geçersiz/eksik girişleri sessizce atar."""
+    return {
+        item["index"]: item["description"]
+        for item in rewrite_items or []
+        if isinstance(item, dict) and isinstance(item.get("index"), int) and item.get("description")
+    }
 
 
 def _rank_projects(
@@ -235,10 +281,11 @@ class CVGenerationAgent:
 
     async def _select_relevant_content(
         self, user_profile: dict[str, Any], job_analysis: dict[str, Any]
-    ) -> dict[str, list[int]]:
+    ) -> dict[str, Any]:
         """Ekip kararı: profildeki TÜM deneyim/proje/sertifikayı basmak yerine, sadece
         bu ilanla alakalı olanları LLM'e seçtir - aksi halde tamamen ilgisiz geçmiş
-        işler/projeler CV'yi şişiriyordu."""
+        işler/projeler CV'yi şişiriyordu. Aynı çağrıda, dahil edilen deneyim/proje
+        açıklamaları da ilana göre yeniden yazdırılır (tailoring)."""
         prompt = render_prompt(
             "cv_content_filter",
             experiences=_describe_experiences(user_profile.get("work_experiences") or []),
@@ -253,22 +300,135 @@ class CVGenerationAgent:
             "experience_indices": result.get("experience_indices") or [],
             "project_indices": result.get("project_indices") or [],
             "certificate_indices": result.get("certificate_indices") or [],
+            "experience_rewrites": _rewrites_to_map(result.get("experience_rewrites") or []),
+            "project_rewrites": _rewrites_to_map(result.get("project_rewrites") or []),
         }
+
+    async def _shorten_overflowing_content(
+        self,
+        user_profile: dict[str, Any],
+        job_analysis: dict[str, Any],
+        content_selection: dict[str, Any],
+    ) -> dict[str, Any]:
+        """CV 1 sayfayı aştığında, halihazırda CV'ye dahil edilmiş (ve varsa daha önce
+        ilana göre yeniden yazılmış) deneyim/proje açıklamalarını anlam kaybı olmadan
+        kısaltmak için ek bir LLM adımı. Sadece dahil edilen alt küme gönderilir -
+        çıkarılmış olan öğeler zaten CV'de yer almadığı için kısaltmaya gerek yok."""
+        experiences = user_profile.get("work_experiences") or []
+        projects = user_profile.get("projects") or []
+        exp_indices = content_selection.get("experience_indices") or list(range(len(experiences)))
+        proj_indices = content_selection.get("project_indices") or list(range(len(projects)))
+        exp_rewrites = content_selection.get("experience_rewrites") or {}
+        proj_rewrites = content_selection.get("project_rewrites") or {}
+
+        current_experiences = [
+            {
+                **experiences[i],
+                "description": exp_rewrites.get(i, experiences[i].get("description")),
+            }
+            for i in exp_indices
+            if 0 <= i < len(experiences)
+        ]
+        current_projects = [
+            {**projects[i], "description": proj_rewrites.get(i, projects[i].get("description"))}
+            for i in proj_indices
+            if 0 <= i < len(projects)
+        ]
+
+        prompt = render_prompt(
+            "cv_shorten_content",
+            experiences=_describe_experiences(current_experiences),
+            projects=_describe_projects(current_projects),
+            position_title=job_analysis.get("position_title") or "belirtilmemiş",
+        )
+        result = await self.client.generate_json(prompt, response_schema=CV_SHORTEN_SCHEMA)
+
+        new_exp_rewrites = dict(exp_rewrites)
+        for local_i, description in _rewrites_to_map(
+            result.get("experience_rewrites") or []
+        ).items():
+            if 0 <= local_i < len(exp_indices):
+                new_exp_rewrites[exp_indices[local_i]] = description
+
+        new_proj_rewrites = dict(proj_rewrites)
+        for local_i, description in _rewrites_to_map(result.get("project_rewrites") or []).items():
+            if 0 <= local_i < len(proj_indices):
+                new_proj_rewrites[proj_indices[local_i]] = description
+
+        return {
+            **content_selection,
+            "experience_indices": exp_indices,
+            "project_indices": proj_indices,
+            "experience_rewrites": new_exp_rewrites,
+            "project_rewrites": new_proj_rewrites,
+        }
+
+    async def _try_shorten_for_overflow(
+        self,
+        user_profile: dict[str, Any],
+        job_analysis: dict[str, Any],
+        ai_summary: Optional[str],
+        content_selection: Optional[dict[str, Any]],
+        original_pdf: bytes,
+    ) -> bytes:
+        """CV 1 sayfayı aşarsa dahil edilen paragrafları kısaltıp tek seferlik yeniden
+        derleme dener. Herhangi bir adım başarısız olursa (LLM hatası, derleme hatası)
+        orijinal (uzun) PDF'e sessizce geri dönülür - bu bir iyileştirme denemesidir,
+        CV üretimini asla kıramaz."""
+        selection = content_selection or {}
+        experiences = user_profile.get("work_experiences") or []
+        projects = user_profile.get("projects") or []
+        exp_indices = selection.get("experience_indices") or list(range(len(experiences)))
+        proj_indices = selection.get("project_indices") or list(range(len(projects)))
+        if not exp_indices and not proj_indices:
+            return original_pdf
+
+        try:
+            shortened_selection = await self._shorten_overflowing_content(
+                user_profile, job_analysis, selection
+            )
+        except GeminiAPIException as exc:
+            logger.warning("cv_shorten_failed", error=str(exc))
+            return original_pdf
+
+        tex_source = self._render_latex(user_profile, job_analysis, ai_summary, shortened_selection)
+        try:
+            shortened_pdf = await self._compile_with_tectonic(tex_source)
+        except CVGenerationException as exc:
+            logger.warning("cv_shorten_recompile_failed", error=str(exc))
+            return original_pdf
+
+        if (
+            shortened_pdf
+            and shortened_pdf.startswith(b"%PDF")
+            and _pdf_page_count(shortened_pdf) >= 1
+        ):
+            logger.info(
+                "cv_shortened_for_overflow",
+                pages_before=_pdf_page_count(original_pdf),
+                pages_after=_pdf_page_count(shortened_pdf),
+            )
+            return shortened_pdf
+        return original_pdf
 
     def _render_latex(
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
         ai_summary: Optional[str] = None,
-        content_selection: Optional[dict[str, list[int]]] = None,
+        content_selection: Optional[dict[str, Any]] = None,
     ) -> str:
         skills = sorted(set(user_profile.get("skills") or []))
         selection = content_selection or {}
-        filtered_projects = _select_indices(
-            user_profile.get("projects") or [], selection.get("project_indices") or []
+        filtered_projects = _select_and_rewrite(
+            user_profile.get("projects") or [],
+            selection.get("project_indices") or [],
+            selection.get("project_rewrites") or {},
         )
-        filtered_experiences = _select_indices(
-            user_profile.get("work_experiences") or [], selection.get("experience_indices") or []
+        filtered_experiences = _select_and_rewrite(
+            user_profile.get("work_experiences") or [],
+            selection.get("experience_indices") or [],
+            selection.get("experience_rewrites") or {},
         )
         filtered_certificates = _select_indices(
             user_profile.get("certificates") or [], selection.get("certificate_indices") or []
@@ -457,8 +617,16 @@ class CVGenerationAgent:
             pdf_bytes = await self._compile_with_tectonic(tex_source)
             if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
                 raise CVGenerationException("Üretilen dosya geçerli bir PDF değil")
-            if _pdf_page_count(pdf_bytes) < 1:
+            page_count = _pdf_page_count(pdf_bytes)
+            if page_count < 1:
                 raise CVGenerationException("Üretilen PDF en az 1 sayfa içermeli")
+
+            if page_count > 1:
+                # CV 1 sayfayı aştıysa, anlam kaybı olmadan paragrafları kısaltıp tek
+                # seferlik yeniden derleme dene; başarısız olursa uzun PDF'e dön.
+                pdf_bytes = await self._try_shorten_for_overflow(
+                    user_profile, job_analysis or {}, ai_summary, content_selection, pdf_bytes
+                )
             return pdf_bytes
 
     async def generate_and_save(
