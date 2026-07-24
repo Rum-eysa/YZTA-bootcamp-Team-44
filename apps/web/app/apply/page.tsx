@@ -122,7 +122,7 @@ function ApplyContent() {
   return (
     <main className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-lg md:py-xl space-y-lg md:space-y-xl">
       <section className="bg-surface-container-lowest rounded-xl p-4 md:p-6 border border-outline-variant">
-        <div className="flex flex-col md:flex-row gap-md items-start">
+        <div className="flex flex-row items-start justify-between gap-md mb-md">
           <div className="relative shrink-0">
             <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border border-outline-variant bg-surface flex items-center justify-center">
               {companyLogo ? (
@@ -155,47 +155,44 @@ function ApplyContent() {
             />
           </div>
 
-          <div className="flex-1 w-full">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-sm gap-4">
-              <div className="w-full md:max-w-md space-y-2">
-                <input
-                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 text-headline-lg-mobile md:text-headline-lg font-semibold text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  placeholder="Şirket Adı"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                />
-                <input
-                  className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 text-body-lg text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                  placeholder="Pozisyon"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                />
-              </div>
-              <Button
-                type="button"
-                loading={isSubmitting}
-                onClick={handleSubmit(onSubmit)}
-                className="shrink-0 px-8 py-3.5 text-lg"
-              >
-                İlanı Oluştur
-              </Button>
-            </div>
+          <Button
+            type="button"
+            loading={isSubmitting}
+            onClick={handleSubmit(onSubmit)}
+            className="shrink-0 px-6 py-3 md:px-8 md:py-3.5 text-base md:text-lg"
+          >
+            İlanı Oluştur
+          </Button>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-sm mt-md">
-              <input
-                className="input-field py-1.5"
-                placeholder="Şehir"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-              />
-              <input
-                className="input-field py-1.5"
-                placeholder="İlçe"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-              />
-            </div>
-          </div>
+        <div className="w-full max-w-md space-y-2 mb-sm">
+          <input
+            className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 text-headline-lg-mobile md:text-headline-lg font-semibold text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            placeholder="Şirket Adı"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+          />
+          <input
+            className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 text-body-lg text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            placeholder="Pozisyon"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-sm mt-md">
+          <input
+            className="input-field py-1.5"
+            placeholder="Şehir"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+          <input
+            className="input-field py-1.5"
+            placeholder="İlçe"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+          />
         </div>
       </section>
 
@@ -371,14 +368,6 @@ function ApplyContent() {
                 </button>
               </div>
             </Card>
-
-            <Button
-              type="submit"
-              loading={isSubmitting}
-              className="w-full py-3.5 text-lg md:hidden"
-            >
-              İlanı Oluştur
-            </Button>
           </div>
         </div>
       </form>

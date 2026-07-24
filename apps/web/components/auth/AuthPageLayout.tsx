@@ -8,7 +8,7 @@ interface AuthPageLayoutProps {
 
 function AuthPromo() {
   return (
-    <section className="relative overflow-hidden bg-inverse-surface p-8 text-inverse-on-surface md:p-10">
+    <section className="order-2 lg:order-1 relative overflow-hidden bg-inverse-surface p-8 text-inverse-on-surface md:p-10">
       <div
         aria-hidden="true"
         className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-primary/40 blur-3xl"
@@ -61,7 +61,7 @@ export function AuthPageLayout({ children }: AuthPageLayoutProps) {
 
         <div className="relative mx-auto grid max-w-[960px] overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-card-hover lg:grid-cols-[1.05fr_0.95fr]">
           <AuthPromo />
-          <section className="p-6 md:p-10">{children}</section>
+          <section className="order-1 lg:order-2 p-6 md:p-10">{children}</section>
         </div>
       </main>
     </div>
