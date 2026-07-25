@@ -33,7 +33,7 @@ export function AppLayout({ children, guard = true }: AppLayoutProps) {
 
       <div className="flex flex-1 w-full max-w-container-max mx-auto">
         {showNav && drawerOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
+          <div className="fixed inset-0 z-[90] md:hidden">
             <div
               className="absolute inset-0 bg-black/40"
               onClick={() => setDrawerOpen(false)}

@@ -144,8 +144,8 @@ function ListingsContent() {
             href={`/listings/${listing.id}`}
             className="block w-full bg-surface-container-lowest rounded-xl p-4 md:p-5 border border-outline-variant hover:border-primary hover:shadow-card-hover transition-all"
           >
-            <div className="flex flex-col gap-md">
-              <div className="min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center gap-md">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-12 h-12 rounded-lg overflow-hidden border border-outline-variant bg-surface flex items-center justify-center shrink-0">
                     {logos[listing.id] ? (
@@ -179,7 +179,7 @@ function ListingsContent() {
                 </div>
               </div>
 
-              <div className="flex w-full items-center justify-between gap-md">
+              <div className="flex w-full md:w-auto md:min-w-[220px] items-center justify-between gap-md shrink-0">
                 <div className="text-left min-w-[72px]">
                   <div className="flex items-center justify-start gap-1 text-primary font-bold">
                     <Zap className="w-4 h-4" />

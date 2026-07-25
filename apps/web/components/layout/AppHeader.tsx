@@ -43,7 +43,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const loginHref = `/login?redirect=${encodeURIComponent(pathname)}`;
 
   return (
-    <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-50 w-full">
+    <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-[100] w-full">
       <div className="flex justify-between items-center w-full px-margin-mobile md:px-lg max-w-container-max mx-auto h-16">
         <div className="flex items-center gap-sm md:gap-md">
           {isAuthenticated && onMenuClick && (
