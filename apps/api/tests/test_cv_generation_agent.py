@@ -3,8 +3,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from app.agents.cv_generation import (
+    CV_TEMPLATE_IDS,
     CVGenerationAgent,
     CVGenerationException,
+    DEFAULT_CV_TEMPLATE,
+    _MAX_DESCRIPTION_CHARS,
+    _clamp_description,
+    _format_month_year,
+    _format_period,
+    _languages_line,
     _rank_projects,
     _rewrites_to_map,
     _select_and_rewrite,
@@ -13,6 +20,7 @@ from app.agents.cv_generation import (
     _sorted_experiences,
     get_cv_generation_agent,
     latex_escape,
+    normalize_cv_template_id,
 )
 from app.exceptions import GeminiAPIException, ValidationException
 
@@ -261,18 +269,33 @@ def test_sorted_education_puts_ongoing_first():
     assert sorted_edu[-1]["school"] == "İlkokul"
 
 
+def test_format_month_year_turkish_month_and_year_only():
+    assert _format_month_year("2024-06-01") == "Haziran 2024"
+    assert _format_month_year("2023-09") == "Eylül 2023"
+    assert _format_month_year(None) == ""
+    assert _format_month_year("") == ""
+
+
+def test_format_period_uses_month_year_and_devam_ediyor():
+    assert (
+        _format_period({"start_date": "2024-06-01", "end_date": "2024-09-15"})
+        == "Haziran 2024 - Eylül 2024"
+    )
+    assert (
+        _format_period({"start_date": "2025-09-01", "end_date": None})
+        == "Eylül 2025 - devam ediyor"
+    )
+
+
 @pytest.mark.asyncio
-async def test_render_latex_includes_education_and_personal_info():
-    """CV'de eğitim ve kişisel bilgiler (yalnızca doluysa) basılmalı"""
+async def test_render_latex_includes_education_section():
+    """Version şablonlarında eğitim doluysa basılmalı; kişisel bilgiler bölümü yok"""
     agent = CVGenerationAgent(storage=MagicMock())
     profile = {
         "full_name": "Mehmet Kaya",
         "skills": ["Java"],
         "gender": "Erkek",
-        "nationality": "TC",
-        "birth_year": 1997,
         "military_status": "Yapıldı",
-        "driver_license": "B",
         "education": [
             {
                 "school": "ODTÜ",
@@ -280,36 +303,31 @@ async def test_render_latex_includes_education_and_personal_info():
                 "field_of_study": "Bilgisayar Mühendisliği",
                 "start_date": "2015-09-01",
                 "end_date": "2019-06-01",
-            }
+                "description": "Tez: dağıtık sistemler.",
+            },
+            {
+                "school": "ODTÜ",
+                "degree": "Yüksek Lisans",
+                "field_of_study": "Yazılım Mühendisliği",
+                "start_date": "2019-09-01",
+                "end_date": "2021-06-01",
+            },
         ],
     }
     job_analysis = {"position_title": "Java Backend Developer"}
 
     tex = agent._render_latex(profile, job_analysis)
 
-    assert "Eğitim" in tex
+    assert "Eğitimler" in tex
     assert "ODTÜ" in tex
-    assert "Kişisel Bilgiler" in tex
-    assert "Erkek" in tex
-    assert "Askerlik Durumu" in tex
-
-
-@pytest.mark.asyncio
-async def test_render_latex_omits_empty_personal_fields():
-    """Doldurulmamış kişisel alanlar (ör. askerlik/ehliyet) CV'de hiç görünmemeli"""
-    agent = CVGenerationAgent(storage=MagicMock())
-    profile = {
-        "full_name": "Elif Aydın",
-        "skills": ["Python"],
-        "gender": "Kadın",
-        "military_status": None,
-        "driver_license": None,
-    }
-    tex = agent._render_latex(profile, {"position_title": "Senior Backend Engineer"})
-
+    assert "Eylül 2015 - Haziran 2019" in tex
+    assert "2015-09-01" not in tex
+    assert "Kişisel Bilgiler" not in tex
     assert "Askerlik Durumu" not in tex
-    assert "Sürücü Belgesi" not in tex
-    assert "Cinsiyet" in tex
+    # Her eğitim kaydı \par ile ayrılsın (açıklama sonrası kaymayı önler)
+    assert tex.count(r"\par\noindent") >= 2
+    assert "Tez: da" in tex
+    assert r"\par\vspace" in tex
 
 
 @pytest.mark.asyncio
@@ -318,7 +336,7 @@ async def test_render_latex_omits_education_section_when_empty():
     tex = agent._render_latex(
         {"full_name": "Ayşe", "skills": ["Python"]}, {"position_title": "Dev"}
     )
-    assert "Eğitim" not in tex
+    assert "Eğitimler" not in tex
     assert "Kişisel Bilgiler" not in tex
 
 
@@ -333,7 +351,10 @@ async def test_render_latex_includes_location_certificates_languages_social_and_
         "certificates": [
             {"title": "AWS Certified Developer", "issuer": "Amazon", "issue_date": "2023-05-01"}
         ],
-        "languages": [{"name": "İngilizce", "level": "İleri"}],
+        "languages": [
+            {"name": "İngilizce", "level": "İleri"},
+            {"name": "Almanca", "level": "Orta"},
+        ],
         "social_links": [{"platform": "GitHub", "url": "https://github.com/ayse"}],
         "references": [{"name": "Mehmet Öz", "title": "Tech Lead", "company": "Acme"}],
     }
@@ -341,14 +362,67 @@ async def test_render_latex_includes_location_certificates_languages_social_and_
 
     assert "İstanbul, Türkiye" in tex
     assert "AWS Certified Developer" in tex
-    assert "İngilizce" in tex
+    assert "İngilizce (İleri) | Almanca (Orta)" in tex
+    assert "\\item \\textbf{İngilizce}" not in tex
     assert "github.com/ayse" in tex
     assert "Mehmet Öz" in tex
 
 
+def test_languages_line_joins_with_pipe():
+    assert (
+        _languages_line(
+            [{"name": "İngilizce", "level": "İleri"}, {"name": "Almanca", "level": "Orta"}]
+        )
+        == "İngilizce (İleri) | Almanca (Orta)"
+    )
+
+
+def test_clamp_description_shortens_long_text():
+    long = ("Python ile API geliştirdim. " * 40).strip()
+    clamped = _clamp_description(long)
+    assert len(clamped) <= _MAX_DESCRIPTION_CHARS + 1  # olası … için
+    assert clamped != long
+
+
+def test_select_and_rewrite_clamps_long_description():
+    long = "x" * 500
+    result = _select_and_rewrite([{"title": "P", "description": long}], [0], {})
+    assert len(result[0]["description"]) <= _MAX_DESCRIPTION_CHARS + 1
+
+
 @pytest.mark.asyncio
-async def test_render_latex_includes_job_requirements_section():
-    """US-044: ilanın required/nice-to-have becerileri CV'de hedef pozisyon bölümünde görünmeli"""
+async def test_render_latex_has_photo_includes_includegraphics_version1():
+    agent = CVGenerationAgent(storage=MagicMock())
+    tex = agent._render_latex(
+        {"full_name": "Ayşe", "skills": ["Python"]},
+        {"position_title": "Dev"},
+        cv_template="Version1",
+        has_photo=True,
+        avatar_filename="avatar.jpg",
+    )
+    assert "includegraphics" in tex
+    assert "avatar.jpg" in tex
+    assert r"\textbf{Fotoğraf}" not in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_no_photo_shows_placeholder_version1():
+    agent = CVGenerationAgent(storage=MagicMock())
+    tex = agent._render_latex(
+        {"full_name": "Ayşe", "skills": ["Python"]},
+        {"position_title": "Dev"},
+        cv_template="Version1",
+        has_photo=False,
+    )
+    assert "Fotoğraf" in tex
+    assert "Alanı" in tex
+    assert "includegraphics" not in tex
+
+
+@pytest.mark.asyncio
+async def test_render_latex_does_not_print_job_requirements_section():
+    """İlan becerileri filtre/rewrite/ranking için kullanılır; CV gövdesine ayrı bölüm basılmaz
+    (1 sayfa hedefi + ATS CV gerçekçiliği)."""
     agent = CVGenerationAgent(storage=MagicMock())
     tex = agent._render_latex(
         {"full_name": "Ayşe", "skills": ["Python"]},
@@ -359,9 +433,8 @@ async def test_render_latex_includes_job_requirements_section():
         },
     )
 
-    assert "Hedef Pozisyon Gereksinimleri" in tex
-    assert "Python, FastAPI" in tex
-    assert "Docker" in tex
+    assert "Hedef Pozisyon Gereksinimleri" not in tex
+    assert "Aranan Beceriler" not in tex
 
 
 @pytest.mark.asyncio
@@ -372,10 +445,62 @@ async def test_render_latex_omits_optional_sections_when_empty():
     )
 
     assert "Sertifikalar" not in tex
-    assert "Diller" not in tex
-    assert "Sosyal Bağlantılar" not in tex
+    assert "Sınavlar" not in tex
+    assert "Yabancı Dil" not in tex
     assert "Referanslar" not in tex
+    assert "Özgeçmiş Özeti" not in tex
     assert "Hedef Pozisyon Gereksinimleri" not in tex
+
+
+def test_normalize_cv_template_id_accepts_version_and_legacy():
+    assert normalize_cv_template_id("Version3") == "Version3"
+    assert normalize_cv_template_id("1") == "Version1"
+    assert normalize_cv_template_id("Version6") == "Version5"
+    assert normalize_cv_template_id("bogus") == DEFAULT_CV_TEMPLATE
+    assert normalize_cv_template_id(None) == DEFAULT_CV_TEMPLATE
+
+
+@pytest.mark.asyncio
+async def test_render_latex_selects_requested_version_template():
+    agent = CVGenerationAgent(storage=MagicMock())
+    profile = {"full_name": "Ayşe Yılmaz", "experience_summary": "Kısa özet"}
+
+    tex_v1 = agent._render_latex(profile, {"position_title": "Dev"}, cv_template="Version1")
+    tex_v4 = agent._render_latex(profile, {"position_title": "Dev"}, cv_template="Version4")
+    tex_v5 = agent._render_latex(profile, {"position_title": "Dev"}, cv_template="Version5")
+
+    assert "tikz" in tex_v1  # fotoğraf alanı
+    assert "flushleft" in tex_v4  # fotoğrafsız sola yaslı
+    assert "begin{center}" in tex_v5  # ortalanmış header
+    assert "Ayşe Yılmaz" in tex_v1
+    assert "Kısa özet" in tex_v1
+
+
+@pytest.mark.asyncio
+async def test_render_latex_all_version_templates_load():
+    agent = CVGenerationAgent(storage=MagicMock())
+    for template_id in CV_TEMPLATE_IDS:
+        tex = agent._render_latex(
+            {"full_name": "Test"}, {"position_title": "Dev"}, cv_template=template_id
+        )
+        assert "Test" in tex
+        assert r"\begin{document}" in tex
+
+
+@pytest.mark.asyncio
+async def test_generate_passes_cv_template_into_render():
+    agent = CVGenerationAgent(storage=MagicMock())
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    agent._render_latex = MagicMock(return_value=r"\documentclass{article}\begin{document}x\end{document}")
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(
+            {"full_name": "Ayşe"},
+            {"position_title": "Dev"},
+            cv_template="Version3",
+        )
+
+    assert agent._render_latex.call_args.kwargs["cv_template"] == "Version3"
 
 
 @pytest.mark.asyncio
@@ -547,6 +672,52 @@ async def test_filterable_content_triggers_content_filter_and_applies_selection(
 
 
 @pytest.mark.asyncio
+async def test_extra_prompt_reaches_content_filter_as_edit_instructions():
+    """Düzenleme notu filtre prompt'una içerik ekle/çıkar/kısalt olarak girmeli"""
+    captured: dict[str, str] = {}
+
+    async def capture_json(prompt: str, response_schema=None):
+        captured["prompt"] = prompt
+        return {
+            "experience_indices": [0, 1],
+            "project_indices": [],
+            "certificate_indices": [],
+            "experience_rewrites": [
+                {"index": 0, "description": "kısa muhasebe"},
+                {"index": 1, "description": "kısa backend"},
+            ],
+            "project_rewrites": [],
+        }
+
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(side_effect=capture_json)
+    fake_client.generate_text = AsyncMock(return_value="Kısa özet.")
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [
+            {"title": "Muhasebe Uzmanı", "company": "X", "description": "Alakasız uzun metin"},
+            {"title": "Backend Developer", "company": "Y", "description": "FastAPI"},
+        ],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(
+            profile,
+            {"position_title": "Backend Developer"},
+            extra_prompt="Muhasebe deneyimini tut ama kısalt",
+        )
+
+    assert "Muhasebe deneyimini tut ama kısalt" in captured["prompt"]
+    assert "CV düzenleme notu" in captured["prompt"]
+    assert "dahil etme veya çıkarma" in captured["prompt"]
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "Muhasebe Uzmanı" in tex_source
+    assert "kısa muhasebe" in tex_source
+
+
+@pytest.mark.asyncio
 async def test_content_filter_failure_falls_back_to_showing_everything():
     """Gemini hata verirse (kota vb.) CV üretimi kırılmamalı, tüm içerik gösterilmeli"""
     failing_client = FailingGeminiClient()
@@ -648,11 +819,11 @@ async def test_content_filter_applies_tailored_rewrites_end_to_end():
 
 
 @pytest.mark.asyncio
-async def test_no_overflow_never_calls_shorten():
-    """PDF zaten 1 sayfaysa kısaltma için ekstra Gemini çağrısı yapılmamalı"""
+async def test_no_overflow_never_calls_fit():
+    """PDF zaten 1 sayfaysa kısaltma/prune için ekstra adım yapılmamalı"""
     agent = CVGenerationAgent(storage=MagicMock())
     agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
-    agent._try_shorten_for_overflow = AsyncMock(side_effect=AssertionError("çağrılmamalıydı"))
+    agent._try_fit_to_one_page = AsyncMock(side_effect=AssertionError("çağrılmamalıydı"))
 
     with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
         pdf_bytes = await agent.generate({"full_name": "Ayşe"}, {"position_title": "Dev"})
@@ -690,7 +861,10 @@ async def test_overflow_triggers_shorten_and_recompiles_once():
         ],
     }
 
-    with patch("app.agents.cv_generation._pdf_page_count", side_effect=[2, 1, 2, 1]):
+    def page_count(pdf: bytes) -> int:
+        return 1 if pdf == b"%PDF-short" else 2
+
+    with patch("app.agents.cv_generation._pdf_page_count", side_effect=page_count):
         pdf_bytes = await agent.generate(profile, {"position_title": "Backend Developer"})
 
     assert pdf_bytes == b"%PDF-short"
@@ -702,7 +876,8 @@ async def test_overflow_triggers_shorten_and_recompiles_once():
 
 @pytest.mark.asyncio
 async def test_overflow_shorten_failure_falls_back_to_original_pdf():
-    """Kısaltma çağrısı hata verirse orijinal (uzun) PDF hiç kaybedilmeden dönmeli"""
+    """Kısaltma çağrısı hata verirse orijinal (uzun) PDF hiç kaybedilmeden dönmeli.
+    Deneyim-only profilde prune edilecek proje yok; ekstra derleme de olmaz."""
     fake_client = FakeGeminiClient()
     fake_client.generate_json = AsyncMock(
         side_effect=[
@@ -727,7 +902,8 @@ async def test_overflow_shorten_failure_falls_back_to_original_pdf():
         pdf_bytes = await agent.generate(profile, {"position_title": "Dev"})
 
     assert pdf_bytes == b"%PDF-long"
-    assert agent._compile_with_tectonic.await_count == 1
+    # filter + shorten fail → prune loop still tries max_projects 2,1,0 with same profile
+    assert agent._compile_with_tectonic.await_count >= 1
 
 
 @pytest.mark.asyncio
@@ -750,24 +926,87 @@ async def test_overflow_recompile_failure_falls_back_to_original_pdf():
         ]
     )
     agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
-    agent._compile_with_tectonic = AsyncMock(
-        side_effect=[b"%PDF-long", CVGenerationException("derleme hatası")]
-    )
+
+    async def compile_once_then_fail(
+        tex_source: str, max_retries: int = 2, avatar_bytes=None
+    ) -> bytes:
+        if not hasattr(compile_once_then_fail, "n"):
+            compile_once_then_fail.n = 0
+        compile_once_then_fail.n += 1
+        if compile_once_then_fail.n == 1:
+            return b"%PDF-long"
+        raise CVGenerationException("derleme hatası")
+
+    agent._compile_with_tectonic = AsyncMock(side_effect=compile_once_then_fail)
     profile = {
         "full_name": "Ayşe",
         "work_experiences": [{"title": "Dev", "company": "Y", "description": "uzun açıklama"}],
     }
 
-    with patch("app.agents.cv_generation._pdf_page_count", side_effect=[2, 2]):
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=2):
         pdf_bytes = await agent.generate(profile, {"position_title": "Dev"})
 
     assert pdf_bytes == b"%PDF-long"
 
 
 @pytest.mark.asyncio
+async def test_overflow_prunes_projects_when_shorten_still_multi_page():
+    """Kısaltma sonrası hâlâ >1 sayfa ise proje kotası düşürülerek yeniden derlenmeli"""
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(
+        side_effect=[
+            {
+                "experience_indices": [],
+                "project_indices": [0, 1, 2],
+                "certificate_indices": [],
+                "experience_rewrites": [],
+                "project_rewrites": [],
+            },
+            {
+                "experience_rewrites": [],
+                "project_rewrites": [
+                    {"index": 0, "description": "kısa A"},
+                    {"index": 1, "description": "kısa B"},
+                    {"index": 2, "description": "kısa C"},
+                ],
+            },
+        ]
+    )
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    # 1) ilk derleme 2) kısaltılmış (hâlâ 2 sayfa) 3) max_projects=2 → 1 sayfa
+    agent._compile_with_tectonic = AsyncMock(
+        side_effect=[b"%PDF-long", b"%PDF-shortened", b"%PDF-pruned"]
+    )
+    profile = {
+        "full_name": "Ayşe",
+        "projects": [
+            {"title": "A", "description": "uzun A", "tech_stack": ["Python"]},
+            {"title": "B", "description": "uzun B", "tech_stack": ["Python"]},
+            {"title": "C", "description": "uzun C", "tech_stack": ["Go"]},
+        ],
+    }
+
+    def page_count(pdf: bytes) -> int:
+        return 1 if pdf == b"%PDF-pruned" else 2
+
+    with patch("app.agents.cv_generation._pdf_page_count", side_effect=page_count):
+        pdf_bytes = await agent.generate(
+            profile, {"position_title": "Backend", "required_skills": ["Python"]}
+        )
+
+    assert pdf_bytes == b"%PDF-pruned"
+    assert agent._compile_with_tectonic.await_count == 3
+    pruned_tex = agent._compile_with_tectonic.call_args_list[2][0][0]
+    assert "kısa A" in pruned_tex
+    assert "kısa B" in pruned_tex
+    # max_projects=2 ve ranking Python'u öne alır → Go projesi düşer
+    assert "kısa C" not in pruned_tex
+
+
+@pytest.mark.asyncio
 async def test_overflow_with_no_filterable_content_skips_shorten_call():
-    """Deneyim/proje hiç yoksa (ör. çok sertifika/dil var) kısaltma için Gemini'ye
-    gidilmemeli - kısaltılacak bir şey yok (içerik filtresi sertifika için hâlâ çalışır)"""
+    """Deneyim/proje hiç yoksa kısaltma için Gemini'ye gidilmemeli; sertifika filtresi
+    çalışır. Prune döngüsü proje kotasını düşürerek yeniden derleyebilir."""
     fake_client = FakeGeminiClient()
     agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
     agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
@@ -777,5 +1016,26 @@ async def test_overflow_with_no_filterable_content_skips_shorten_call():
         pdf_bytes = await agent.generate(profile, {"position_title": "Dev"})
 
     assert pdf_bytes == b"%PDF-fake"
-    assert agent._compile_with_tectonic.await_count == 1
     assert fake_client.generate_json.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_render_latex_includes_exams():
+    agent = CVGenerationAgent(storage=MagicMock())
+    tex = agent._render_latex(
+        {
+            "full_name": "Ayşe",
+            "exams": [
+                {
+                    "name": "YDS",
+                    "score": "85",
+                    "exam_date": "2024-06-01",
+                    "description": "İngilizce",
+                }
+            ],
+        },
+        {"position_title": "Dev"},
+    )
+    assert "YDS" in tex
+    assert "85" in tex
+    assert "Sınavlar" in tex

@@ -1,0 +1,110 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{DejaVu Sans}
+\setsansfont{DejaVu Sans}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+
+\definecolor{primary}{RGB}{30, 90, 180}
+
+\hypersetup{colorlinks=true, linkcolor=primary, urlcolor=primary, pdftitle={CV}}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+\titleformat{\section}
+  {\Large\bfseries\color{primary}}
+  {}{0em}{}
+  [\color{primary}\titlerule]
+\titlespacing*{\section}{0pt}{14pt}{8pt}
+
+\setlist[itemize]{leftmargin=1.2em, itemsep=3pt, topsep=2pt}
+
+\begin{document}
+
+\begin{center}
+    {\Huge \bfseries \VAR{full_name}}\\[6pt]
+    \BLOCK{if target_position}{\Large \bfseries \color{primary} \VAR{target_position}}\\[8pt]\BLOCK{endif}
+    \BLOCK{if location}\VAR{location}\BLOCK{endif}%
+    \BLOCK{if phone} \ \textbar\ \VAR{phone}\BLOCK{endif}%
+    \BLOCK{if email} \ \textbar\ \href{mailto:\VAR{email}}{\VAR{email}}\BLOCK{endif}\\[4pt]
+    \BLOCK{if social_links}
+    \BLOCK{for link in social_links}
+    \href{\VAR{link.url}}{\textbf{\VAR{link.platform}}}\BLOCK{if not loop.last} \ \textbar\ \BLOCK{endif}
+    \BLOCK{endfor}
+    \BLOCK{endif}
+\end{center}
+
+\vspace{-15pt}
+
+\BLOCK{if experience_summary}
+\section*{Özgeçmiş Özeti}
+\VAR{experience_summary}
+\BLOCK{endif}
+
+\BLOCK{if work_experiences}
+\section*{Deneyimler}
+\BLOCK{for exp in work_experiences}
+\textbf{\VAR{exp.company}} \hfill \textbf{\VAR{exp.period}}\\
+\textit{\VAR{exp.title}}
+\BLOCK{if exp.description}
+\begin{itemize}
+    \item \VAR{exp.description}
+\end{itemize}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{4pt}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if education}
+\section*{Eğitimler}
+\BLOCK{for edu in education}
+\par\noindent \textbf{\VAR{edu.degree}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif}} \hfill \textbf{\VAR{edu.period}}\\
+\noindent \VAR{edu.school}%
+\BLOCK{if edu.description}\\ \VAR{edu.description}\BLOCK{endif}%
+\BLOCK{if not loop.last}\par\vspace{4pt}\BLOCK{else}\par\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if projects}
+\section*{Projeler}
+\BLOCK{for proj in projects}
+\par\noindent \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}%
+\BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}%
+\BLOCK{if not loop.last}\par\vspace{4pt}\BLOCK{else}\par\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if certificates or exams}
+\section*{Sertifikalar ve Sınavlar}
+\BLOCK{if certificates}
+\textbf{Sertifikalar:}
+\BLOCK{for cert in certificates}
+\VAR{cert.title}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}\BLOCK{if not loop.last}, \BLOCK{endif}
+\BLOCK{endfor}\\[4pt]
+\BLOCK{endif}
+\BLOCK{if exams}
+\textbf{Sınavlar:}
+\BLOCK{for exam in exams}
+\VAR{exam.name}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}\BLOCK{if not loop.last}, \BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+\BLOCK{endif}
+
+\BLOCK{if languages_line}
+\section*{Yabancı Dil}
+\noindent \VAR{languages_line}
+\BLOCK{endif}
+
+\BLOCK{if references}
+\section*{Referanslar}
+\BLOCK{for ref in references}
+\textbf{\VAR{ref.name}}\BLOCK{if ref.title} -- \VAR{ref.title}\BLOCK{endif}\BLOCK{if ref.company}, \VAR{ref.company}\BLOCK{endif}\BLOCK{if ref.contact} \ \textbar\ \VAR{ref.contact}\BLOCK{endif}\\[4pt]
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\end{document}

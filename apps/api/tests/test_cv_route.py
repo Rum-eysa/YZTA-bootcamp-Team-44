@@ -14,6 +14,7 @@ class _StubCVAgent:
     def __init__(self):
         self.last_extra_prompt = None
         self.last_matching_gaps = None
+        self.last_cv_template = None
 
     async def generate_and_save(
         self,
@@ -24,9 +25,11 @@ class _StubCVAgent:
         job_analysis,
         matching_gaps=None,
         extra_prompt=None,
+        cv_template=None,
     ):
         self.last_extra_prompt = extra_prompt
         self.last_matching_gaps = matching_gaps
+        self.last_cv_template = cv_template
         document = Document(
             user_id=user_id,
             listing_id=listing_id,
@@ -51,6 +54,7 @@ class _StubCVAgentLatexFailure:
         job_analysis,
         matching_gaps=None,
         extra_prompt=None,
+        cv_template=None,
     ):
         raise CVGenerationException("CV PDF oluşturulamadı: LaTeX derlemesi başarısız oldu.")
 
@@ -67,6 +71,7 @@ class _StubCVAgentServiceUnavailable:
         job_analysis,
         matching_gaps=None,
         extra_prompt=None,
+        cv_template=None,
     ):
         raise ConnectionError("connection refused")
 
@@ -182,6 +187,22 @@ async def test_generate_cv_passes_extra_prompt_to_agent(client: AsyncClient, tes
     )
 
     assert stub_agent.last_extra_prompt == "Staj motivasyonumu öne çıkar"
+
+
+@pytest.mark.asyncio
+async def test_generate_cv_passes_listing_cv_template_to_agent(client: AsyncClient, test_session):
+    user_id = str(uuid.uuid4())
+    listing = await _seed_user_and_listing(test_session, user_id)
+    listing.cv_template = "Version4"
+    await test_session.commit()
+    app.dependency_overrides[get_current_user_id] = lambda: user_id
+    stub_agent = _StubCVAgent()
+    app.dependency_overrides[get_cv_generation_agent] = lambda: stub_agent
+
+    response = await client.post("/api/generate-cv", json={"listing_id": listing.id})
+
+    assert response.status_code == 200
+    assert stub_agent.last_cv_template == "Version4"
 
 
 @pytest.mark.asyncio

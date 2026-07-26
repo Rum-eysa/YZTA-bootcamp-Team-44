@@ -9,6 +9,22 @@ import { formatTRPhone } from "@/lib/phone";
 import type { Reference, ReferenceCreate } from "@/types/reference";
 import { useEffect, useState } from "react";
 
+function looksLikePhone(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 3 && !value.includes("@");
+}
+
+function formatContactInput(value: string): string {
+  // E-posta serbest; telefon gibi görünüyorsa TR formatı uygula
+  if (value.includes("@") || /[a-zA-Z]/.test(value.replace(/[+\s().-]/g, ""))) {
+    return value;
+  }
+  if (looksLikePhone(value)) {
+    return formatTRPhone(value);
+  }
+  return value;
+}
+
 interface ReferenceModalProps {
   open: boolean;
   reference: Reference | null;
@@ -80,11 +96,10 @@ export function ReferenceModal({ open, reference, onClose, onSaved }: ReferenceM
           <Input label="Şirket" value={company} onChange={(e) => setCompany(e.target.value)} />
         </div>
         <Input
-          label="İletişim (Telefon)"
-          placeholder="+90 (555) 123 45 67"
-          inputMode="tel"
+          label="İletişim"
+          placeholder="ornek@sirket.com veya +90 (555) 123 45 67"
           value={contact}
-          onChange={(e) => setContact(formatTRPhone(e.target.value))}
+          onChange={(e) => setContact(formatContactInput(e.target.value))}
         />
       </div>
     </Modal>

@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, List, Optional
 
+from app.agents.cv_generation import normalize_cv_template_id
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
@@ -165,7 +166,7 @@ async def get_listing(
         military_status=listing.military_status,
         languages=_load_list(listing.languages),
         driver_license=listing.driver_license,
-        cv_template=listing.cv_template or "1",
+        cv_template=listing.cv_template or "Version1",
         application_stage=listing.application_stage or "review",
         score=match.score if match else None,
         score_breakdown=score_breakdown,
@@ -206,6 +207,9 @@ async def update_listing(
     for field in ("benefits", "languages"):
         if field in update_data and update_data[field] is not None:
             update_data[field] = json.dumps(update_data[field], ensure_ascii=False)
+
+    if "cv_template" in update_data and update_data["cv_template"] is not None:
+        update_data["cv_template"] = normalize_cv_template_id(update_data["cv_template"])
 
     for field, value in update_data.items():
         setattr(listing, field, value)

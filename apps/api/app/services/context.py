@@ -12,6 +12,7 @@ from app.logging_config import get_logger
 from app.models import (
     Certificate,
     EducationRecord,
+    Exam,
     JobListing,
     Language,
     Match,
@@ -57,6 +58,7 @@ def job_analysis_from_context(context: dict[str, Any]) -> dict[str, Any]:
             analysis[key] = listing[key]
     if not analysis.get("position_title") and listing.get("title"):
         analysis["position_title"] = listing["title"]
+    analysis["cv_template"] = listing.get("cv_template") or "Version1"
     return analysis
 
 
@@ -79,11 +81,13 @@ def user_profile_for_agents(context: dict[str, Any]) -> dict[str, Any]:
         "experience_summary": user.get("experience_summary"),
         "phone": user.get("phone"),
         "location": user.get("location"),
+        "avatar_url": user.get("avatar_url"),
         "tone_preference": user.get("tone_preference"),
         "work_experiences": context.get("experiences") or [],
         "projects": context.get("projects") or [],
         "education": context.get("education") or [],
         "certificates": context.get("certificates") or [],
+        "exams": context.get("exams") or [],
         "languages": context.get("languages") or [],
         "social_links": context.get("social_links") or [],
         "references": context.get("references") or [],
@@ -205,6 +209,12 @@ class ContextManager:
         )
         certificates = certificates_result.scalars().all()
 
+        # Sınavları yükle
+        exams_result = await self.db.execute(
+            select(Exam).where(Exam.user_id == user_id).order_by(Exam.exam_date.desc().nullslast())
+        )
+        exams = exams_result.scalars().all()
+
         # Dilleri yükle
         languages_result = await self.db.execute(
             select(Language).where(Language.user_id == user_id).order_by(Language.created_at.desc())
@@ -244,6 +254,7 @@ class ContextManager:
                 "experience_summary": user.experience_summary,
                 "phone": user.phone,
                 "location": user.location,
+                "avatar_url": user.avatar_url,
                 "birth_year": user.birth_year,
                 "tone_preference": user.tone_preference,
                 "gender": user.gender,
@@ -270,12 +281,14 @@ class ContextManager:
                 "languages": _parse_json(listing.languages, []),
                 "driver_license": listing.driver_license,
                 "application_stage": listing.application_stage,
+                "cv_template": listing.cv_template or "Version1",
             },
             "match": None,
             "experiences": [],
             "projects": [],
             "education": [],
             "certificates": [],
+            "exams": [],
             "languages": [],
             "social_links": [],
             "references": [],
@@ -342,6 +355,18 @@ class ContextManager:
                 }
             )
 
+        # Sınavları ekle
+        for exam in exams:
+            context["exams"].append(
+                {
+                    "id": exam.id,
+                    "name": exam.name,
+                    "score": exam.score,
+                    "exam_date": exam.exam_date.isoformat() if exam.exam_date else None,
+                    "description": exam.description,
+                }
+            )
+
         # Dilleri ekle
         for lang in languages:
             context["languages"].append({"id": lang.id, "name": lang.name, "level": lang.level})
@@ -374,6 +399,7 @@ class ContextManager:
             projects_count=len(projects),
             education_count=len(education_records),
             certificates_count=len(certificates),
+            exams_count=len(exams),
             languages_count=len(languages),
             social_links_count=len(social_links),
             references_count=len(references),

@@ -43,6 +43,7 @@ async def generate_cv(
     user_profile = user_profile_for_agents(context)
     job_analysis = job_analysis_from_context(context)
     matching_gaps = matching_gaps_from_context(context)
+    cv_template = context["listing"].get("cv_template") or job_analysis.get("cv_template")
 
     try:
         document = await agent.generate_and_save(
@@ -53,6 +54,7 @@ async def generate_cv(
             job_analysis=job_analysis,
             matching_gaps=matching_gaps,
             extra_prompt=payload.extra_prompt,
+            cv_template=cv_template,
         )
     except CVGenerationException:
         # Zaten temiz, kullanıcı dostu bir mesajla 422 - global handler'a bırak

@@ -13,7 +13,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
-from app.agents.prompt_safety import build_extra_prompt_section
+from app.agents.prompt_safety import build_cv_content_edit_section, build_extra_prompt_section
 from app.agents.strategy import select_strategy
 from app.exceptions import APIException, GeminiAPIException, ValidationException
 from app.logging_config import get_logger
@@ -70,6 +70,36 @@ _jinja_env = Environment(
 _jinja_env.filters["latex_escape"] = latex_escape
 
 _MAX_PROJECTS_ON_CV = 3
+
+CV_TEMPLATE_IDS = (
+    "Version1",
+    "Version2",
+    "Version3",
+    "Version4",
+    "Version5",
+)
+DEFAULT_CV_TEMPLATE = "Version1"
+_LEGACY_CV_TEMPLATE_MAP = {
+    "1": "Version1",
+    "2": "Version2",
+    "3": "Version3",
+    "4": "Version4",
+    "5": "Version5",
+    "6": "Version5",
+    # Eski 6'lı katalog: silinen/kaydırılan id'ler
+    "Version6": "Version5",
+}
+
+
+def normalize_cv_template_id(cv_template: Optional[str]) -> str:
+    """İlan cv_template değerini VersionN allowlist'ine çeker; bilinmeyen → Version1."""
+    if not cv_template or not str(cv_template).strip():
+        return DEFAULT_CV_TEMPLATE
+    trimmed = str(cv_template).strip()
+    if trimmed in CV_TEMPLATE_IDS:
+        return trimmed
+    return _LEGACY_CV_TEMPLATE_MAP.get(trimmed, DEFAULT_CV_TEMPLATE)
+
 
 # generate_json'a verilen response_schema - google-generativeai SDK OpenAPI benzeri
 # tip adları bekler (büyük harf "OBJECT"/"ARRAY"/"INTEGER").
@@ -138,12 +168,34 @@ def _select_indices(items: list[dict[str, Any]], indices: list[int]) -> list[dic
     return [item for i, item in enumerate(items) if i in valid]
 
 
+_MAX_DESCRIPTION_CHARS = 280
+
+
+def _clamp_description(text: Any) -> str:
+    """Deneyim/proje açıklamasını ~1–2 cümle / 280 karaktere indirger."""
+    if text is None:
+        return ""
+    value = str(text).strip()
+    if len(value) <= _MAX_DESCRIPTION_CHARS:
+        return value
+    truncated = value[:_MAX_DESCRIPTION_CHARS]
+    for sep in (". ", "! ", "? ", ".\n", "!\n", "?\n"):
+        idx = truncated.rfind(sep)
+        if idx >= 60:
+            return truncated[: idx + 1].strip()
+    space = truncated.rfind(" ")
+    if space >= 60:
+        return truncated[:space].rstrip() + "…"
+    return truncated.rstrip() + "…"
+
+
 def _select_and_rewrite(
     items: list[dict[str, Any]], indices: list[int], rewrites: dict[int, str]
 ) -> list[dict[str, Any]]:
     """_select_indices ile aynı fail-open seçim mantığı; ek olarak seçilen öğelerin
     description alanını (varsa) ilana göre yeniden yazılmış/kısaltılmış metinle
-    değiştirir. Rewrite verilmemiş bir öğe orijinal metniyle kalır (fail-open)."""
+    değiştirir. Rewrite verilmemiş bir öğe orijinal metniyle kalır (fail-open).
+    Her durumda açıklama uzunluk tavanına (`_clamp_description`) çekilir."""
     if not items:
         return []
     valid = {i for i in indices if isinstance(i, int) and 0 <= i < len(items)}
@@ -153,8 +205,34 @@ def _select_and_rewrite(
         if i not in chosen:
             continue
         rewritten = rewrites.get(i)
-        result.append({**item, "description": rewritten} if rewritten else item)
+        raw = rewritten if rewritten else item.get("description")
+        clamped = _clamp_description(raw) if raw else ""
+        if clamped != (item.get("description") or ""):
+            result.append({**item, "description": clamped})
+        else:
+            result.append(item)
     return result
+
+
+def _languages_line(languages: list[dict[str, Any]]) -> str:
+    """Örn. 'İngilizce (İleri) | Almanca (Orta)' — LaTeX-escaped."""
+    parts: list[str] = []
+    for lang in languages or []:
+        name = latex_escape(lang.get("name") or "")
+        level = latex_escape(lang.get("level") or "")
+        if name and level:
+            parts.append(f"{name} ({level})")
+        elif name:
+            parts.append(name)
+    return " | ".join(parts)
+
+
+def _avatar_filename(image_bytes: bytes) -> str:
+    if image_bytes[:8] == b"\x89PNG\r\n\x1a\n":
+        return "avatar.png"
+    if image_bytes[:4] == b"RIFF" and len(image_bytes) >= 12 and image_bytes[8:12] == b"WEBP":
+        return "avatar.webp"
+    return "avatar.jpg"
 
 
 def _rewrites_to_map(rewrite_items: list[dict[str, Any]]) -> dict[int, str]:
@@ -205,10 +283,50 @@ def _sorted_experiences(experiences: list[dict[str, Any]]) -> list[dict[str, Any
     )
 
 
-def _format_period(experience: dict[str, Any]) -> str:
-    start = experience.get("start_date") or "?"
-    end = experience.get("end_date") or "halen"
-    return f"{start} - {end}"
+_TR_MONTHS = (
+    "",
+    "Ocak",
+    "Şubat",
+    "Mart",
+    "Nisan",
+    "Mayıs",
+    "Haziran",
+    "Temmuz",
+    "Ağustos",
+    "Eylül",
+    "Ekim",
+    "Kasım",
+    "Aralık",
+)
+
+
+def _format_month_year(value: Any) -> str:
+    """YYYY-MM(-DD) veya date → 'Haziran 2024' (yalnızca ay metni + yıl)."""
+    if value is None or value == "":
+        return ""
+    if hasattr(value, "year") and hasattr(value, "month"):
+        year, month = int(value.year), int(value.month)
+    else:
+        text = str(value).strip()
+        # ISO: 2024-06-01 / 2024-06
+        match = re.match(r"^(\d{4})-(\d{1,2})", text)
+        if not match:
+            return text
+        year, month = int(match.group(1)), int(match.group(2))
+    if not 1 <= month <= 12:
+        return str(value)
+    return f"{_TR_MONTHS[month]} {year}"
+
+
+def _format_period(item: dict[str, Any]) -> str:
+    start = _format_month_year(item.get("start_date"))
+    if item.get("end_date"):
+        end = _format_month_year(item.get("end_date"))
+    else:
+        end = "devam ediyor" if start else ""
+    if start and end:
+        return f"{start} - {end}"
+    return start or end or "?"
 
 
 def _sorted_education(education: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -280,12 +398,15 @@ class CVGenerationAgent:
         )
 
     async def _select_relevant_content(
-        self, user_profile: dict[str, Any], job_analysis: dict[str, Any]
+        self,
+        user_profile: dict[str, Any],
+        job_analysis: dict[str, Any],
+        extra_prompt: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Ekip kararı: profildeki TÜM deneyim/proje/sertifikayı basmak yerine, sadece
-        bu ilanla alakalı olanları LLM'e seçtir - aksi halde tamamen ilgisiz geçmiş
-        işler/projeler CV'yi şişiriyordu. Aynı çağrıda, dahil edilen deneyim/proje
-        açıklamaları da ilana göre yeniden yazdırılır (tailoring)."""
+        """Profildeki deneyim/proje/sertifikayı seçer ve kısaltır/yeniden yazar.
+
+        Varsayılan: ilanla alakalı olanlar. extra_prompt varsa kullanıcı
+        ekleme/çıkarma/kısaltma/yeniden yazma istekleri önceliklidir."""
         prompt = render_prompt(
             "cv_content_filter",
             experiences=_describe_experiences(user_profile.get("work_experiences") or []),
@@ -294,14 +415,23 @@ class CVGenerationAgent:
             position_title=job_analysis.get("position_title") or "belirtilmemiş",
             required_skills=", ".join(job_analysis.get("required_skills") or []) or "belirtilmemiş",
             nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "yok",
+            extra_prompt_section=build_cv_content_edit_section(extra_prompt),
         )
         result = await self.client.generate_json(prompt, response_schema=CV_CONTENT_FILTER_SCHEMA)
+        exp_rewrites = {
+            i: _clamp_description(text)
+            for i, text in _rewrites_to_map(result.get("experience_rewrites") or []).items()
+        }
+        proj_rewrites = {
+            i: _clamp_description(text)
+            for i, text in _rewrites_to_map(result.get("project_rewrites") or []).items()
+        }
         return {
             "experience_indices": result.get("experience_indices") or [],
             "project_indices": result.get("project_indices") or [],
             "certificate_indices": result.get("certificate_indices") or [],
-            "experience_rewrites": _rewrites_to_map(result.get("experience_rewrites") or []),
-            "project_rewrites": _rewrites_to_map(result.get("project_rewrites") or []),
+            "experience_rewrites": exp_rewrites,
+            "project_rewrites": proj_rewrites,
         }
 
     async def _shorten_overflowing_content(
@@ -309,6 +439,7 @@ class CVGenerationAgent:
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
         content_selection: dict[str, Any],
+        extra_prompt: Optional[str] = None,
     ) -> dict[str, Any]:
         """CV 1 sayfayı aştığında, halihazırda CV'ye dahil edilmiş (ve varsa daha önce
         ilana göre yeniden yazılmış) deneyim/proje açıklamalarını anlam kaybı olmadan
@@ -330,7 +461,10 @@ class CVGenerationAgent:
             if 0 <= i < len(experiences)
         ]
         current_projects = [
-            {**projects[i], "description": proj_rewrites.get(i, projects[i].get("description"))}
+            {
+                **projects[i],
+                "description": proj_rewrites.get(i, projects[i].get("description")),
+            }
             for i in proj_indices
             if 0 <= i < len(projects)
         ]
@@ -340,6 +474,9 @@ class CVGenerationAgent:
             experiences=_describe_experiences(current_experiences),
             projects=_describe_projects(current_projects),
             position_title=job_analysis.get("position_title") or "belirtilmemiş",
+            required_skills=", ".join(job_analysis.get("required_skills") or []) or "belirtilmemiş",
+            nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "yok",
+            extra_prompt_section=build_cv_content_edit_section(extra_prompt),
         )
         result = await self.client.generate_json(prompt, response_schema=CV_SHORTEN_SCHEMA)
 
@@ -348,12 +485,12 @@ class CVGenerationAgent:
             result.get("experience_rewrites") or []
         ).items():
             if 0 <= local_i < len(exp_indices):
-                new_exp_rewrites[exp_indices[local_i]] = description
+                new_exp_rewrites[exp_indices[local_i]] = _clamp_description(description)
 
         new_proj_rewrites = dict(proj_rewrites)
         for local_i, description in _rewrites_to_map(result.get("project_rewrites") or []).items():
             if 0 <= local_i < len(proj_indices):
-                new_proj_rewrites[proj_indices[local_i]] = description
+                new_proj_rewrites[proj_indices[local_i]] = _clamp_description(description)
 
         return {
             **content_selection,
@@ -363,53 +500,128 @@ class CVGenerationAgent:
             "project_rewrites": new_proj_rewrites,
         }
 
-    async def _try_shorten_for_overflow(
+    def _load_avatar_bytes(self, user_profile: dict[str, Any]) -> Optional[bytes]:
+        url = user_profile.get("avatar_url")
+        if not url:
+            logger.info("cv_avatar_missing", reason="no_avatar_url")
+            return None
+        try:
+            data = self.storage.download_bytes(str(url))
+            if not data:
+                logger.warning("cv_avatar_download_empty", url=str(url)[:120])
+            return data
+        except Exception as exc:  # noqa: BLE001 — foto yoksa placeholder'a düş
+            logger.warning("cv_avatar_download_failed", error=str(exc))
+            return None
+
+    async def _recompile_with_selection(
+        self,
+        user_profile: dict[str, Any],
+        job_analysis: dict[str, Any],
+        ai_summary: Optional[str],
+        content_selection: dict[str, Any],
+        cv_template: str = DEFAULT_CV_TEMPLATE,
+        avatar_bytes: Optional[bytes] = None,
+    ) -> Optional[bytes]:
+        """Seçimle yeniden derler; başarısızsa None döner (fail-open için)."""
+        tex_source = self._render_latex(
+            user_profile,
+            job_analysis,
+            ai_summary,
+            content_selection,
+            cv_template=cv_template,
+            has_photo=bool(avatar_bytes),
+            avatar_filename=_avatar_filename(avatar_bytes) if avatar_bytes else "avatar.jpg",
+        )
+        try:
+            pdf_bytes = await self._compile_with_tectonic(tex_source, avatar_bytes=avatar_bytes)
+        except CVGenerationException as exc:
+            logger.warning("cv_overflow_recompile_failed", error=str(exc))
+            return None
+        if pdf_bytes and pdf_bytes.startswith(b"%PDF") and _pdf_page_count(pdf_bytes) >= 1:
+            return pdf_bytes
+        return None
+
+    async def _try_fit_to_one_page(
         self,
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
         ai_summary: Optional[str],
         content_selection: Optional[dict[str, Any]],
         original_pdf: bytes,
+        cv_template: str = DEFAULT_CV_TEMPLATE,
+        avatar_bytes: Optional[bytes] = None,
+        extra_prompt: Optional[str] = None,
     ) -> bytes:
-        """CV 1 sayfayı aşarsa dahil edilen paragrafları kısaltıp tek seferlik yeniden
-        derleme dener. Herhangi bir adım başarısız olursa (LLM hatası, derleme hatası)
-        orijinal (uzun) PDF'e sessizce geri dönülür - bu bir iyileştirme denemesidir,
-        CV üretimini asla kıramaz."""
-        selection = content_selection or {}
+        """CV 1 sayfayı aşarsa önce paragrafları ilana göre kısaltır, hâlâ >1 sayfa
+        ise en az alakalı projeleri tek tek düşürür. Her adım fail-open: LLM/derleme
+        hatasında mevcut en iyi PDF korunur; üretim asla kırılmaz."""
+        selection = dict(content_selection or {})
         experiences = user_profile.get("work_experiences") or []
         projects = user_profile.get("projects") or []
         exp_indices = selection.get("experience_indices") or list(range(len(experiences)))
         proj_indices = selection.get("project_indices") or list(range(len(projects)))
-        if not exp_indices and not proj_indices:
-            return original_pdf
+        best_pdf = original_pdf
+        best_pages = _pdf_page_count(original_pdf)
+        template_id = normalize_cv_template_id(cv_template)
 
-        try:
-            shortened_selection = await self._shorten_overflowing_content(
-                user_profile, job_analysis, selection
+        if exp_indices or proj_indices:
+            try:
+                selection = await self._shorten_overflowing_content(
+                    user_profile, job_analysis, selection, extra_prompt=extra_prompt
+                )
+                shortened_pdf = await self._recompile_with_selection(
+                    user_profile,
+                    job_analysis,
+                    ai_summary,
+                    selection,
+                    cv_template=template_id,
+                    avatar_bytes=avatar_bytes,
+                )
+            except GeminiAPIException as exc:
+                logger.warning("cv_shorten_failed", error=str(exc))
+                shortened_pdf = None
+
+            if shortened_pdf:
+                pages = _pdf_page_count(shortened_pdf)
+                logger.info(
+                    "cv_shortened_for_overflow",
+                    pages_before=best_pages,
+                    pages_after=pages,
+                )
+                if pages <= best_pages:
+                    best_pdf, best_pages = shortened_pdf, pages
+                if best_pages <= 1:
+                    return best_pdf
+
+        # Paragraf kısaltması yetmezse (veya hiç denenemediyse): proje kotasını düşür.
+        max_projects = int(selection.get("max_projects") or _MAX_PROJECTS_ON_CV)
+        while best_pages > 1 and max_projects > 0:
+            max_projects -= 1
+            selection = {**selection, "max_projects": max_projects}
+            pruned_pdf = await self._recompile_with_selection(
+                user_profile,
+                job_analysis,
+                ai_summary,
+                selection,
+                cv_template=template_id,
+                avatar_bytes=avatar_bytes,
             )
-        except GeminiAPIException as exc:
-            logger.warning("cv_shorten_failed", error=str(exc))
-            return original_pdf
-
-        tex_source = self._render_latex(user_profile, job_analysis, ai_summary, shortened_selection)
-        try:
-            shortened_pdf = await self._compile_with_tectonic(tex_source)
-        except CVGenerationException as exc:
-            logger.warning("cv_shorten_recompile_failed", error=str(exc))
-            return original_pdf
-
-        if (
-            shortened_pdf
-            and shortened_pdf.startswith(b"%PDF")
-            and _pdf_page_count(shortened_pdf) >= 1
-        ):
+            if not pruned_pdf:
+                break
+            pages = _pdf_page_count(pruned_pdf)
             logger.info(
-                "cv_shortened_for_overflow",
-                pages_before=_pdf_page_count(original_pdf),
-                pages_after=_pdf_page_count(shortened_pdf),
+                "cv_pruned_project_for_overflow",
+                max_projects=max_projects,
+                pages_before=best_pages,
+                pages_after=pages,
             )
-            return shortened_pdf
-        return original_pdf
+            if pages <= best_pages:
+                best_pdf, best_pages = pruned_pdf, pages
+            if best_pages <= 1:
+                return best_pdf
+
+        return best_pdf
 
     def _render_latex(
         self,
@@ -417,6 +629,9 @@ class CVGenerationAgent:
         job_analysis: dict[str, Any],
         ai_summary: Optional[str] = None,
         content_selection: Optional[dict[str, Any]] = None,
+        cv_template: Optional[str] = None,
+        has_photo: bool = False,
+        avatar_filename: str = "avatar.jpg",
     ) -> str:
         skills = sorted(set(user_profile.get("skills") or []))
         selection = content_selection or {}
@@ -431,13 +646,18 @@ class CVGenerationAgent:
             selection.get("experience_rewrites") or {},
         )
         filtered_certificates = _select_indices(
-            user_profile.get("certificates") or [], selection.get("certificate_indices") or []
+            user_profile.get("certificates") or [],
+            selection.get("certificate_indices") or [],
         )
-        relevant_projects = _rank_projects(
-            filtered_projects, job_analysis, limit=_MAX_PROJECTS_ON_CV
-        )
+        project_limit = selection.get("max_projects", _MAX_PROJECTS_ON_CV)
+        try:
+            project_limit = max(0, int(project_limit))
+        except (TypeError, ValueError):
+            project_limit = _MAX_PROJECTS_ON_CV
+        relevant_projects = _rank_projects(filtered_projects, job_analysis, limit=project_limit)
         experiences = _sorted_experiences(filtered_experiences)
         education = _sorted_education(user_profile.get("education") or [])
+        languages_line = _languages_line(user_profile.get("languages") or [])
 
         # Kişisel bilgiler - TR CV geleneği (yalnızca doldurulmuşsa gösterilir)
         personal_info = [
@@ -452,7 +672,9 @@ class CVGenerationAgent:
             if value
         ]
 
-        template = _jinja_env.get_template("cv_template.tex.jinja")
+        template_id = normalize_cv_template_id(cv_template)
+        template = _jinja_env.get_template(f"cv/{template_id}.tex.jinja")
+        summary_raw = ai_summary or user_profile.get("experience_summary") or ""
         return template.render(
             full_name=latex_escape(user_profile.get("full_name") or "Aday"),
             target_position=latex_escape(
@@ -460,9 +682,7 @@ class CVGenerationAgent:
             ),
             email=latex_escape(user_profile.get("email") or ""),
             phone=latex_escape(user_profile.get("phone") or ""),
-            experience_summary=latex_escape(
-                ai_summary or user_profile.get("experience_summary") or "Deneyim özeti eklenmedi."
-            ),
+            experience_summary=latex_escape(summary_raw),
             all_skills=[latex_escape(s) for s in skills],
             experience_years=latex_escape(user_profile.get("experience_years") or "belirtilmemiş"),
             seniority=latex_escape(user_profile.get("seniority") or "belirtilmemiş"),
@@ -501,18 +721,25 @@ class CVGenerationAgent:
                 {
                     "title": latex_escape(cert.get("title")),
                     "issuer": latex_escape(cert.get("issuer")),
-                    "issue_date": latex_escape(cert.get("issue_date")),
+                    "issue_date": latex_escape(_format_month_year(cert.get("issue_date"))),
                 }
                 for cert in filtered_certificates
             ],
             languages=[
-                {"name": latex_escape(lang.get("name")), "level": latex_escape(lang.get("level"))}
+                {
+                    "name": latex_escape(lang.get("name")),
+                    "level": latex_escape(lang.get("level")),
+                }
                 for lang in (user_profile.get("languages") or [])
             ],
+            languages_line=languages_line,
+            has_photo=has_photo,
+            avatar_filename=avatar_filename,
             social_links=[
                 {
                     "platform": latex_escape(link.get("platform")),
-                    "url": latex_escape(link.get("url")),
+                    # href URL'lerinde LaTeX escape URL'yi bozar
+                    "url": str(link.get("url") or ""),
                 }
                 for link in (user_profile.get("social_links") or [])
             ],
@@ -525,19 +752,31 @@ class CVGenerationAgent:
                 }
                 for ref in (user_profile.get("references") or [])
             ],
-            required_skills=[latex_escape(s) for s in (job_analysis.get("required_skills") or [])],
-            nice_to_have_skills=[
-                latex_escape(s) for s in (job_analysis.get("nice_to_have_skills") or [])
+            exams=[
+                {
+                    "name": latex_escape(exam.get("name")),
+                    "score": latex_escape(exam.get("score")),
+                    "exam_date": latex_escape(_format_month_year(exam.get("exam_date"))),
+                    "description": latex_escape(exam.get("description")),
+                }
+                for exam in (user_profile.get("exams") or [])
             ],
         )
 
-    async def _compile_with_tectonic(self, tex_source: str, max_retries: int = 2) -> bytes:
+    async def _compile_with_tectonic(
+        self,
+        tex_source: str,
+        max_retries: int = 2,
+        avatar_bytes: Optional[bytes] = None,
+    ) -> bytes:
         last_error = ""
         for attempt in range(1, max_retries + 1):
             with tempfile.TemporaryDirectory() as tmpdir:
                 tex_path = Path(tmpdir) / "cv.tex"
                 pdf_path = Path(tmpdir) / "cv.pdf"
                 tex_path.write_text(tex_source, encoding="utf-8")
+                if avatar_bytes:
+                    (Path(tmpdir) / _avatar_filename(avatar_bytes)).write_bytes(avatar_bytes)
 
                 proc = await asyncio.create_subprocess_exec(
                     "tectonic",
@@ -579,9 +818,14 @@ class CVGenerationAgent:
         job_analysis: dict[str, Any],
         matching_gaps: Optional[dict[str, Any]] = None,
         extra_prompt: Optional[str] = None,
+        cv_template: Optional[str] = None,
     ) -> bytes:
         if not user_profile:
             raise ValidationException("user_profile zorunludur")
+
+        template_id = normalize_cv_template_id(
+            cv_template or (job_analysis or {}).get("cv_template")
+        )
 
         async with agent_run(
             "cv_generation",
@@ -594,27 +838,37 @@ class CVGenerationAgent:
                 # profildeki mevcut özete sessizce geri dönülür.
                 try:
                     ai_summary = await self._generate_ai_summary(
-                        user_profile, job_analysis or {}, matching_gaps or {}, extra_prompt
+                        user_profile,
+                        job_analysis or {},
+                        matching_gaps or {},
+                        extra_prompt,
                     )
                 except GeminiAPIException as exc:
                     logger.warning("cv_ai_summary_failed", error=str(exc))
 
             content_selection = None
             if self._has_filterable_content(user_profile):
-                # Ekip kararı: içerik ilanla alakalı olanlarla sınırlansın. LLM
-                # başarısız olursa filtrelemeden vazgeçilir, tüm içerik gösterilir -
-                # CV üretimi bu yüzden asla kırılmaz.
+                # Varsayılan: ilanla alakalı içerik. extra_prompt ile kullanıcı
+                # ekleme/çıkarma/kısaltma isteyebilir. LLM fail → tüm içerik (fail-open).
                 try:
                     content_selection = await self._select_relevant_content(
-                        user_profile, job_analysis or {}
+                        user_profile, job_analysis or {}, extra_prompt=extra_prompt
                     )
                 except GeminiAPIException as exc:
                     logger.warning("cv_content_filter_failed", error=str(exc))
 
+            avatar_bytes = self._load_avatar_bytes(user_profile)
+            avatar_name = _avatar_filename(avatar_bytes) if avatar_bytes else "avatar.jpg"
             tex_source = self._render_latex(
-                user_profile, job_analysis or {}, ai_summary, content_selection
+                user_profile,
+                job_analysis or {},
+                ai_summary,
+                content_selection,
+                cv_template=template_id,
+                has_photo=bool(avatar_bytes),
+                avatar_filename=avatar_name,
             )
-            pdf_bytes = await self._compile_with_tectonic(tex_source)
+            pdf_bytes = await self._compile_with_tectonic(tex_source, avatar_bytes=avatar_bytes)
             if not pdf_bytes or not pdf_bytes.startswith(b"%PDF"):
                 raise CVGenerationException("Üretilen dosya geçerli bir PDF değil")
             page_count = _pdf_page_count(pdf_bytes)
@@ -622,10 +876,16 @@ class CVGenerationAgent:
                 raise CVGenerationException("Üretilen PDF en az 1 sayfa içermeli")
 
             if page_count > 1:
-                # CV 1 sayfayı aştıysa, anlam kaybı olmadan paragrafları kısaltıp tek
-                # seferlik yeniden derleme dene; başarısız olursa uzun PDF'e dön.
-                pdf_bytes = await self._try_shorten_for_overflow(
-                    user_profile, job_analysis or {}, ai_summary, content_selection, pdf_bytes
+                # 1) paragrafları kısalt 2) yetmezse en az alakalı projeleri düşür.
+                pdf_bytes = await self._try_fit_to_one_page(
+                    user_profile,
+                    job_analysis or {},
+                    ai_summary,
+                    content_selection,
+                    pdf_bytes,
+                    cv_template=template_id,
+                    avatar_bytes=avatar_bytes,
+                    extra_prompt=extra_prompt,
                 )
             return pdf_bytes
 
@@ -638,9 +898,14 @@ class CVGenerationAgent:
         job_analysis: dict[str, Any],
         matching_gaps: Optional[dict[str, Any]] = None,
         extra_prompt: Optional[str] = None,
+        cv_template: Optional[str] = None,
     ) -> Document:
         pdf_bytes = await self.generate(
-            user_profile, job_analysis, matching_gaps=matching_gaps, extra_prompt=extra_prompt
+            user_profile,
+            job_analysis,
+            matching_gaps=matching_gaps,
+            extra_prompt=extra_prompt,
+            cv_template=cv_template or (job_analysis or {}).get("cv_template"),
         )
         cv_url = self.storage.upload_cv(user_id, pdf_bytes)
 

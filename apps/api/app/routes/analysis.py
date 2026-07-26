@@ -2,6 +2,7 @@
 import json
 from datetime import datetime, timezone
 
+from app.agents.cv_generation import normalize_cv_template_id
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
@@ -49,7 +50,7 @@ async def analyze_listing(
         military_status=payload.military_status,
         languages=json.dumps(payload.languages, ensure_ascii=False) if payload.languages else None,
         driver_license=payload.driver_license,
-        cv_template=(payload.cv_template or "1").strip() or "1",
+        cv_template=normalize_cv_template_id(payload.cv_template),
     )
     db.add(listing)
     await db.commit()

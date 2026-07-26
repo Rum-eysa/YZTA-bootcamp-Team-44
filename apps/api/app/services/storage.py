@@ -46,6 +46,44 @@ class StorageService:
         )
         return f"{self.public_url}/{self.bucket}/{key}"
 
+    def upload_avatar(self, user_id: str, image_bytes: bytes, content_type: str) -> str:
+        """Profil fotoğrafını yükler, herkese açık URL döner."""
+        ext = {
+            "image/jpeg": "jpg",
+            "image/jpg": "jpg",
+            "image/png": "png",
+            "image/webp": "webp",
+        }.get(content_type, "jpg")
+        key = f"avatars/{user_id}/{uuid.uuid4()}.{ext}"
+        self.client.put_object(
+            Bucket=self.bucket, Key=key, Body=image_bytes, ContentType=content_type
+        )
+        return f"{self.public_url}/{self.bucket}/{key}"
+
+    def _object_key_from_url(self, url: str) -> str | None:
+        """Public veya internal URL'den bucket key çıkarır."""
+        if not url:
+            return None
+        prefix = f"{self.public_url}/{self.bucket}/"
+        if url.startswith(prefix):
+            return url[len(prefix) :]
+        # Host farkı (localhost vs minio): .../{bucket}/{key}
+        marker = f"/{self.bucket}/"
+        if marker in url:
+            return url.split(marker, 1)[1]
+        return None
+
+    def download_bytes(self, url: str) -> bytes | None:
+        """Storage URL'den nesneyi S3 API ile indirir; başarısızsa None."""
+        key = self._object_key_from_url(url)
+        if not key:
+            return None
+        try:
+            obj = self.client.get_object(Bucket=self.bucket, Key=key)
+            return obj["Body"].read()
+        except ClientError:
+            return None
+
 
 @lru_cache
 def get_storage_service() -> StorageService:

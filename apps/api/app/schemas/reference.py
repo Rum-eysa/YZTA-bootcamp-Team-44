@@ -10,7 +10,7 @@ class ReferenceBase(BaseModel):
     name: str = Field(..., max_length=255)
     title: Optional[str] = Field(None, max_length=255)
     company: Optional[str] = Field(None, max_length=255)
-    contact: Optional[str] = Field(None, max_length=255)
+    contact: Optional[str] = Field(None, max_length=255, description="E-posta veya telefon")
     notes: Optional[str] = None
 
 
@@ -22,7 +22,7 @@ class ReferenceUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     title: Optional[str] = Field(None, max_length=255)
     company: Optional[str] = Field(None, max_length=255)
-    contact: Optional[str] = Field(None, max_length=255)
+    contact: Optional[str] = Field(None, max_length=255, description="E-posta veya telefon")
     notes: Optional[str] = None
 
 

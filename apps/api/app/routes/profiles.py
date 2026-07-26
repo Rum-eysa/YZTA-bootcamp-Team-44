@@ -37,10 +37,15 @@ from app.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.schemas.reference import ReferenceCreate, ReferenceResponse, ReferenceUpdate
 from app.schemas.social_link import SocialLinkCreate, SocialLinkResponse, SocialLinkUpdate
 from app.schemas.user import UserResponse, UserUpdate
-from fastapi import APIRouter, Depends, HTTPException, status
+from app.services.storage import get_storage_service
+from app.services.user import get_user_by_id
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Profiles"])
+
+_AVATAR_MAX_BYTES = 2 * 1024 * 1024
+_AVATAR_CONTENT_TYPES = frozenset({"image/jpeg", "image/jpg", "image/png", "image/webp"})
 
 
 @router.patch("/me", response_model=UserResponse)
@@ -51,6 +56,58 @@ async def patch_profile(
 ):
     """Update current user profile (US-008 alias for PATCH /api/profiles/me)."""
     return await update_current_user(user_update, user_id, db)
+
+
+@router.post("/me/avatar", response_model=UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Profil fotoğrafını MinIO'ya yükler ve users.avatar_url kaydeder."""
+    content_type = (file.content_type or "").lower()
+    if content_type not in _AVATAR_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Sadece JPEG, PNG veya WebP yüklenebilir",
+        )
+    data = await file.read()
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Boş dosya yüklenemez",
+        )
+    if len(data) > _AVATAR_MAX_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Fotoğraf en fazla 2MB olabilir",
+        )
+
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    storage = get_storage_service()
+    url = storage.upload_avatar(user_id, data, content_type)
+    user.avatar_url = url
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.delete("/me/avatar", response_model=UserResponse)
+async def delete_avatar(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Profil fotoğrafı URL'sini temizler."""
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.avatar_url = None
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 # --- US-013: Work Experiences CRUD (JWT korumalı) ---

@@ -1,0 +1,119 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{DejaVu Sans}
+\setsansfont{DejaVu Sans}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{geometry}
+\geometry{top=1.2cm, bottom=1.2cm, left=1.8cm, right=1.8cm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{parskip}
+
+\definecolor{primary}{RGB}{43, 84, 154}
+\definecolor{textdark}{RGB}{30, 30, 30}
+
+\hypersetup{colorlinks=true, linkcolor=primary, urlcolor=primary, pdftitle={CV}}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{minipage}[c]{0.55\textwidth}
+    {\Huge \bfseries \textcolor{textdark}{\VAR{full_name}}}\\[6pt]
+    \BLOCK{if target_position}{\Large \bfseries \textcolor{primary}{\VAR{target_position}}}\BLOCK{endif}
+\end{minipage}%
+\begin{minipage}[c]{0.45\textwidth}
+    \raggedleft
+    \textcolor{textdark}{
+    \BLOCK{if location}\VAR{location} \\\BLOCK{endif}
+    \BLOCK{if phone}\VAR{phone} \\\BLOCK{endif}
+    \BLOCK{if email}\href{mailto:\VAR{email}}{\VAR{email}} \\\BLOCK{endif}
+    \BLOCK{if social_links}
+    \BLOCK{for link in social_links}
+    \href{\VAR{link.url}}{\textbf{\VAR{link.platform}}}\BLOCK{if not loop.last} $|$ \BLOCK{endif}
+    \BLOCK{endfor}
+    \BLOCK{endif}
+    }
+\end{minipage}
+
+\vspace{1em}
+
+\BLOCK{if experience_summary}
+{\Large \bfseries \textcolor{primary}{Özgeçmiş Özeti}}
+\vspace{0.1em}
+
+\VAR{experience_summary}
+
+\vspace{0.6em}
+\BLOCK{endif}
+
+\BLOCK{if work_experiences}
+{\Large \bfseries \textcolor{primary}{Deneyimler}}
+\vspace{0.1em}
+
+\BLOCK{for exp in work_experiences}
+\noindent \textbf{\VAR{exp.company}} $|$ \textit{\VAR{exp.title}} \hfill \textit{\VAR{exp.period}}
+\BLOCK{if exp.description}
+\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt, parsep=0pt]
+    \item \VAR{exp.description}
+\end{itemize}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{0.25em}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if education}
+{\Large \bfseries \textcolor{primary}{Eğitimler}}
+\vspace{0.1em}
+
+\BLOCK{for edu in education}
+\par\noindent \textbf{\VAR{edu.degree}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif}} \hfill \textit{\VAR{edu.period}}\\
+\noindent \VAR{edu.school}%
+\BLOCK{if edu.description}\\ \VAR{edu.description}\BLOCK{endif}%
+\BLOCK{if not loop.last}\par\vspace{0.25em}\BLOCK{else}\par\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if projects}
+{\Large \bfseries \textcolor{primary}{Projeler}}
+\vspace{0.1em}
+
+\BLOCK{for proj in projects}
+\par\noindent \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}%
+\BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}%
+\BLOCK{if not loop.last}\par\vspace{0.25em}\BLOCK{else}\par\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if certificates or exams}
+{\Large \bfseries \textcolor{primary}{Sertifikalar ve Sınavlar}}
+\vspace{0.1em}
+\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt, parsep=0pt]
+\BLOCK{for cert in certificates}
+    \item \textbf{Sertifika:} \VAR{cert.title}\BLOCK{if cert.issuer} — \VAR{cert.issuer}\BLOCK{endif}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{for exam in exams}
+    \item \textbf{Sınav:} \textbf{\VAR{exam.name}}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if languages_line}
+{\Large \bfseries \textcolor{primary}{Yabancı Dil}}
+\vspace{0.1em}
+
+\noindent \VAR{languages_line}
+\BLOCK{endif}
+
+\BLOCK{if references}
+{\Large \bfseries \textcolor{primary}{Referanslar}}
+\vspace{0.1em}
+
+\begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt, parsep=0pt]
+\BLOCK{for ref in references}
+    \item \textbf{\VAR{ref.name}}\BLOCK{if ref.title} — \VAR{ref.title}\BLOCK{endif}\BLOCK{if ref.company}, \VAR{ref.company}\BLOCK{endif}\BLOCK{if ref.contact} (\VAR{ref.contact})\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\end{document}
