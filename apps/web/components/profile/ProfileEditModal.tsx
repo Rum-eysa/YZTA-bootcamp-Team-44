@@ -42,9 +42,9 @@ const SENIORITY_OPTIONS = [
 
 function normalizeHeaderPayload(data: HeaderFormData): UserUpdate {
   return {
-    full_name: data.full_name,
-    email: data.email,
-    target_position: data.target_position,
+    full_name: data.full_name.trim() || undefined,
+    email: data.email.trim() || undefined,
+    target_position: data.target_position.trim() || undefined,
     seniority: data.seniority ? data.seniority : undefined,
     experience_years:
       data.experience_years === "" ||

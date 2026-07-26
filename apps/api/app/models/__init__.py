@@ -78,6 +78,10 @@ class JobListing(Base):
     military_status: Mapped[str] = mapped_column(String(50), nullable=True)
     languages: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array (string)
     driver_license: Mapped[str] = mapped_column(String(50), nullable=True)
+    # CV şablon tercihi (ör. "1"…"6") — üretim pipeline'ı henüz kullanmıyor
+    cv_template: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="1", server_default="1"
+    )
     # Başvuru aşaması: review/interview/technical_test/offer/rejected
     application_stage: Mapped[str] = mapped_column(String(30), default="review")
 

@@ -33,9 +33,9 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 overflow-y-auto">
       <div
-        className="absolute inset-0 bg-inverse-surface/40"
+        className="fixed inset-0 bg-inverse-surface/40"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -44,11 +44,11 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
         aria-modal="true"
         aria-labelledby="modal-title"
         className={cn(
-          "relative w-full max-w-lg bg-surface-container-lowest rounded-xl border border-outline-variant shadow-card-hover max-h-[90vh] flex flex-col",
+          "relative my-auto w-full max-w-lg bg-surface-container-lowest rounded-xl border border-outline-variant shadow-card-hover max-h-[min(90vh,900px)] flex flex-col overflow-hidden",
           className
         )}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
+        <div className="flex shrink-0 items-center justify-between px-6 py-4 border-b border-outline-variant">
           <h2 id="modal-title" className="text-title-md font-semibold text-on-surface">
             {title}
           </h2>
@@ -61,7 +61,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
+        <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0">{children}</div>
         {footer && (
           <div className="px-6 py-4 border-t border-outline-variant flex justify-end gap-2">
             {footer}

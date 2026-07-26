@@ -49,6 +49,7 @@ async def analyze_listing(
         military_status=payload.military_status,
         languages=json.dumps(payload.languages, ensure_ascii=False) if payload.languages else None,
         driver_license=payload.driver_license,
+        cv_template=(payload.cv_template or "1").strip() or "1",
     )
     db.add(listing)
     await db.commit()

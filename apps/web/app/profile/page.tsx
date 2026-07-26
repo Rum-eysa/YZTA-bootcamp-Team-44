@@ -350,9 +350,95 @@ function ProfileContent() {
       )}
 
       <section className="bg-surface-container-lowest rounded-xl p-4 md:p-6 border border-outline-variant">
-        <div className="flex flex-col md:flex-row gap-md items-start">
+        {/* Mobil: fotoğraf | isim+düzenle, meta fotoğrafın altından */}
+        <div className="md:hidden space-y-md">
+          <div className="flex flex-row gap-md items-start">
+            <div className="relative shrink-0">
+              <div className="w-20 h-20 rounded-lg overflow-hidden border border-outline-variant bg-surface-container-low flex items-center justify-center">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={displayProfile.full_name || "Profil"}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <User className="w-10 h-10 text-outline-variant" />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-2 -right-2 bg-surface-container-lowest rounded-full p-1 border border-outline-variant text-on-surface-variant hover:text-primary transition-colors"
+                aria-label="Profil fotoğrafını düzenle"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-row justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-headline-lg-mobile font-semibold text-on-surface mb-xs break-words">
+                  {displayProfile.full_name || "Profil"}
+                </h1>
+                <p className="text-body-sm text-on-surface-variant break-words">
+                  {displayProfile.target_position || "İş unvanı belirtilmedi"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => openEdit("header")}
+                className="border border-primary text-primary px-3 py-1 rounded font-label-md text-label-md hover:bg-primary hover:text-on-primary transition-colors shrink-0"
+              >
+                Düzenle
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-sm gap-y-xs text-on-surface-variant text-body-sm">
+            {displayProfile.birth_year && (
+              <div className="flex items-center gap-xs">
+                <Cake className="w-4 h-4" />
+                <span>{displayProfile.birth_year}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-xs min-w-0 max-w-full">
+              <Mail className="w-4 h-4 shrink-0" />
+              <span className="break-all">{displayProfile.email}</span>
+            </div>
+            {displayProfile.location && (
+              <div className="flex items-center gap-xs min-w-0 max-w-full">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span className="break-words">{displayProfile.location}</span>
+              </div>
+            )}
+            {displayProfile.phone && (
+              <div className="flex items-center gap-xs min-w-0 max-w-full">
+                <Phone className="w-4 h-4 shrink-0" />
+                <span className="break-all">{displayProfile.phone}</span>
+              </div>
+            )}
+            {displayProfile.seniority && (
+              <div className="flex items-center gap-xs">
+                <Award className="w-4 h-4" />
+                <span>
+                  {SENIORITY_LABELS[displayProfile.seniority] || displayProfile.seniority}
+                </span>
+              </div>
+            )}
+            {displayProfile.experience_years != null && (
+              <div className="flex items-center gap-xs">
+                <Briefcase className="w-4 h-4" />
+                <span>{displayProfile.experience_years} yıl deneyim</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Web: orijinal düzen */}
+        <div className="hidden md:flex md:flex-row gap-md items-start">
           <div className="relative shrink-0">
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border border-outline-variant bg-surface-container-low flex items-center justify-center">
+            <div className="w-32 h-32 rounded-lg overflow-hidden border border-outline-variant bg-surface-container-low flex items-center justify-center">
               {avatarUrl ? (
                 <Image
                   src={avatarUrl}
@@ -374,19 +460,12 @@ function ProfileContent() {
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
           </div>
 
-          <div className="flex-1 w-full min-w-0">
-            <div className="flex flex-row justify-between items-start md:items-center mb-sm gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-row justify-between items-center mb-sm gap-4">
               <div className="min-w-0 flex-1">
-                <h1 className="text-headline-lg-mobile md:text-headline-lg font-semibold text-on-surface mb-xs break-words">
+                <h1 className="text-headline-lg font-semibold text-on-surface mb-xs break-words">
                   {displayProfile.full_name || "Profil"}
                 </h1>
                 <p className="text-body-lg text-on-surface-variant break-words">
@@ -409,7 +488,7 @@ function ProfileContent() {
                     <Cake className="w-4 h-4" />
                     <span>{displayProfile.birth_year}</span>
                   </div>
-                  <span className="text-outline-variant hidden md:inline">•</span>
+                  <span className="text-outline-variant">•</span>
                 </>
               )}
               <div className="flex items-center gap-xs min-w-0 max-w-full">
@@ -418,7 +497,7 @@ function ProfileContent() {
               </div>
               {displayProfile.location && (
                 <>
-                  <span className="text-outline-variant hidden md:inline">•</span>
+                  <span className="text-outline-variant">•</span>
                   <div className="flex items-center gap-xs min-w-0 max-w-full">
                     <MapPin className="w-4 h-4 shrink-0" />
                     <span className="break-words">{displayProfile.location}</span>
@@ -427,7 +506,7 @@ function ProfileContent() {
               )}
               {displayProfile.phone && (
                 <>
-                  <span className="text-outline-variant hidden md:inline">•</span>
+                  <span className="text-outline-variant">•</span>
                   <div className="flex items-center gap-xs min-w-0 max-w-full">
                     <Phone className="w-4 h-4 shrink-0" />
                     <span className="break-all">{displayProfile.phone}</span>
@@ -436,16 +515,18 @@ function ProfileContent() {
               )}
               {displayProfile.seniority && (
                 <>
-                  <span className="text-outline-variant hidden md:inline">•</span>
+                  <span className="text-outline-variant">•</span>
                   <div className="flex items-center gap-xs">
                     <Award className="w-4 h-4" />
-                    <span>{SENIORITY_LABELS[displayProfile.seniority] || displayProfile.seniority}</span>
+                    <span>
+                      {SENIORITY_LABELS[displayProfile.seniority] || displayProfile.seniority}
+                    </span>
                   </div>
                 </>
               )}
               {displayProfile.experience_years != null && (
                 <>
-                  <span className="text-outline-variant hidden md:inline">•</span>
+                  <span className="text-outline-variant">•</span>
                   <div className="flex items-center gap-xs">
                     <Briefcase className="w-4 h-4" />
                     <span>{displayProfile.experience_years} yıl deneyim</span>
@@ -455,6 +536,14 @@ function ProfileContent() {
             </div>
           </div>
         </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-lg items-start">
