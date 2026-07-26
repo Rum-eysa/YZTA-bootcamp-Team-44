@@ -6,6 +6,8 @@ from app.agents.cv_generation import (
     CVGenerationAgent,
     CVGenerationException,
     _rank_projects,
+    _rewrites_to_map,
+    _select_and_rewrite,
     _select_indices,
     _sorted_education,
     _sorted_experiences,
@@ -561,3 +563,219 @@ async def test_content_filter_failure_falls_back_to_showing_everything():
     assert pdf_bytes == b"%PDF-fake"
     tex_source = agent._compile_with_tectonic.call_args[0][0]
     assert "Backend Developer" in tex_source
+
+
+# --- İlana göre yeniden yazma (tailoring) -----------------------------------
+
+
+def test_rewrites_to_map_converts_valid_entries():
+    entries = [{"index": 0, "description": "Yeni metin"}, {"index": 2, "description": "Başka"}]
+    assert _rewrites_to_map(entries) == {0: "Yeni metin", 2: "Başka"}
+
+
+def test_rewrites_to_map_ignores_invalid_entries():
+    entries = [{"index": "abc", "description": "x"}, {"index": 1, "description": ""}, {}]
+    assert _rewrites_to_map(entries) == {}
+
+
+def test_select_and_rewrite_applies_rewrite_to_selected_item():
+    items = [{"title": "A", "description": "orijinal"}, {"title": "B", "description": "orijinal"}]
+    result = _select_and_rewrite(items, [0], {0: "yeniden yazılmış"})
+    assert result == [{"title": "A", "description": "yeniden yazılmış"}]
+
+
+def test_select_and_rewrite_keeps_original_when_no_rewrite_given():
+    items = [{"title": "A", "description": "orijinal"}]
+    result = _select_and_rewrite(items, [0], {})
+    assert result == [{"title": "A", "description": "orijinal"}]
+
+
+@pytest.mark.asyncio
+async def test_render_latex_uses_tailored_description_when_provided():
+    """İlana göre yeniden yazılan açıklama, orijinalin yerine CV'de basılmalı"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [
+            {"title": "Backend Developer", "company": "Y", "description": "orijinal açıklama"}
+        ],
+    }
+    content_selection = {
+        "experience_indices": [0],
+        "project_indices": [],
+        "certificate_indices": [],
+        "experience_rewrites": {0: "ilana göre yeniden yazılmış açıklama"},
+        "project_rewrites": {},
+    }
+
+    tex = agent._render_latex(profile, {"position_title": "Dev"}, None, content_selection)
+
+    assert "ilana göre yeniden yazılmış açıklama" in tex
+    assert "orijinal açıklama" not in tex
+
+
+@pytest.mark.asyncio
+async def test_content_filter_applies_tailored_rewrites_end_to_end():
+    """generate() içinde LLM'in döndürdüğü rewrite CV'ye yansımalı"""
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(
+        return_value={
+            "experience_indices": [0],
+            "project_indices": [],
+            "certificate_indices": [],
+            "experience_rewrites": [{"index": 0, "description": "FastAPI ile ilana özel metin"}],
+            "project_rewrites": [],
+        }
+    )
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [
+            {"title": "Backend Developer", "company": "Y", "description": "genel açıklama"}
+        ],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        await agent.generate(profile, {"position_title": "Backend Developer"})
+
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "FastAPI ile ilana özel metin" in tex_source
+    assert "genel açıklama" not in tex_source
+
+
+# --- 1 sayfayı aşan CV'yi kısaltma -------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_no_overflow_never_calls_shorten():
+    """PDF zaten 1 sayfaysa kısaltma için ekstra Gemini çağrısı yapılmamalı"""
+    agent = CVGenerationAgent(storage=MagicMock())
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    agent._try_shorten_for_overflow = AsyncMock(side_effect=AssertionError("çağrılmamalıydı"))
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
+        pdf_bytes = await agent.generate({"full_name": "Ayşe"}, {"position_title": "Dev"})
+
+    assert pdf_bytes == b"%PDF-fake"
+
+
+@pytest.mark.asyncio
+async def test_overflow_triggers_shorten_and_recompiles_once():
+    """PDF 1 sayfayı aşarsa kısaltma denenip yeniden derlenmeli, sonuç kısaltılmış olmalı"""
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(
+        side_effect=[
+            {
+                "experience_indices": [0],
+                "project_indices": [],
+                "certificate_indices": [],
+                "experience_rewrites": [],
+                "project_rewrites": [],
+            },
+            {
+                "experience_rewrites": [{"index": 0, "description": "kısaltılmış açıklama"}],
+                "project_rewrites": [],
+            },
+        ]
+    )
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(
+        side_effect=[b"%PDF-long", b"%PDF-short"]
+    )
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [
+            {"title": "Backend Developer", "company": "Y", "description": "çok uzun açıklama"}
+        ],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", side_effect=[2, 1, 2, 1]):
+        pdf_bytes = await agent.generate(profile, {"position_title": "Backend Developer"})
+
+    assert pdf_bytes == b"%PDF-short"
+    assert agent._compile_with_tectonic.await_count == 2
+    second_tex = agent._compile_with_tectonic.call_args_list[1][0][0]
+    assert "kısaltılmış açıklama" in second_tex
+    assert "çok uzun açıklama" not in second_tex
+
+
+@pytest.mark.asyncio
+async def test_overflow_shorten_failure_falls_back_to_original_pdf():
+    """Kısaltma çağrısı hata verirse orijinal (uzun) PDF hiç kaybedilmeden dönmeli"""
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(
+        side_effect=[
+            {
+                "experience_indices": [0],
+                "project_indices": [],
+                "certificate_indices": [],
+                "experience_rewrites": [],
+                "project_rewrites": [],
+            },
+            GeminiAPIException("quota exceeded"),
+        ]
+    )
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-long")
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [{"title": "Dev", "company": "Y", "description": "uzun açıklama"}],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=2):
+        pdf_bytes = await agent.generate(profile, {"position_title": "Dev"})
+
+    assert pdf_bytes == b"%PDF-long"
+    assert agent._compile_with_tectonic.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_overflow_recompile_failure_falls_back_to_original_pdf():
+    """Kısaltma başarılı ama yeniden derleme kırılırsa yine orijinal PDF dönmeli"""
+    fake_client = FakeGeminiClient()
+    fake_client.generate_json = AsyncMock(
+        side_effect=[
+            {
+                "experience_indices": [0],
+                "project_indices": [],
+                "certificate_indices": [],
+                "experience_rewrites": [],
+                "project_rewrites": [],
+            },
+            {
+                "experience_rewrites": [{"index": 0, "description": "kısa"}],
+                "project_rewrites": [],
+            },
+        ]
+    )
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(
+        side_effect=[b"%PDF-long", CVGenerationException("derleme hatası")]
+    )
+    profile = {
+        "full_name": "Ayşe",
+        "work_experiences": [{"title": "Dev", "company": "Y", "description": "uzun açıklama"}],
+    }
+
+    with patch("app.agents.cv_generation._pdf_page_count", side_effect=[2, 2]):
+        pdf_bytes = await agent.generate(profile, {"position_title": "Dev"})
+
+    assert pdf_bytes == b"%PDF-long"
+
+
+@pytest.mark.asyncio
+async def test_overflow_with_no_filterable_content_skips_shorten_call():
+    """Deneyim/proje hiç yoksa (ör. çok sertifika/dil var) kısaltma için Gemini'ye
+    gidilmemeli - kısaltılacak bir şey yok (içerik filtresi sertifika için hâlâ çalışır)"""
+    fake_client = FakeGeminiClient()
+    agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
+    agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
+    profile = {"full_name": "Ayşe", "certificates": [{"title": "X", "issuer": "Y"}]}
+
+    with patch("app.agents.cv_generation._pdf_page_count", return_value=2):
+        pdf_bytes = await agent.generate(profile, {"position_title": "Dev"})
+
+    assert pdf_bytes == b"%PDF-fake"
+    assert agent._compile_with_tectonic.await_count == 1
+    assert fake_client.generate_json.await_count == 1
