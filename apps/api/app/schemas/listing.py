@@ -53,6 +53,7 @@ class ListingDetail(BaseModel):
     military_status: Optional[str] = None
     languages: List[str] = []
     driver_license: Optional[str] = None
+    cv_template: str = "1"
     application_stage: str = "review"
 
     score: Optional[float] = None
@@ -85,4 +86,5 @@ class ListingUpdate(BaseModel):
     military_status: Optional[str] = Field(None, max_length=50)
     languages: Optional[List[str]] = None
     driver_license: Optional[str] = Field(None, max_length=50)
+    cv_template: Optional[str] = Field(None, max_length=10)
     application_stage: Optional[str] = Field(None, max_length=30)

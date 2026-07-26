@@ -1,0 +1,7 @@
+# GitHub Actions'ı lokalde birebir çalıştırmak için (nektos/act)
+# Kullanım: make ci-local   veya   act pull_request
+
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+--container-architecture linux/amd64
+--artifact-server-path /tmp/act-artifacts
+--env CODECOV_TOKEN=

@@ -45,6 +45,7 @@ export interface ListingDetail {
   military_status: string | null;
   languages: string[];
   driver_license: string | null;
+  cv_template?: string;
   application_stage: ApplicationStage;
   score: number | null;
   score_breakdown: ScoreBreakdown | null;
@@ -73,6 +74,7 @@ export interface ListingUpdate {
   military_status?: string | null;
   languages?: string[];
   driver_license?: string | null;
+  cv_template?: string;
   application_stage?: ApplicationStage;
 }
 

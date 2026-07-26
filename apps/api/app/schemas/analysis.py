@@ -23,6 +23,7 @@ class AnalyzeRequest(BaseModel):
     military_status: Optional[str] = Field(None, max_length=50)
     languages: Optional[List[str]] = None
     driver_license: Optional[str] = Field(None, max_length=50)
+    cv_template: Optional[str] = Field("1", max_length=10, description="CV şablon tercihi")
 
     @model_validator(mode="after")
     def validate_text_or_url(self):

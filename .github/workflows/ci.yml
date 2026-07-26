@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # nektos/act: setup-python post (cache-save) node binary ister
+      - name: Set up Node (act only)
+        if: ${{ env.ACT }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -104,7 +111,8 @@ jobs:
           - 6379:6379
 
       minio:
-        image: minio/minio:latest
+        # bitnamilegacy: GHA/act service schema `command` desteklemez; image kendi CMD ile ayağa kalkar
+        image: bitnamilegacy/minio:latest
         env:
           MINIO_ROOT_USER: yzta_minio
           MINIO_ROOT_PASSWORD: yzta_minio_password
@@ -116,10 +124,15 @@ jobs:
         ports:
           - 9000:9000
           - 9001:9001
-        command: server /data --console-address ":9001"
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Node (act only)
+        if: ${{ env.ACT }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Set up Python
         uses: actions/setup-python@v5

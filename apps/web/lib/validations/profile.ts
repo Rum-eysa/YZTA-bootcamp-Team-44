@@ -1,15 +1,12 @@
 import { z } from "zod";
 
 export const headerSchema = z.object({
-  full_name: z
-    .string()
-    .min(1, "Ad alanı zorunludur")
-    .max(50, "Ad en fazla 50 karakter olabilir"),
-  email: z.string().email("Geçerli bir e-posta adresi giriniz"),
-  target_position: z
-    .string()
-    .min(1, "İş unvanı zorunludur")
-    .max(50, "İş unvanı en fazla 50 karakter olabilir"),
+  full_name: z.string().max(50, "Ad en fazla 50 karakter olabilir"),
+  email: z.union([
+    z.literal(""),
+    z.string().email("Geçerli bir e-posta adresi giriniz"),
+  ]),
+  target_position: z.string().max(50, "İş unvanı en fazla 50 karakter olabilir"),
   seniority: z
     .union([z.literal(""), z.enum(["junior", "mid", "senior"])])
     .optional()

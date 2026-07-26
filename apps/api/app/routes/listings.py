@@ -165,6 +165,7 @@ async def get_listing(
         military_status=listing.military_status,
         languages=_load_list(listing.languages),
         driver_license=listing.driver_license,
+        cv_template=listing.cv_template or "1",
         application_stage=listing.application_stage or "review",
         score=match.score if match else None,
         score_breakdown=score_breakdown,

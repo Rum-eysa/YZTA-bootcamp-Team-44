@@ -1,4 +1,4 @@
-.PHONY: up down build logs logs-api logs-web test test-cov ps restart clean migrate seed shell-api shell-web help
+.PHONY: up down build logs logs-api logs-web test test-cov ci-local ps restart clean migrate seed shell-api shell-web help
 
 ## ─── Local Development ───────────────────────────────────────────────────────
 
@@ -35,6 +35,12 @@ test: ## API testlerini çalıştır
 
 test-cov: ## Testleri coverage raporu ile çalıştır
 	docker-compose exec -e PYTHONPATH=/app api pytest tests/ -v --cov=app --cov-report=term-missing
+
+ci-local: ## GitHub Actions CI'yi lokalde çalıştır (act — aynı workflow)
+	@command -v act >/dev/null || (echo "act gerekli: brew install act"; exit 1)
+	@mkdir -p /tmp/act-artifacts
+	@echo "Not: 5432/6379/9000 portları boş olmalı (gerekirse: docker compose stop postgres redis minio)"
+	act pull_request -W .github/workflows/ci.yml --container-architecture linux/amd64
 
 ## ─── Database ────────────────────────────────────────────────────────────────
 

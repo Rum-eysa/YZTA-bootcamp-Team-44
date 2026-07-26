@@ -8,7 +8,8 @@ import { MatchResultsSection } from "@/components/listing/results/MatchResultsSe
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
-import { TagInput } from "@/components/ui/TagInput";
+import { Modal } from "@/components/ui/Modal";
+import { SectionEditButton } from "@/components/ui/SectionEditButton";
 import { generateCoverLetter } from "@/lib/api/cover-letter";
 import { generateCv } from "@/lib/api/generate-cv";
 import {
@@ -19,37 +20,20 @@ import {
 } from "@/lib/api/listings";
 import { matchListing } from "@/lib/api/match";
 import { getApiErrorMessage } from "@/lib/apiErrors";
+import {
+  CV_TEMPLATES,
+  DEFAULT_CV_TEMPLATE,
+  getCvTemplate,
+  type CvTemplateId,
+} from "@/lib/cv-templates";
 import { cn } from "@/lib/utils";
-import {
-  APPLICATION_STAGE_LABELS,
-  type ApplicationStage,
-  type ListingDetail,
-  type ListingUpdate,
-} from "@/types/listing";
-import {
-  ArrowLeft,
-  Building2,
-  CheckCircle2,
-  Circle,
-  Clock,
-  MapPin,
-  RefreshCw,
-} from "lucide-react";
+import type { ListingDetail, ListingUpdate } from "@/types/listing";
+import { ArrowLeft, Building2, ImagePlus, RefreshCw } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-const EXPERIENCE_OPTIONS = ["Seçiniz", "Junior", "Mid", "Senior"];
-const EDUCATION_OPTIONS = [
-  "Seçiniz",
-  "Lise",
-  "Lisans",
-  "Yüksek Lisans",
-  "Doktora",
-];
-const MILITARY_OPTIONS = ["Seçiniz", "Yapıldı", "Muaf", "Tecilli"];
+import { useEffect, useRef, useState } from "react";
 
 const listingQueryKey = (listingId: string) => ["listing", listingId] as const;
 
@@ -62,42 +46,26 @@ function daysAgo(value: string): string {
   return `${diff} gün önce eklendi`;
 }
 
-function scoreSummaryClasses(score: number | null): string {
-  if (score == null) return "bg-primary-fixed/20 text-primary";
-  if (score < 40) return "bg-error-container/40 text-error";
-  if (score < 70) return "bg-yellow-50 text-yellow-800";
-  return "bg-green-50 text-green-700";
-}
-
 interface FormState {
   company: string;
   title: string;
   raw_text: string;
-  location: string;
   company_about: string;
   extra_notes: string;
-  benefits: string[];
-  experience_level: string;
-  education_level: string;
-  military_status: string;
-  languages: string[];
-  application_stage: ApplicationStage;
+  cv_template: CvTemplateId;
 }
 
 function toForm(l: ListingDetail): FormState {
+  const templateId = (l.cv_template ?? DEFAULT_CV_TEMPLATE) as CvTemplateId;
   return {
     company: l.company ?? "",
     title: l.title ?? "",
     raw_text: l.raw_text ?? "",
-    location: l.location ?? "",
     company_about: l.company_about ?? "",
     extra_notes: l.extra_notes ?? "",
-    benefits: l.benefits ?? [],
-    experience_level: l.experience_level ?? "Seçiniz",
-    education_level: l.education_level ?? "Seçiniz",
-    military_status: l.military_status ?? "Seçiniz",
-    languages: l.languages ?? [],
-    application_stage: l.application_stage,
+    cv_template: CV_TEMPLATES.some((t) => t.id === templateId)
+      ? templateId
+      : DEFAULT_CV_TEMPLATE,
   };
 }
 
@@ -106,10 +74,12 @@ function ListingDetailContent() {
   const router = useRouter();
   const listingId = params.listingId as string;
   const queryClient = useQueryClient();
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormState | null>(null);
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [cvModalOpen, setCvModalOpen] = useState(false);
 
   const listingQuery = useQuery({
     queryKey: listingQueryKey(listingId),
@@ -242,8 +212,23 @@ function ListingDetailContent() {
     setSaved(false);
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setCompanyLogo(dataUrl);
+      localStorage.setItem(`listing-logo:${listingId}`, dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const listingDetailsUnsaved = Boolean(
     form && listing && form.raw_text !== (listing.raw_text ?? ""),
+  );
+  const companyAboutUnsaved = Boolean(
+    form && listing && form.company_about !== (listing.company_about ?? ""),
   );
 
   const handleMatch = () => {
@@ -278,21 +263,14 @@ function ListingDetailContent() {
   const handleSave = () => {
     if (!form) return;
     updateMutation.reset();
-    const clean = (v: string) =>
-      v.trim() === "" || v === "Seçiniz" ? null : v.trim();
+    const clean = (v: string) => (v.trim() === "" ? null : v.trim());
     const payload: ListingUpdate = {
       company: clean(form.company),
       title: clean(form.title),
       raw_text: form.raw_text.trim(),
-      location: clean(form.location),
       company_about: clean(form.company_about),
       extra_notes: clean(form.extra_notes),
-      benefits: form.benefits,
-      experience_level: clean(form.experience_level),
-      education_level: clean(form.education_level),
-      military_status: clean(form.military_status),
-      languages: form.languages,
-      application_stage: form.application_stage,
+      cv_template: form.cv_template,
     };
     updateMutation.mutate(payload);
   };
@@ -349,6 +327,7 @@ function ListingDetailContent() {
           missingSkills={[]}
           loading
           rematching={false}
+          compact
           onCalculate={() => undefined}
           onRematch={() => undefined}
         />
@@ -386,35 +365,7 @@ function ListingDetailContent() {
       ? null
       : Math.min(100, Math.max(0, Math.round(listing.score)));
 
-  const steps = [
-    {
-      label: "İlan Analiz Edildi",
-      desc: "Otomatik veri çıkarımı tamamlandı.",
-      done: listing.analysis_status === "completed",
-      active: false,
-    },
-    {
-      label: "Eşleşme Skoru Hesaplandı",
-      desc:
-        listing.score != null
-          ? `CV'niz ile ilan eşleştirildi (%${Math.round(listing.score)}).`
-          : "Henüz hesaplanmadı.",
-      done: listing.score != null,
-      active: listing.score == null && listing.analysis_status === "completed",
-    },
-    {
-      label: "Önyazı Taslağı",
-      desc: "Özel yeteneklerinizi vurgulayan bir metin.",
-      done: listing.documents.some((d) => d.doc_type === "cover_letter"),
-      active: false,
-    },
-    {
-      label: "Mülakat Hazırlık Paketi",
-      desc: "Başvuru sonrası aktifleşir.",
-      done: false,
-      active: false,
-    },
-  ];
+  const selectedTemplate = getCvTemplate(form.cv_template);
 
   return (
     <main className="max-w-[1024px] mx-auto px-margin-mobile md:px-lg py-lg md:py-xl space-y-lg">
@@ -443,329 +394,303 @@ function ListingDetailContent() {
         }
       />
 
-      <section className="bg-surface-container-lowest rounded-xl p-4 md:p-6 border border-outline-variant">
-        <div className="flex flex-col md:flex-row gap-lg items-start">
-          <div className="flex gap-md items-start flex-1 min-w-0">
-            <div className="w-20 h-20 rounded-lg overflow-hidden border border-outline-variant bg-surface flex items-center justify-center shrink-0">
-              {companyLogo ? (
-                <Image
-                  src={companyLogo}
-                  alt="Şirket logosu"
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
-              ) : (
-                <Building2 className="w-9 h-9 text-on-surface-variant" />
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0 space-y-2">
-              <input
-                className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 text-label-md text-on-surface-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                placeholder="Şirket Adı"
-                value={form.company}
-                onChange={(e) => update("company", e.target.value)}
-              />
-              <input
-                className="w-full bg-transparent border border-outline-variant rounded-lg px-3 py-2 text-headline-lg-mobile md:text-headline-lg font-semibold text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                placeholder="Pozisyon"
-                value={form.title}
-                onChange={(e) => update("title", e.target.value)}
-              />
-              <div className="relative">
-                <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-                <input
-                  className="input-field pl-8 py-1.5"
-                  placeholder="Konum"
-                  value={form.location}
-                  onChange={(e) => update("location", e.target.value)}
-                />
+      <section className="relative bg-surface-container-lowest rounded-xl p-4 md:p-6 border border-outline-variant shadow-card">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-1 overflow-hidden rounded-t-xl bg-gradient-to-r from-primary via-primary-container to-primary/40"
+          aria-hidden="true"
+        />
+        <div className="flex flex-col gap-4 pt-1 md:flex-row md:flex-nowrap md:items-center md:gap-lg">
+          <div className="flex w-full items-center gap-3 md:contents">
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="relative shrink-0 group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              aria-label="Şirket logosunu güncelle"
+            >
+              <div
+                className={cn(
+                  "w-24 h-24 md:w-28 md:h-28 rounded-xl overflow-hidden border border-outline-variant flex items-center justify-center transition-colors",
+                  companyLogo
+                    ? "bg-surface"
+                    : "bg-primary-container/15 group-hover:bg-primary-container/25"
+                )}
+              >
+                {companyLogo ? (
+                  <Image
+                    src={companyLogo}
+                    alt="Şirket logosu"
+                    width={112}
+                    height={112}
+                    className="w-full h-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <Building2 className="w-9 h-9 text-primary/70 group-hover:text-primary transition-colors" />
+                )}
               </div>
-              <p className="text-label-md text-on-surface-variant">
-                {daysAgo(listing.created_at)}
-              </p>
+              <span className="absolute -bottom-1.5 -right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary-container text-on-primary shadow-card border border-primary-container/30 group-hover:opacity-90 transition-opacity">
+                <ImagePlus className="w-3.5 h-3.5" />
+              </span>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoChange}
+              />
+            </button>
+
+            <div className="min-w-0 flex-1 md:hidden">
+              <ListingEditActions
+                onCancel={handleCancel}
+                onSave={handleSave}
+                isSaving={updateMutation.isPending}
+                sticky={false}
+                layout="stack"
+                compact
+                className="min-w-0"
+              />
             </div>
           </div>
 
-          <div className="w-full shrink-0 space-y-3 md:w-auto">
-            <div className="flex items-stretch gap-md">
-              <div className="flex-1 space-y-1 md:w-44">
-                <label className="text-label-md text-on-surface-variant">
-                  Başvuru Aşaması
-                </label>
-                <select
-                  className="input-field py-2"
-                  value={form.application_stage}
-                  onChange={(e) =>
-                    update(
-                      "application_stage",
-                      e.target.value as ApplicationStage,
-                    )
-                  }
-                >
-                  {(
-                    Object.keys(APPLICATION_STAGE_LABELS) as ApplicationStage[]
-                  ).map((s) => (
-                    <option key={s} value={s}>
-                      {APPLICATION_STAGE_LABELS[s]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div
-                className={cn(
-                  "flex min-w-[104px] flex-col items-center justify-center rounded-xl px-5 py-2 text-center",
-                  scoreSummaryClasses(matchScore),
-                )}
+          <div className="w-full min-w-0 md:w-auto md:max-w-lg space-y-3">
+            <div className="space-y-1">
+              <label
+                htmlFor="listing-company"
+                className="text-label-md text-on-surface-variant"
               >
-                <p className="text-[32px] font-bold leading-none">
-                  {matchScore != null ? `%${matchScore}` : "—"}
-                </p>
-                <p className="mt-1 text-label-md opacity-80">Eşleşme Skoru</p>
-              </div>
+                Şirket Adı
+              </label>
+              <input
+                id="listing-company"
+                className="w-full min-w-0 bg-surface-container-low/60 border border-transparent rounded-lg px-3 py-2.5 text-headline-lg-mobile md:text-headline-lg font-semibold text-on-surface placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                placeholder="Örn. Teknoloji A.Ş."
+                value={form.company}
+                onChange={(e) => update("company", e.target.value)}
+              />
             </div>
+            <div className="space-y-1">
+              <label
+                htmlFor="listing-title"
+                className="text-label-md text-on-surface-variant"
+              >
+                Pozisyon
+              </label>
+              <input
+                id="listing-title"
+                className="w-full min-w-0 bg-surface-container-low/60 border border-transparent rounded-lg px-3 py-2 text-body-lg text-on-surface placeholder:text-on-surface-variant/50 focus:bg-surface-container-lowest focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                placeholder="Örn. Yazılım Mühendisliği Stajyeri"
+                value={form.title}
+                onChange={(e) => update("title", e.target.value)}
+              />
+            </div>
+            <p className="text-label-md text-on-surface-variant">
+              {daysAgo(listing.created_at)}
+            </p>
+          </div>
+
+          <div className="hidden md:flex md:w-auto md:flex-1 items-center justify-center">
             <ListingEditActions
               onCancel={handleCancel}
               onSave={handleSave}
               isSaving={updateMutation.isPending}
+              sticky={false}
+              layout="stack"
             />
           </div>
         </div>
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-lg items-start">
-        <div className="space-y-lg min-w-0">
-          <Card title="Şirket Hakkında">
-            <textarea
-              className="w-full h-32 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-              placeholder="Şirket kültürü, vizyonu ve çalışma ortamı hakkında bilgi..."
-              value={form.company_about}
-              onChange={(e) => update("company_about", e.target.value)}
-            />
-          </Card>
-
-          <Card
-            title="İlan Detayları"
-            titleAddon={
-              listingDetailsUnsaved ? (
-                <span
-                  className="shrink-0 text-label-md font-medium text-error"
-                  role="status"
-                >
-                  Kaydedilmedi
-                </span>
-              ) : undefined
-            }
-            action={
-              <Button
-                variant="outline"
-                onClick={handleReanalyze}
-                loading={reanalyzeMutation.isPending}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Yeniden Analiz Et
-              </Button>
-            }
-          >
-            <p className="mb-3 text-label-md text-on-surface-variant">
-              İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz
-              edin.
-            </p>
-            <textarea
-              className="w-full h-48 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-              placeholder="İş tanımı ve beklentileri..."
-              value={form.raw_text}
-              onChange={(e) => update("raw_text", e.target.value)}
-            />
-            {listing.required_skills.length > 0 && (
-              <div className="mt-4">
-                <p className="text-label-md text-on-surface-variant mb-2">
-                  ZORUNLU BECERİLER
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {listing.required_skills.map((s) => (
-                    <span
-                      key={s}
-                      className="bg-primary-fixed/20 text-primary px-2 py-1 rounded text-label-md"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {listing.nice_to_have.length > 0 && (
-              <div className="mt-3">
-                <p className="text-label-md text-on-surface-variant mb-2">
-                  TERCİH SEBEBİ
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {listing.nice_to_have.map((s) => (
-                    <span
-                      key={s}
-                      className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-label-md"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <FormError
-              message={
-                reanalyzeMutation.isError
-                  ? getApiErrorMessage(
-                      reanalyzeMutation.error,
-                      "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin.",
-                    )
-                  : undefined
+        <div className="contents min-w-0 md:flex md:flex-col md:gap-lg md:col-start-1 md:row-start-1">
+          <div className="order-1 md:order-none">
+            <Card
+              title="Şirket Hakkında"
+              titleAddon={
+                companyAboutUnsaved ? (
+                  <span
+                    className="shrink-0 text-[11px] font-medium leading-none text-error"
+                    role="status"
+                  >
+                    Kaydedilmedi
+                  </span>
+                ) : undefined
               }
+            >
+              <textarea
+                className="w-full h-32 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                placeholder="Şirket kültürü, vizyonu ve çalışma ortamı hakkında bilgi..."
+                value={form.company_about}
+                onChange={(e) => update("company_about", e.target.value)}
+              />
+            </Card>
+          </div>
+
+          <div className="order-2 md:order-none">
+            <Card
+              title="İlan Detayları"
+              titleAddon={
+                listingDetailsUnsaved ? (
+                  <span
+                    className="shrink-0 text-[11px] font-medium leading-none text-error"
+                    role="status"
+                  >
+                    Kaydedilmedi
+                  </span>
+                ) : undefined
+              }
+              action={
+                <Button
+                  variant="outline"
+                  onClick={handleReanalyze}
+                  loading={reanalyzeMutation.isPending}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Yeniden Analiz Et
+                </Button>
+              }
+            >
+              <p className="mb-3 text-label-md text-on-surface-variant">
+                İlan metnini değiştirdiyseniz önce kaydedin, sonra yeniden analiz
+                edin.
+              </p>
+              <textarea
+                className="w-full h-48 bg-transparent border border-outline-variant rounded-lg p-4 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                placeholder="İş tanımı ve beklentileri..."
+                value={form.raw_text}
+                onChange={(e) => update("raw_text", e.target.value)}
+              />
+              {listing.required_skills.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-label-md text-on-surface-variant mb-2">
+                    ZORUNLU BECERİLER
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {listing.required_skills.map((s) => (
+                      <span
+                        key={s}
+                        className="bg-primary-fixed/20 text-primary px-2 py-1 rounded text-label-md"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {listing.nice_to_have.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-label-md text-on-surface-variant mb-2">
+                    TERCİH SEBEBİ
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {listing.nice_to_have.map((s) => (
+                      <span
+                        key={s}
+                        className="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-label-md"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <FormError
+                message={
+                  reanalyzeMutation.isError
+                    ? getApiErrorMessage(
+                        reanalyzeMutation.error,
+                        "İlan yeniden analiz edilemedi. Lütfen tekrar deneyin.",
+                      )
+                    : undefined
+                }
+              />
+            </Card>
+          </div>
+
+          <div className="order-4 md:order-none">
+            <CoverLetterResultSection
+              documents={listing.documents}
+              score={matchScore}
+              loading={coverLetterMutation.isPending}
+              error={coverLetterError}
+              outdated={Boolean(listing.cover_letter_outdated)}
+              onGenerate={handleGenerateCoverLetter}
             />
-          </Card>
+          </div>
 
-          <MatchResultsSection
-            score={matchScore}
-            scoreBreakdown={listing.score_breakdown}
-            requiredSkills={listing.required_skills}
-            niceToHaveSkills={listing.nice_to_have}
-            matchedSkills={listing.matched_skills}
-            missingSkills={listing.missing_skills}
-            loading={matchMutation.isPending}
-            error={matchError}
-            rematching={rematchMutation.isPending}
-            rematchError={rematchError}
-            outdated={Boolean(listing.match_outdated)}
-            onCalculate={handleMatch}
-            onRematch={handleRematch}
-          />
-
-          <CoverLetterResultSection
-            documents={listing.documents}
-            score={matchScore}
-            loading={coverLetterMutation.isPending}
-            error={coverLetterError}
-            outdated={Boolean(listing.cover_letter_outdated)}
-            onGenerate={handleGenerateCoverLetter}
-          />
-
-          <CvResultSection
-            documents={listing.documents}
-            loading={cvMutation.isPending}
-            error={cvError}
-            outdated={Boolean(listing.cv_outdated)}
-            onGenerate={handleGenerateCv}
-          />
+          <div className="order-5 md:order-none">
+            <CvResultSection
+              documents={listing.documents}
+              loading={cvMutation.isPending}
+              error={cvError}
+              outdated={Boolean(listing.cv_outdated)}
+              onGenerate={handleGenerateCv}
+            />
+          </div>
         </div>
 
-        <div className="space-y-lg min-w-0">
-          <Card title="Aday Kriterleri">
-            <div className="space-y-md">
-              <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">
-                  Deneyim Seviyesi
-                </label>
-                <select
-                  className="input-field"
-                  value={form.experience_level}
-                  onChange={(e) => update("experience_level", e.target.value)}
-                >
-                  {EXPERIENCE_OPTIONS.map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">
-                  Askerlik Durumu
-                </label>
-                <select
-                  className="input-field"
-                  value={form.military_status}
-                  onChange={(e) => update("military_status", e.target.value)}
-                >
-                  {MILITARY_OPTIONS.map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">
-                  Eğitim Seviyesi
-                </label>
-                <select
-                  className="input-field"
-                  value={form.education_level}
-                  onChange={(e) => update("education_level", e.target.value)}
-                >
-                  {EDUCATION_OPTIONS.map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-label-md text-on-surface-variant">
-                  Yabancı Dil
-                </label>
-                <TagInput
-                  value={form.languages}
-                  onChange={(v) => update("languages", v)}
-                  placeholder="Dil ekleyip Enter'a basın"
+        <div className="contents min-w-0 md:flex md:flex-col md:gap-lg md:col-start-2 md:row-start-1">
+          <div className="order-3 md:order-none">
+            <MatchResultsSection
+              score={matchScore}
+              scoreBreakdown={listing.score_breakdown}
+              requiredSkills={listing.required_skills}
+              niceToHaveSkills={listing.nice_to_have}
+              matchedSkills={listing.matched_skills}
+              missingSkills={listing.missing_skills}
+              loading={matchMutation.isPending}
+              error={matchError}
+              rematching={rematchMutation.isPending}
+              rematchError={rematchError}
+              outdated={Boolean(listing.match_outdated)}
+              compact
+              onCalculate={handleMatch}
+              onRematch={handleRematch}
+            />
+          </div>
+
+          <div className="order-6 md:order-none">
+            <Card
+              title="CV Tercihi"
+              action={
+                <SectionEditButton
+                  label="Değiştir"
+                  onClick={() => setCvModalOpen(true)}
                 />
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Yan Haklar">
-            <TagInput
-              value={form.benefits}
-              onChange={(v) => update("benefits", v)}
-              placeholder="Yan hak ekleyip Enter'a basın"
-            />
-          </Card>
-
-          <Card title="Ekstra Notlar">
-            <textarea
-              className="w-full h-24 bg-transparent border border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-              placeholder="Bu başvuruyla ilgili notlarınız..."
-              value={form.extra_notes}
-              onChange={(e) => update("extra_notes", e.target.value)}
-            />
-          </Card>
-
-          <Card title="Sistem Durumu">
-            <div className="space-y-md">
-              {steps.map((step) => (
-                <div key={step.label} className="flex gap-3">
-                  <div className="shrink-0 mt-0.5">
-                    {step.done ? (
-                      <CheckCircle2 className="w-5 h-5 text-primary" />
-                    ) : step.active ? (
-                      <Clock className="w-5 h-5 text-primary" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-outline-variant" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p
-                      className={cn(
-                        "text-body-sm font-semibold break-words",
-                        step.done || step.active
-                          ? "text-on-surface"
-                          : "text-on-surface-variant",
-                      )}
-                    >
-                      {step.label}
-                    </p>
-                    <p className="text-label-md text-on-surface-variant break-words">
-                      {step.desc}
-                    </p>
-                  </div>
+              }
+            >
+              <button
+                type="button"
+                onClick={() => setCvModalOpen(true)}
+                className="w-full text-left space-y-2 group"
+                aria-label={`${selectedTemplate.label} seçili. Değiştirmek için tıklayın.`}
+              >
+                <div className="relative w-full overflow-hidden rounded-lg border border-outline-variant bg-surface aspect-[3/4]">
+                  <Image
+                    src={selectedTemplate.src}
+                    alt={selectedTemplate.label}
+                    fill
+                    className="object-contain object-top group-hover:opacity-95 transition-opacity"
+                    sizes="300px"
+                  />
                 </div>
-              ))}
-            </div>
-          </Card>
+                <p className="text-label-md font-semibold text-on-surface">
+                  {selectedTemplate.label}
+                </p>
+              </button>
+            </Card>
+          </div>
+
+          <div className="order-7 md:order-none">
+            <Card title="Ekstra Notlar">
+              <textarea
+                className="w-full h-24 bg-transparent border border-outline-variant rounded-lg p-3 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                placeholder="Bu başvuruyla ilgili notlarınız..."
+                value={form.extra_notes}
+                onChange={(e) => update("extra_notes", e.target.value)}
+              />
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -776,6 +701,55 @@ function ListingDetailContent() {
           isSaving={updateMutation.isPending}
         />
       </div>
+
+      <Modal
+        open={cvModalOpen}
+        onClose={() => setCvModalOpen(false)}
+        title="CV Tercihi Seç"
+        className="max-w-4xl"
+      >
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+          {CV_TEMPLATES.map((template) => {
+            const isSelected = template.id === form.cv_template;
+            return (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => {
+                  update("cv_template", template.id);
+                  setCvModalOpen(false);
+                }}
+                className={cn(
+                  "text-left rounded-lg border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                  isSelected
+                    ? "border-primary ring-2 ring-primary"
+                    : "border-outline-variant hover:border-primary/60"
+                )}
+              >
+                <div className="relative w-full aspect-[3/4] bg-surface">
+                  <Image
+                    src={template.src}
+                    alt={template.label}
+                    fill
+                    className="object-contain object-top"
+                    sizes="(max-width: 768px) 45vw, 360px"
+                  />
+                </div>
+                <div className="px-3 py-2 border-t border-outline-variant">
+                  <p
+                    className={cn(
+                      "text-label-md font-semibold",
+                      isSelected ? "text-primary" : "text-on-surface"
+                    )}
+                  >
+                    {template.label}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </Modal>
     </main>
   );
 }
