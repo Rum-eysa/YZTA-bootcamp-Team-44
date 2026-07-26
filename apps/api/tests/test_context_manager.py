@@ -6,6 +6,7 @@ import pytest
 from app.models import (
     Certificate,
     EducationRecord,
+    Exam,
     JobListing,
     Language,
     Match,
@@ -435,16 +436,19 @@ async def test_context_manager_loads_certificates_languages_social_links_and_ref
     await test_session.commit()
 
     cert = Certificate(user_id=user_id, title="AWS Certified Developer", issuer="Amazon")
+    exam = Exam(user_id=user_id, name="YDS", score="85")
     lang = Language(user_id=user_id, name="İngilizce", level="İleri")
     link = SocialLink(user_id=user_id, platform="GitHub", url="https://github.com/example")
     ref = Reference(user_id=user_id, name="Mehmet Öz", title="Tech Lead", company="Acme")
-    test_session.add_all([cert, lang, link, ref])
+    test_session.add_all([cert, exam, lang, link, ref])
     await test_session.commit()
 
     context = await ContextManager(test_session).load(user_id, listing_id)
 
     assert len(context["certificates"]) == 1
     assert context["certificates"][0]["title"] == "AWS Certified Developer"
+    assert len(context["exams"]) == 1
+    assert context["exams"][0]["name"] == "YDS"
     assert len(context["languages"]) == 1
     assert context["languages"][0]["name"] == "İngilizce"
     assert len(context["social_links"]) == 1
@@ -455,6 +459,7 @@ async def test_context_manager_loads_certificates_languages_social_links_and_ref
     agent_profile = user_profile_for_agents(context)
     assert agent_profile["location"] == "İstanbul"
     assert agent_profile["certificates"][0]["title"] == "AWS Certified Developer"
+    assert agent_profile["exams"][0]["name"] == "YDS"
     assert agent_profile["languages"][0]["name"] == "İngilizce"
     assert agent_profile["social_links"][0]["platform"] == "GitHub"
     assert agent_profile["references"][0]["name"] == "Mehmet Öz"

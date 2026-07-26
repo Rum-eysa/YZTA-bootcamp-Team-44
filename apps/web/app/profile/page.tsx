@@ -24,6 +24,7 @@ import { deleteLanguage, listLanguages } from "@/lib/api/languages";
 import { deleteProject, listProjects } from "@/lib/api/projects";
 import { deleteReference, listReferences } from "@/lib/api/references";
 import { deleteSocialLink, listSocialLinks } from "@/lib/api/socialLinks";
+import { uploadAvatar } from "@/lib/api/profiles";
 import type { ProfileEditSection } from "@/lib/validations/profile";
 import type { Certificate } from "@/types/certificate";
 import type { EducationRecord } from "@/types/education";
@@ -114,9 +115,32 @@ function ProfileContent() {
 
   useEffect(() => {
     if (!displayProfile?.id) return;
+    if (displayProfile.avatar_url) {
+      setAvatarUrl(displayProfile.avatar_url);
+      localStorage.removeItem(`avatar-migrated:${displayProfile.id}`);
+      return;
+    }
     const saved = localStorage.getItem(`avatar:${displayProfile.id}`);
     setAvatarUrl(saved);
-  }, [displayProfile?.id]);
+    // Sunucuda avatar yoksa localStorage'dakini yüklemeyi dene (seed sonrası da)
+    if (!saved || !saved.startsWith("data:")) return;
+    void (async () => {
+      try {
+        const res = await fetch(saved);
+        const blob = await res.blob();
+        const ext = blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg";
+        const file = new File([blob], `avatar.${ext}`, { type: blob.type || "image/jpeg" });
+        const updated = await uploadAvatar(file);
+        if (updated.avatar_url) {
+          setAvatarUrl(updated.avatar_url);
+          setProfile(updated);
+          await refreshUser();
+        }
+      } catch {
+        // localStorage fallback kalır; kullanıcı yeniden seçebilir
+      }
+    })();
+  }, [displayProfile?.id, displayProfile?.avatar_url, refreshUser]);
 
   const loadExperiences = useCallback(async () => {
     try {
@@ -321,9 +345,14 @@ function ProfileContent() {
     setTimeout(() => setSuccessMessage(undefined), 3000);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !displayProfile?.id) return;
+    if (!file.type.startsWith("image/")) {
+      setSuccessMessage("Lütfen JPEG, PNG veya WebP bir görsel seçin.");
+      setTimeout(() => setSuccessMessage(undefined), 4000);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const data = reader.result as string;
@@ -331,6 +360,24 @@ function ProfileContent() {
       setAvatarUrl(data);
     };
     reader.readAsDataURL(file);
+    try {
+      const updated = await uploadAvatar(file);
+      if (updated.avatar_url) {
+        setAvatarUrl(updated.avatar_url);
+        setProfile(updated);
+        await refreshUser();
+        setSuccessMessage("Profil fotoğrafı kaydedildi. CV üretirken kullanılacak.");
+        setTimeout(() => setSuccessMessage(undefined), 4000);
+      } else {
+        setSuccessMessage("Fotoğraf yüklendi ama sunucu URL döndürmedi.");
+        setTimeout(() => setSuccessMessage(undefined), 4000);
+      }
+    } catch {
+      setSuccessMessage(
+        "Fotoğraf sunucuya yüklenemedi; CV'de görünmez. Tekrar deneyin (JPEG/PNG, max 2MB)."
+      );
+      setTimeout(() => setSuccessMessage(undefined), 6000);
+    }
   };
 
   if (loading || !displayProfile) {
@@ -1098,7 +1145,11 @@ function ProfileContent() {
                       )}
                       {r.contact && (
                         <p className="flex items-center gap-xs text-body-sm text-on-surface-variant break-all">
-                          <Phone className="w-3.5 h-3.5 shrink-0" />
+                          {r.contact.includes("@") ? (
+                            <Mail className="w-3.5 h-3.5 shrink-0" />
+                          ) : (
+                            <Phone className="w-3.5 h-3.5 shrink-0" />
+                          )}
                           {r.contact}
                         </p>
                       )}

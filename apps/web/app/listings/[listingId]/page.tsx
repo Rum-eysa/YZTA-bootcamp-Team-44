@@ -22,8 +22,8 @@ import { matchListing } from "@/lib/api/match";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import {
   CV_TEMPLATES,
-  DEFAULT_CV_TEMPLATE,
   getCvTemplate,
+  normalizeCvTemplateId,
   type CvTemplateId,
 } from "@/lib/cv-templates";
 import { cn } from "@/lib/utils";
@@ -56,16 +56,13 @@ interface FormState {
 }
 
 function toForm(l: ListingDetail): FormState {
-  const templateId = (l.cv_template ?? DEFAULT_CV_TEMPLATE) as CvTemplateId;
   return {
     company: l.company ?? "",
     title: l.title ?? "",
     raw_text: l.raw_text ?? "",
     company_about: l.company_about ?? "",
     extra_notes: l.extra_notes ?? "",
-    cv_template: CV_TEMPLATES.some((t) => t.id === templateId)
-      ? templateId
-      : DEFAULT_CV_TEMPLATE,
+    cv_template: normalizeCvTemplateId(l.cv_template),
   };
 }
 
@@ -141,8 +138,14 @@ function ListingDetailContent() {
   });
 
   const cvMutation = useMutation({
-    mutationFn: (extraPrompt?: string) =>
-      generateCv({ listing_id: listingId, extra_prompt: extraPrompt }),
+    mutationFn: async (extraPrompt?: string) => {
+      // CV üretimi DB'deki cv_template'i kullanır; formdaki tercihi önce kaydet.
+      const templateId = form?.cv_template;
+      if (templateId) {
+        await updateListing(listingId, { cv_template: templateId });
+      }
+      return generateCv({ listing_id: listingId, extra_prompt: extraPrompt });
+    },
     onSuccess: async (result) => {
       queryClient.setQueryData<ListingDetail>(
         listingQueryKey(listingId),
@@ -718,6 +721,8 @@ function ListingDetailContent() {
                 onClick={() => {
                   update("cv_template", template.id);
                   setCvModalOpen(false);
+                  // Tercihi hemen kaydet — "Kaydet" beklemeden CV üretimi doğru şablonu kullansın
+                  updateMutation.mutate({ cv_template: template.id });
                 }}
                 className={cn(
                   "text-left rounded-lg border overflow-hidden transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",

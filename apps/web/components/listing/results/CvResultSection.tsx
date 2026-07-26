@@ -75,14 +75,21 @@ export function CvResultSection({
       {showEditPrompt && (
         <div className="mt-3">
           <Textarea
-            label="Ekstra vurgu notu (isteğe bağlı)"
-            placeholder='Ör. "takım çalışmasını vurgula", "eşleşme düşükse motivasyonumu öne çıkar"'
+            label="CV düzenleme notu (isteğe bağlı)"
+            placeholder={
+              'Ör. "X projesini çıkar", "staj deneyimini tut ama kısalt", ' +
+              '"tüm paragrafları kısalt", "takım çalışmasını vurgula"'
+            }
             value={extraPrompt}
             onChange={(event) => setExtraPrompt(event.target.value)}
             maxLength={EXTRA_PROMPT_MAX_LENGTH}
             showCount
-            rows={2}
+            rows={3}
           />
+          <p className="mt-1 text-caption text-on-surface-variant">
+            İlanla alakasız içerik için de kısaltma, değiştirme, ekleme veya çıkarma
+            isteyebilirsiniz. Profilde olmayan deneyim uydurulmaz.
+          </p>
         </div>
       )}
 

@@ -1,0 +1,126 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{fontspec}
+\setmainfont{DejaVu Sans}
+\setsansfont{DejaVu Sans}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{geometry}
+\geometry{a4paper, margin=0.65in}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{xcolor}
+\usepackage{tikz}
+
+\definecolor{primarycolor}{rgb}{0.1, 0.3, 0.5}
+\hypersetup{colorlinks=true, urlcolor=primarycolor, pdftitle={CV}}
+
+\titleformat{\section}{\large\bfseries\color{primarycolor}}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{1ex}{0.8ex}
+
+\begin{document}
+\pagestyle{empty}
+
+\begin{minipage}[c]{0.75\textwidth}
+    \raggedright
+    {\Huge \textbf{\VAR{full_name}}}\\[0.4em]
+    \BLOCK{if target_position}{\Large \textbf{\VAR{target_position}}}\\[0.4em]\BLOCK{endif}
+    \BLOCK{if email}\href{mailto:\VAR{email}}{\VAR{email}}\BLOCK{endif}%
+    \BLOCK{if phone} $\vert$ \VAR{phone}\BLOCK{endif}%
+    \BLOCK{if location} $\vert$ \VAR{location}\BLOCK{endif}\\[0.4em]
+    \BLOCK{if social_links}
+    \BLOCK{for link in social_links}
+    \href{\VAR{link.url}}{\textbf{\VAR{link.platform}}}\BLOCK{if not loop.last} $\vert$ \BLOCK{endif}
+    \BLOCK{endfor}
+    \BLOCK{endif}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.22\textwidth}
+    \centering
+    \begin{tikzpicture}
+        \BLOCK{if has_photo}
+        \begin{scope}
+            \clip (0,0) circle (1.6cm);
+            \node at (0,0) {\includegraphics[width=3.2cm,height=3.2cm,keepaspectratio]{\VAR{avatar_filename}}};
+        \end{scope}
+        \draw[thick, primarycolor] (0,0) circle (1.6cm);
+        \BLOCK{else}
+        \draw[thick, primarycolor, dashed] (0,0) circle (1.6cm);
+        \node[text width=2.5cm, align=center] at (0,0) {\footnotesize \color{primarycolor} \textbf{Fotoğraf} \\ \textbf{Alanı}};
+        \BLOCK{endif}
+    \end{tikzpicture}
+\end{minipage}
+
+\vspace{0.8em}
+
+\BLOCK{if experience_summary}
+\section*{Özgeçmiş Özeti}
+\VAR{experience_summary}
+\BLOCK{endif}
+
+\BLOCK{if work_experiences}
+\section*{Deneyimler}
+\BLOCK{for exp in work_experiences}
+\noindent \textbf{\VAR{exp.company}} \hfill \textbf{\VAR{exp.period}} \\
+\textit{\VAR{exp.title}}
+\BLOCK{if exp.description}
+\begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
+    \item \VAR{exp.description}
+\end{itemize}
+\BLOCK{endif}
+\BLOCK{if not loop.last}\vspace{0.25em}\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if education}
+\section*{Eğitimler}
+\BLOCK{for edu in education}
+\par\noindent \textbf{\VAR{edu.school}} \hfill \textbf{\VAR{edu.period}} \\
+\textit{\VAR{edu.degree}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif}}%
+\BLOCK{if edu.description}\\ \VAR{edu.description}\BLOCK{endif}%
+\BLOCK{if not loop.last}\par\vspace{0.25em}\BLOCK{else}\par\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if projects}
+\section*{Projeler}
+\BLOCK{for proj in projects}
+\par\noindent \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}%
+\BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}%
+\BLOCK{if not loop.last}\par\vspace{0.25em}\BLOCK{else}\par\BLOCK{endif}
+\BLOCK{endfor}
+\BLOCK{endif}
+
+\BLOCK{if certificates}
+\section*{Sertifikalar}
+\begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
+\BLOCK{for cert in certificates}
+    \item \textbf{\VAR{cert.title}}\BLOCK{if cert.issuer} — \VAR{cert.issuer}\BLOCK{endif}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if exams}
+\section*{Sınavlar}
+\begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
+\BLOCK{for exam in exams}
+    \item \textbf{\VAR{exam.name}}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\BLOCK{if languages_line}
+\section*{Yabancı Dil}
+\noindent \VAR{languages_line}
+\BLOCK{endif}
+
+\BLOCK{if references}
+\section*{Referanslar}
+\begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
+\BLOCK{for ref in references}
+    \item \textbf{\VAR{ref.name}}\BLOCK{if ref.title} — \VAR{ref.title}\BLOCK{endif}\BLOCK{if ref.company}, \VAR{ref.company}\BLOCK{endif}\BLOCK{if ref.contact} (\VAR{ref.contact})\BLOCK{endif}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\end{document}

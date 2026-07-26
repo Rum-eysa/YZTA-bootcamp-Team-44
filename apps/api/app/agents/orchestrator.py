@@ -239,6 +239,7 @@ class ApplicationOrchestrator:
                         listing_id=listing_id,
                         user_profile=user_profile,
                         job_analysis=job_analysis,
+                        cv_template=(job_analysis or {}).get("cv_template"),
                     ),
                     timeline,
                 )

@@ -21,7 +21,7 @@ FROM --platform=linux/amd64 python:3.11-slim-trixie
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 curl libgraphite2-3 libharfbuzz0b libfontconfig1 \
+    libpq5 curl libgraphite2-3 libharfbuzz0b libfontconfig1 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 appuser

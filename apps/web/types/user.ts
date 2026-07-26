@@ -10,6 +10,7 @@ export interface UserResponse {
   experience_summary: string | null;
   phone: string | null;
   location: string | null;
+  avatar_url: string | null;
   birth_year: number | null;
   tone_preference: string | null;
   gender: string | null;

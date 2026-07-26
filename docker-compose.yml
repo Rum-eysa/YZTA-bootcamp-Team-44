@@ -64,6 +64,8 @@ services:
       context: ./apps/api
       dockerfile: Dockerfile
     container_name: yzta_api
+    # Yerel geliştirmede kod değişikliklerinin hemen yüklenmesi için
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     environment:

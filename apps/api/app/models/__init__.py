@@ -28,6 +28,7 @@ class User(Base):
     experience_summary: Mapped[str] = mapped_column(Text, nullable=True)
     phone: Mapped[str] = mapped_column(String(50), nullable=True)
     location: Mapped[str] = mapped_column(String(50), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     birth_year: Mapped[int] = mapped_column(nullable=True)
     tone_preference: Mapped[str] = mapped_column(
         String(50), nullable=True, default="professional"
@@ -78,9 +79,9 @@ class JobListing(Base):
     military_status: Mapped[str] = mapped_column(String(50), nullable=True)
     languages: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array (string)
     driver_license: Mapped[str] = mapped_column(String(50), nullable=True)
-    # CV şablon tercihi (ör. "1"…"6") — üretim pipeline'ı henüz kullanmıyor
+    # CV şablon tercihi (Version1…Version5)
     cv_template: Mapped[str] = mapped_column(
-        String(10), nullable=False, default="1", server_default="1"
+        String(20), nullable=False, default="Version1", server_default="Version1"
     )
     # Başvuru aşaması: review/interview/technical_test/offer/rejected
     application_stage: Mapped[str] = mapped_column(String(30), default="review")

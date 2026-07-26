@@ -57,6 +57,7 @@ class UserInDB(UserBase):
     experience_summary: Optional[str] = None
     phone: Optional[str] = None
     location: Optional[str] = None
+    avatar_url: Optional[str] = None
     birth_year: Optional[int] = None
     tone_preference: Optional[str] = None
     gender: Optional[str] = None

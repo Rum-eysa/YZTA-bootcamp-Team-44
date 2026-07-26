@@ -15,6 +15,17 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // FormData'da varsayılan application/json kalırsa multipart boundary bozulur
+  if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+    const headers = config.headers;
+    if (headers && typeof (headers as { set?: unknown }).set === "function") {
+      // axios AxiosHeaders: false = header'ı kaldır
+      (headers as { set: (k: string, v: unknown) => void }).set("Content-Type", false);
+    } else if (headers) {
+      delete (headers as Record<string, unknown>)["Content-Type"];
+      delete (headers as Record<string, unknown>)["content-type"];
+    }
+  }
   return config;
 });
 
