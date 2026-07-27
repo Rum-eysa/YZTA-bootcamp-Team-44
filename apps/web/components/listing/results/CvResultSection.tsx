@@ -83,6 +83,11 @@ export function CvResultSection({
             showCount
             rows={2}
           />
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            Bu not sadece CV özetinin tonunu/vurgusunu değiştirir; yeni deneyim,
+            proje, dil vb. bilgi eklemez. Profil bilgilerini eklemek/düzenlemek
+            için <strong>Profilim</strong> sayfasını kullanın.
+          </p>
         </div>
       )}
 
