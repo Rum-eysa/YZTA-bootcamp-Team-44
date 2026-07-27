@@ -81,6 +81,12 @@ export function CoverLetterResultSection({
             showCount
             rows={2}
           />
+          <p className="mt-1 text-caption text-on-surface-variant">
+            Bu not sadece önyazı metninin tonunu/vurgusunu değiştirir; profilinizde
+            henüz kayıtlı olmayan yeni bir dil/sertifika/deneyim gibi bilgi eklemez.
+            Profil bilgilerini eklemek/düzenlemek için <strong>Profilim</strong>{" "}
+            sayfasını kullanın.
+          </p>
         </div>
       )}
 

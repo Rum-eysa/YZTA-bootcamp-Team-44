@@ -88,7 +88,9 @@ export function CvResultSection({
           />
           <p className="mt-1 text-caption text-on-surface-variant">
             İlanla alakasız içerik için de kısaltma, değiştirme, ekleme veya çıkarma
-            isteyebilirsiniz. Profilde olmayan deneyim uydurulmaz.
+            isteyebilirsiniz. Profilde olmayan deneyim uydurulmaz. Bu not, profilinizde
+            henüz kayıtlı OLMAYAN yeni bir dil/sertifika/deneyim gibi bilgi ekleyemez -
+            bunlar için <strong>Profilim</strong> sayfasını kullanın.
           </p>
         </div>
       )}
