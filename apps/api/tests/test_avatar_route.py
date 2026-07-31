@@ -45,7 +45,8 @@ async def test_upload_avatar_saves_url(client: AsyncClient, test_session):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["avatar_url"] == f"http://localhost:9000/bucket/avatars/{user_id}/x.jpg"
+    # MinIO URL sızdırılmaz — JWT korumalı proxy path
+    assert body["avatar_url"] == "/api/profiles/me/avatar/file"
     fake_storage.upload_avatar.assert_called_once()
 
 

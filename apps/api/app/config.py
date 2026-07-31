@@ -38,9 +38,23 @@ class Settings(BaseSettings):
     SENTRY_TRACES_SAMPLE_RATE: float = 0.0
 
 
+_DEFAULT_JWT_SECRET = "change-me-in-production-min-32-characters"
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
 
 
 settings = get_settings()
+
+
+def validate_security_settings() -> None:
+    """Prod/staging'de zayıf JWT secret ile ayağa kalkmayı engeller."""
+    if settings.DEBUG or settings.ENVIRONMENT in ("local", "test"):
+        return
+    secret = (settings.JWT_SECRET or "").strip()
+    if not secret or secret == _DEFAULT_JWT_SECRET or len(secret) < 32:
+        raise RuntimeError(
+            "JWT_SECRET must be set to a strong value (>=32 chars) when DEBUG=false"
+        )

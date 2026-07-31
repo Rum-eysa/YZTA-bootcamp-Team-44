@@ -2,6 +2,8 @@
 from app.agents.cover_letter import CoverLetterAgent, get_cover_letter_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.observability import audit_event
+from app.rate_limit import enforce_rate_limit
 from app.schemas.cover_letter import CoverLetterRequest, CoverLetterResponse
 from app.services.context import (
     ContextManager,
@@ -9,7 +11,7 @@ from app.services.context import (
     matching_gaps_from_context,
     user_profile_for_agents,
 )
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Cover Letter"])
@@ -18,11 +20,13 @@ router = APIRouter(tags=["Cover Letter"])
 @router.post("/generate-cover-letter", response_model=CoverLetterResponse)
 async def generate_cover_letter(
     payload: CoverLetterRequest,
+    request: Request,
     user_id: str = Depends(get_current_user_id),
     agent: CoverLetterAgent = Depends(get_cover_letter_agent),
     db: AsyncSession = Depends(get_db),
 ):
     """Kullanıcı profili + ilan analizi ile şirkete özel önyazı üretir, documents'a kaydeder"""
+    await enforce_rate_limit(request, suffix="generate_cover_letter", limit=10, window_seconds=60)
     context_manager = ContextManager(db)
     try:
         context = await context_manager.load(user_id, payload.listing_id)
@@ -50,8 +54,16 @@ async def generate_cover_letter(
         tone_preference=context["user"].get("tone_preference") or "professional",
         company_name=context["listing"].get("company"),
         extra_prompt=payload.extra_prompt,
+        document_language=context["listing"].get("document_language")
+        or job_analysis.get("document_language"),
     )
 
+    audit_event(
+        "generate_cover_letter",
+        user_id=user_id,
+        listing_id=context["listing"]["id"],
+        document_id=document.id,
+    )
     return CoverLetterResponse(
         document_id=document.id,
         listing_id=context["listing"]["id"],

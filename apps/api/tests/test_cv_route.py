@@ -111,7 +111,9 @@ async def test_generate_cv_happy_path(client: AsyncClient, test_session):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["cv_url"] == "http://localhost:9000/cv-documents/cv/fake.pdf"
+    # MinIO URL sızdırılmaz — JWT korumalı API path
+    assert data["cv_url"].startswith("/api/documents/")
+    assert data["cv_url"].endswith("/file")
     assert data["listing_id"] == listing.id
 
 

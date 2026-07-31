@@ -83,6 +83,10 @@ class JobListing(Base):
     cv_template: Mapped[str] = mapped_column(
         String(20), nullable=False, default="Version1", server_default="Version1"
     )
+    # CV / önyazı üretim dili (tr|en)
+    document_language: Mapped[str] = mapped_column(
+        String(8), nullable=False, default="tr", server_default="tr"
+    )
     # Başvuru aşaması: review/interview/technical_test/offer/rejected
     application_stage: Mapped[str] = mapped_column(String(30), default="review")
 

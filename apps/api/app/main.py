@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Callable
 from urllib.parse import urlparse
 
-from app.config import settings
+from app.config import settings, validate_security_settings
 from app.exceptions import APIException
 from app.logging_config import setup_logging
 from app.middleware import LoggingMiddleware, RequestIDMiddleware
@@ -16,6 +16,7 @@ from app.routes import (
     auth,
     cover_letter,
     cv_generation,
+    documents,
     health,
     listings,
     match,
@@ -50,6 +51,7 @@ def _cors_headers(request: Request) -> dict[str, str]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    validate_security_settings()
     logger.info("API starting", environment=settings.ENVIRONMENT)
     if settings.ENVIRONMENT != "test":
         get_storage_service().ensure_bucket()
@@ -105,6 +107,7 @@ app.include_router(analysis.router, prefix="/api")
 app.include_router(listings.router, prefix="/api/listings")
 app.include_router(cover_letter.router, prefix="/api")
 app.include_router(cv_generation.router, prefix="/api")
+app.include_router(documents.router, prefix="/api")
 app.include_router(match.router, prefix="/api")
 app.include_router(orchestrator.router, prefix="/api")
 

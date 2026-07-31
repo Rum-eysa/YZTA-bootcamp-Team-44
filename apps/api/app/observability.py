@@ -51,6 +51,12 @@ def capture_exception(exc: BaseException) -> None:
     sentry_sdk.capture_exception(exc)
 
 
+def audit_event(action: str, *, user_id: Optional[str] = None, **fields: Any) -> None:
+    """Hassas işlem audit logu — PII/token yazılmaz."""
+    safe = {k: v for k, v in fields.items() if k not in {"password", "token", "email", "phone"}}
+    logger.info("audit", action=action, user_id=user_id, **safe)
+
+
 class AgentRun:
     """`agent_run` içinde token sayısını ajanın bildirmesi için hafif taşıyıcı."""
 

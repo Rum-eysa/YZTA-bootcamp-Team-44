@@ -58,7 +58,12 @@ class AnalyzeListingAgent:
             return "recorded"
 
         async with agent_run("listing_analysis"):
-            prompt = render_prompt("analyze_listing", listing_text=listing_text)
+            from app.agents.prompt_safety import wrap_untrusted_block
+
+            prompt = render_prompt(
+                "analyze_listing",
+                listing_text=wrap_untrusted_block("listing_text", listing_text),
+            )
             await self.client.generate_with_tools(prompt, tools=[extract_job_requirements])
 
             if not captured:

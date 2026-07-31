@@ -6,6 +6,8 @@ from app.agents.cv_generation import (
 )
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.observability import audit_event
+from app.rate_limit import enforce_rate_limit
 from app.schemas.cv_generation import CVGenerationRequest, CVGenerationResponse
 from app.services.context import (
     ContextManager,
@@ -13,7 +15,7 @@ from app.services.context import (
     matching_gaps_from_context,
     user_profile_for_agents,
 )
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["CV Generation"])
@@ -22,11 +24,13 @@ router = APIRouter(tags=["CV Generation"])
 @router.post("/generate-cv", response_model=CVGenerationResponse)
 async def generate_cv(
     payload: CVGenerationRequest,
+    request: Request,
     user_id: str = Depends(get_current_user_id),
     agent: CVGenerationAgent = Depends(get_cv_generation_agent),
     db: AsyncSession = Depends(get_db),
 ):
     """Kullanıcı profili + ilan analizine göre LaTeX/Tectonic ile PDF CV üretir, MinIO'ya yükler"""
+    await enforce_rate_limit(request, suffix="generate_cv", limit=10, window_seconds=60)
     context_manager = ContextManager(db)
     try:
         context = await context_manager.load(user_id, payload.listing_id)
@@ -66,8 +70,16 @@ async def generate_cv(
             detail="CV oluşturma servisi şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
         ) from exc
 
+    from app.services.signed_urls import document_file_path
+
+    audit_event(
+        "generate_cv",
+        user_id=user_id,
+        listing_id=context["listing"]["id"],
+        document_id=document.id,
+    )
     return CVGenerationResponse(
         document_id=document.id,
         listing_id=context["listing"]["id"],
-        cv_url=document.cv_url,
+        cv_url=document_file_path(document.id),
     )

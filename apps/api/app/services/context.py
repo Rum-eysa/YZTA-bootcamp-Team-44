@@ -59,6 +59,7 @@ def job_analysis_from_context(context: dict[str, Any]) -> dict[str, Any]:
     if not analysis.get("position_title") and listing.get("title"):
         analysis["position_title"] = listing["title"]
     analysis["cv_template"] = listing.get("cv_template") or "Version1"
+    analysis["document_language"] = listing.get("document_language") or "tr"
     return analysis
 
 
@@ -282,6 +283,7 @@ class ContextManager:
                 "driver_license": listing.driver_license,
                 "application_stage": listing.application_stage,
                 "cv_template": listing.cv_template or "Version1",
+                "document_language": listing.document_language or "tr",
             },
             "match": None,
             "experiences": [],

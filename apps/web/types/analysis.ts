@@ -14,6 +14,7 @@ export interface AnalyzeRequest {
   languages?: string[];
   driver_license?: string;
   cv_template?: string;
+  document_language?: "tr" | "en";
 }
 
 export interface AnalyzeResponse {

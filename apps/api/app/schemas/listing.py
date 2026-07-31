@@ -54,6 +54,7 @@ class ListingDetail(BaseModel):
     languages: List[str] = []
     driver_license: Optional[str] = None
     cv_template: str = "Version1"
+    document_language: str = "tr"
     application_stage: str = "review"
 
     score: Optional[float] = None
@@ -87,4 +88,5 @@ class ListingUpdate(BaseModel):
     languages: Optional[List[str]] = None
     driver_license: Optional[str] = Field(None, max_length=50)
     cv_template: Optional[str] = Field(None, max_length=20)
+    document_language: Optional[str] = Field(None, max_length=8)
     application_stage: Optional[str] = Field(None, max_length=30)

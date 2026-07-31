@@ -46,6 +46,7 @@ export interface ListingDetail {
   languages: string[];
   driver_license: string | null;
   cv_template?: string;
+  document_language?: "tr" | "en";
   application_stage: ApplicationStage;
   score: number | null;
   score_breakdown: ScoreBreakdown | null;
@@ -75,6 +76,7 @@ export interface ListingUpdate {
   languages?: string[];
   driver_license?: string | null;
   cv_template?: string;
+  document_language?: "tr" | "en";
   application_stage?: ApplicationStage;
 }
 

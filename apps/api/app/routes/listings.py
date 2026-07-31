@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, List, Optional
 
 from app.agents.cv_generation import normalize_cv_template_id
+from app.document_language import normalize_document_language
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
@@ -125,11 +126,14 @@ async def get_listing(
         .order_by(Document.created_at.asc(), Document.id.asc())
     )
     docs = list(docs_result.scalars().all())
+    from app.services.signed_urls import document_file_path
+
     documents = [
         ListingDocument(
             id=doc.id,
             doc_type=doc.doc_type,
-            cv_url=doc.cv_url,
+            # MinIO/presigned URL sızdırılmaz — JWT korumalı proxy
+            cv_url=document_file_path(doc.id) if doc.doc_type == "cv" and doc.cv_url else None,
             cover_letter_text=doc.cover_letter_text,
         )
         for doc in docs
@@ -167,6 +171,7 @@ async def get_listing(
         languages=_load_list(listing.languages),
         driver_license=listing.driver_license,
         cv_template=listing.cv_template or "Version1",
+        document_language=listing.document_language or "tr",
         application_stage=listing.application_stage or "review",
         score=match.score if match else None,
         score_breakdown=score_breakdown,
@@ -210,6 +215,11 @@ async def update_listing(
 
     if "cv_template" in update_data and update_data["cv_template"] is not None:
         update_data["cv_template"] = normalize_cv_template_id(update_data["cv_template"])
+
+    if "document_language" in update_data and update_data["document_language"] is not None:
+        update_data["document_language"] = normalize_document_language(
+            update_data["document_language"]
+        )
 
     for field, value in update_data.items():
         setattr(listing, field, value)

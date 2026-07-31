@@ -29,6 +29,11 @@ const TONE_OPTIONS = [
   { value: "confident", label: "Kendinden Emin" },
 ];
 
+const DOCUMENT_LANGUAGE_OPTIONS = [
+  { value: "tr" as const, label: "Türkçe" },
+  { value: "en" as const, label: "English" },
+];
+
 function ApplyContent() {
   const router = useRouter();
   const [apiError, setApiError] = useState<string>();
@@ -36,6 +41,7 @@ function ApplyContent() {
   const [companyAbout, setCompanyAbout] = useState("");
   const [extraNotes, setExtraNotes] = useState("");
   const [tonePreference, setTonePreference] = useState(TONE_OPTIONS[0].value);
+  const [documentLanguage, setDocumentLanguage] = useState<"tr" | "en">("tr");
   const [selectedCvTemplate, setSelectedCvTemplate] =
     useState<CvTemplateId>(DEFAULT_CV_TEMPLATE);
   const [cvModalOpen, setCvModalOpen] = useState(false);
@@ -92,6 +98,7 @@ function ApplyContent() {
         company_about: clean(companyAbout),
         extra_notes: clean(extraNotes),
         cv_template: selectedCvTemplate,
+        document_language: documentLanguage,
       });
       if (companyLogo) {
         localStorage.setItem(`listing-logo:${result.listing_id}`, companyLogo);
@@ -276,6 +283,27 @@ function ApplyContent() {
           </div>
 
           <div className="space-y-lg">
+            <Card title="Belge Dili">
+              <select
+                id="document-language"
+                aria-label="CV ve önyazı dili"
+                className="input-field"
+                value={documentLanguage}
+                onChange={(e) =>
+                  setDocumentLanguage(e.target.value === "en" ? "en" : "tr")
+                }
+              >
+                {DOCUMENT_LANGUAGE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-body-sm text-on-surface-variant">
+                CV ve önyazı bu dilde üretilecek.
+              </p>
+            </Card>
+
             <Card title="Önyazı Tercihi">
               <select
                 id="tone-preference"

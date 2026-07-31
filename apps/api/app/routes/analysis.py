@@ -6,10 +6,13 @@ from app.agents.cv_generation import normalize_cv_template_id
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.document_language import normalize_document_language
 from app.models import JobListing
+from app.observability import audit_event
+from app.rate_limit import enforce_rate_limit
 from app.schemas.analysis import AnalyzeRequest, AnalyzeResponse
 from app.services.listing_fetch import fetch_listing_text_from_url
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Analysis"])
@@ -18,11 +21,13 @@ router = APIRouter(tags=["Analysis"])
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_listing(
     payload: AnalyzeRequest,
+    request: Request,
     agent: AnalyzeListingAgent = Depends(get_listing_analysis_agent),
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
     """İlan metnini veya URL'sini Analiz Ajanı ile ayrıştırır, job_listings tablosuna kaydeder"""
+    await enforce_rate_limit(request, suffix="analyze", limit=15, window_seconds=60)
     listing_text = (payload.listing_text or "").strip()
     if not listing_text and payload.listing_url:
         listing_text = await fetch_listing_text_from_url(str(payload.listing_url))
@@ -51,10 +56,12 @@ async def analyze_listing(
         languages=json.dumps(payload.languages, ensure_ascii=False) if payload.languages else None,
         driver_license=payload.driver_license,
         cv_template=normalize_cv_template_id(payload.cv_template),
+        document_language=normalize_document_language(payload.document_language),
     )
     db.add(listing)
     await db.commit()
     await db.refresh(listing)
+    audit_event("analyze_listing", user_id=user_id, listing_id=listing.id)
 
     return AnalyzeResponse(
         listing_id=listing.id,

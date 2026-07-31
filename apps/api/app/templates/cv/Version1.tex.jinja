@@ -31,7 +31,7 @@
         \draw[thick, primarycolor] (0,0) circle (1.6cm);
         \BLOCK{else}
         \draw[thick, primarycolor, dashed] (0,0) circle (1.6cm);
-        \node[text width=2.5cm, align=center] at (0,0) {\footnotesize \color{primarycolor} \textbf{Fotoğraf} \\ \textbf{Alanı}};
+        \node[text width=2.5cm, align=center] at (0,0) {\footnotesize \color{primarycolor} \textbf{\VAR{labels.photo_placeholder}} \\ \textbf{\VAR{labels.photo_area}}};
         \BLOCK{endif}
     \end{tikzpicture}
 \end{minipage}
@@ -53,12 +53,12 @@
 \vspace{0.8em}
 
 \BLOCK{if experience_summary}
-\section*{Özgeçmiş Özeti}
+\section*{\VAR{labels.summary}}
 \VAR{experience_summary}
 \BLOCK{endif}
 
 \BLOCK{if work_experiences}
-\section*{Deneyimler}
+\section*{\VAR{labels.experience}}
 \BLOCK{for exp in work_experiences}
 \noindent \textbf{\VAR{exp.company}} \hfill \textbf{\VAR{exp.period}} \\
 \textit{\VAR{exp.title}}
@@ -72,7 +72,7 @@
 \BLOCK{endif}
 
 \BLOCK{if education}
-\section*{Eğitimler}
+\section*{\VAR{labels.education}}
 \BLOCK{for edu in education}
 \par\noindent \textbf{\VAR{edu.school}} \hfill \textbf{\VAR{edu.period}} \\
 \textit{\VAR{edu.degree}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif}}%
@@ -82,7 +82,7 @@
 \BLOCK{endif}
 
 \BLOCK{if projects}
-\section*{Projeler}
+\section*{\VAR{labels.projects}}
 \BLOCK{for proj in projects}
 \par\noindent \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}%
 \BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}%
@@ -91,7 +91,7 @@
 \BLOCK{endif}
 
 \BLOCK{if certificates}
-\section*{Sertifikalar}
+\section*{\VAR{labels.certificates}}
 \begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
 \BLOCK{for cert in certificates}
     \item \textbf{\VAR{cert.title}}\BLOCK{if cert.issuer} — \VAR{cert.issuer}\BLOCK{endif}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}
@@ -100,7 +100,7 @@
 \BLOCK{endif}
 
 \BLOCK{if exams}
-\section*{Sınavlar}
+\section*{\VAR{labels.exams}}
 \begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
 \BLOCK{for exam in exams}
     \item \textbf{\VAR{exam.name}}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}
@@ -109,12 +109,12 @@
 \BLOCK{endif}
 
 \BLOCK{if languages_line}
-\section*{Yabancı Dil}
+\section*{\VAR{labels.languages}}
 \noindent \VAR{languages_line}
 \BLOCK{endif}
 
 \BLOCK{if references}
-\section*{Referanslar}
+\section*{\VAR{labels.references}}
 \begin{itemize}[leftmargin=*, noitemsep, topsep=2pt]
 \BLOCK{for ref in references}
     \item \textbf{\VAR{ref.name}}\BLOCK{if ref.title} — \VAR{ref.title}\BLOCK{endif}\BLOCK{if ref.company}, \VAR{ref.company}\BLOCK{endif}\BLOCK{if ref.contact} (\VAR{ref.contact})\BLOCK{endif}

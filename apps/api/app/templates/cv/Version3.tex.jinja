@@ -39,7 +39,7 @@
 \vspace{1em}
 
 \BLOCK{if experience_summary}
-{\Large \bfseries \textcolor{primary}{Özgeçmiş Özeti}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.summary}}}
 \vspace{0.1em}
 
 \VAR{experience_summary}
@@ -48,7 +48,7 @@
 \BLOCK{endif}
 
 \BLOCK{if work_experiences}
-{\Large \bfseries \textcolor{primary}{Deneyimler}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.experience}}}
 \vspace{0.1em}
 
 \BLOCK{for exp in work_experiences}
@@ -63,7 +63,7 @@
 \BLOCK{endif}
 
 \BLOCK{if education}
-{\Large \bfseries \textcolor{primary}{Eğitimler}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.education}}}
 \vspace{0.1em}
 
 \BLOCK{for edu in education}
@@ -75,7 +75,7 @@
 \BLOCK{endif}
 
 \BLOCK{if projects}
-{\Large \bfseries \textcolor{primary}{Projeler}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.projects}}}
 \vspace{0.1em}
 
 \BLOCK{for proj in projects}
@@ -86,27 +86,27 @@
 \BLOCK{endif}
 
 \BLOCK{if certificates or exams}
-{\Large \bfseries \textcolor{primary}{Sertifikalar ve Sınavlar}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.certificates_and_exams}}}
 \vspace{0.1em}
 \begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt, parsep=0pt]
 \BLOCK{for cert in certificates}
-    \item \textbf{Sertifika:} \VAR{cert.title}\BLOCK{if cert.issuer} — \VAR{cert.issuer}\BLOCK{endif}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}
+    \item \textbf{\VAR{labels.certificate_prefix}:} \VAR{cert.title}\BLOCK{if cert.issuer} — \VAR{cert.issuer}\BLOCK{endif}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}
 \BLOCK{endfor}
 \BLOCK{for exam in exams}
-    \item \textbf{Sınav:} \textbf{\VAR{exam.name}}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}
+    \item \textbf{\VAR{labels.exam_prefix}:} \textbf{\VAR{exam.name}}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}
 \BLOCK{endfor}
 \end{itemize}
 \BLOCK{endif}
 
 \BLOCK{if languages_line}
-{\Large \bfseries \textcolor{primary}{Yabancı Dil}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.languages}}}
 \vspace{0.1em}
 
 \noindent \VAR{languages_line}
 \BLOCK{endif}
 
 \BLOCK{if references}
-{\Large \bfseries \textcolor{primary}{Referanslar}}
+{\Large \bfseries \textcolor{primary}{\VAR{labels.references}}}
 \vspace{0.1em}
 
 \begin{itemize}[leftmargin=1.2em, topsep=2pt, itemsep=1pt, parsep=0pt]

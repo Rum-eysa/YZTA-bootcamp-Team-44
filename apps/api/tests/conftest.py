@@ -1,6 +1,9 @@
 import asyncio
 import os
 
+# Rate limit / Gemini kota testleri fail-open veya no-op olsun
+os.environ.setdefault("ENVIRONMENT", "test")
+
 import pytest
 import pytest_asyncio
 from app.config import settings
@@ -9,6 +12,9 @@ from app.main import app
 from app.models import Base
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+# settings cache'i ENVIRONMENT değişikliğini görsün
+settings.ENVIRONMENT = "test"
 
 DATABASE_URL = os.environ.get("TEST_DATABASE_URL") or os.environ.get(
     "DATABASE_URL", settings.DATABASE_URL

@@ -153,11 +153,18 @@ class MatchingAgent:
             )
             return "recorded"
 
+        from app.agents.prompt_safety import wrap_untrusted_block
+
         prompt = render_prompt(
             "match_gap_analysis",
-            user_profile=json.dumps(user_profile, ensure_ascii=False),
-            job_requirements=json.dumps(
-                {**job_analysis, "missing_skills": missing_skills}, ensure_ascii=False
+            user_profile=wrap_untrusted_block(
+                "user_profile", json.dumps(user_profile, ensure_ascii=False)
+            ),
+            job_requirements=wrap_untrusted_block(
+                "job_requirements",
+                json.dumps(
+                    {**job_analysis, "missing_skills": missing_skills}, ensure_ascii=False
+                ),
             ),
         )
         await self.client.generate_with_tools(prompt, tools=[record_match_analysis])

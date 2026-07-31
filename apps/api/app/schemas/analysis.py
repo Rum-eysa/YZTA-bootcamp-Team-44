@@ -26,6 +26,9 @@ class AnalyzeRequest(BaseModel):
     cv_template: Optional[str] = Field(
         "Version1", max_length=20, description="CV şablon tercihi (Version1…Version5)"
     )
+    document_language: Optional[str] = Field(
+        "tr", max_length=8, description="CV/önyazı üretim dili (tr|en)"
+    )
 
     @model_validator(mode="after")
     def validate_text_or_url(self):

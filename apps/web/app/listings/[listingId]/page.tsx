@@ -53,6 +53,7 @@ interface FormState {
   company_about: string;
   extra_notes: string;
   cv_template: CvTemplateId;
+  document_language: "tr" | "en";
 }
 
 function toForm(l: ListingDetail): FormState {
@@ -63,6 +64,7 @@ function toForm(l: ListingDetail): FormState {
     company_about: l.company_about ?? "",
     extra_notes: l.extra_notes ?? "",
     cv_template: normalizeCvTemplateId(l.cv_template),
+    document_language: l.document_language === "en" ? "en" : "tr",
   };
 }
 
@@ -139,10 +141,12 @@ function ListingDetailContent() {
 
   const cvMutation = useMutation({
     mutationFn: async (extraPrompt?: string) => {
-      // CV üretimi DB'deki cv_template'i kullanır; formdaki tercihi önce kaydet.
-      const templateId = form?.cv_template;
-      if (templateId) {
-        await updateListing(listingId, { cv_template: templateId });
+      // CV üretimi DB'deki tercihleri kullanır; formdaki değerleri önce kaydet.
+      if (form) {
+        await updateListing(listingId, {
+          cv_template: form.cv_template,
+          document_language: form.document_language,
+        });
       }
       return generateCv({ listing_id: listingId, extra_prompt: extraPrompt });
     },
@@ -172,8 +176,17 @@ function ListingDetailContent() {
   });
 
   const coverLetterMutation = useMutation({
-    mutationFn: (extraPrompt?: string) =>
-      generateCoverLetter({ listing_id: listingId, extra_prompt: extraPrompt }),
+    mutationFn: async (extraPrompt?: string) => {
+      if (form?.document_language) {
+        await updateListing(listingId, {
+          document_language: form.document_language,
+        });
+      }
+      return generateCoverLetter({
+        listing_id: listingId,
+        extra_prompt: extraPrompt,
+      });
+    },
     onSuccess: async (result) => {
       queryClient.setQueryData<ListingDetail>(
         listingQueryKey(listingId),
@@ -274,6 +287,7 @@ function ListingDetailContent() {
       company_about: clean(form.company_about),
       extra_notes: clean(form.extra_notes),
       cv_template: form.cv_template,
+      document_language: form.document_language,
     };
     updateMutation.mutate(payload);
   };
@@ -652,7 +666,24 @@ function ListingDetailContent() {
             />
           </div>
 
-          <div className="order-6 md:order-none">
+          <div className="order-6 md:order-none space-y-lg">
+            <Card title="Belge Dili">
+              <select
+                id="listing-document-language"
+                aria-label="CV ve önyazı dili"
+                className="input-field"
+                value={form.document_language}
+                onChange={(e) => {
+                  const value = e.target.value === "en" ? "en" : "tr";
+                  update("document_language", value);
+                  updateMutation.mutate({ document_language: value });
+                }}
+              >
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+              </select>
+            </Card>
+
             <Card
               title="CV Tercihi"
               action={

@@ -48,6 +48,17 @@ _AVATAR_MAX_BYTES = 2 * 1024 * 1024
 _AVATAR_CONTENT_TYPES = frozenset({"image/jpeg", "image/jpg", "image/png", "image/webp"})
 
 
+def _avatar_magic_ok(data: bytes, content_type: str) -> bool:
+    """İçerik tipi ile dosya magic-byte uyumunu kontrol eder."""
+    if content_type in {"image/jpeg", "image/jpg"}:
+        return data[:3] == b"\xff\xd8\xff"
+    if content_type == "image/png":
+        return data.startswith(b"\x89PNG\r\n\x1a\n")
+    if content_type == "image/webp":
+        return data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+    return False
+
+
 @router.patch("/me", response_model=UserResponse)
 async def patch_profile(
     user_update: UserUpdate,
@@ -55,7 +66,11 @@ async def patch_profile(
     db: AsyncSession = Depends(get_db),
 ):
     """Update current user profile (US-008 alias for PATCH /api/profiles/me)."""
-    return await update_current_user(user_update, user_id, db)
+    from app.observability import audit_event
+
+    result = await update_current_user(user_update, user_id, db)
+    audit_event("profile_patch", user_id=user_id)
+    return result
 
 
 @router.post("/me/avatar", response_model=UserResponse)
@@ -82,6 +97,11 @@ async def upload_avatar(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Fotoğraf en fazla 2MB olabilir",
         )
+    if not _avatar_magic_ok(data, content_type):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dosya içeriği bildirilen görsel formatıyla uyuşmuyor",
+        )
 
     user = await get_user_by_id(db, user_id)
     if not user:
@@ -92,7 +112,40 @@ async def upload_avatar(
     user.avatar_url = url
     await db.commit()
     await db.refresh(user)
-    return user
+    from app.services.signed_urls import user_response_with_signed_avatar
+
+    return user_response_with_signed_avatar(user)
+
+
+@router.get("/me/avatar/file")
+async def download_avatar_file(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Avatar dosyasını yalnızca oturum sahibi JWT ile alır (MinIO URL sızdırılmaz)."""
+    from fastapi.responses import Response
+
+    user = await get_user_by_id(db, user_id)
+    if not user or not user.avatar_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Avatar bulunamadı")
+
+    storage = get_storage_service()
+    data = storage.download_bytes(user.avatar_url)
+    if not data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Avatar bulunamadı")
+
+    content_type = "image/jpeg"
+    lower = user.avatar_url.lower()
+    if lower.endswith(".png"):
+        content_type = "image/png"
+    elif lower.endswith(".webp"):
+        content_type = "image/webp"
+
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
 
 
 @router.delete("/me/avatar", response_model=UserResponse)
@@ -107,7 +160,9 @@ async def delete_avatar(
     user.avatar_url = None
     await db.commit()
     await db.refresh(user)
-    return user
+    from app.services.signed_urls import user_response_with_signed_avatar
+
+    return user_response_with_signed_avatar(user)
 
 
 # --- US-013: Work Experiences CRUD (JWT korumalı) ---
