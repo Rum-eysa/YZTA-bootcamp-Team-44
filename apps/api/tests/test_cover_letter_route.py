@@ -26,9 +26,12 @@ class _StubCoverLetterAgent:
         tone_preference="professional",
         company_name=None,
         extra_prompt=None,
+        previous_cover_letter=None,
+        document_language=None,
     ):
         self.last_company_name = company_name
         self.last_extra_prompt = extra_prompt
+        self.last_document_language = document_language
         document = Document(
             user_id=user_id,
             listing_id=listing_id,

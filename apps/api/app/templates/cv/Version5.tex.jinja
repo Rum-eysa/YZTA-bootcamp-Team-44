@@ -42,12 +42,12 @@
 \vspace{-15pt}
 
 \BLOCK{if experience_summary}
-\section*{Özgeçmiş Özeti}
+\section*{\VAR{labels.summary}}
 \VAR{experience_summary}
 \BLOCK{endif}
 
 \BLOCK{if work_experiences}
-\section*{Deneyimler}
+\section*{\VAR{labels.experience}}
 \BLOCK{for exp in work_experiences}
 \textbf{\VAR{exp.company}} \hfill \textbf{\VAR{exp.period}}\\
 \textit{\VAR{exp.title}}
@@ -61,7 +61,7 @@
 \BLOCK{endif}
 
 \BLOCK{if education}
-\section*{Eğitimler}
+\section*{\VAR{labels.education}}
 \BLOCK{for edu in education}
 \par\noindent \textbf{\VAR{edu.degree}\BLOCK{if edu.field_of_study}, \VAR{edu.field_of_study}\BLOCK{endif}} \hfill \textbf{\VAR{edu.period}}\\
 \noindent \VAR{edu.school}%
@@ -71,7 +71,7 @@
 \BLOCK{endif}
 
 \BLOCK{if projects}
-\section*{Projeler}
+\section*{\VAR{labels.projects}}
 \BLOCK{for proj in projects}
 \par\noindent \textbf{\VAR{proj.title}}\BLOCK{if proj.tech_stack} (\VAR{proj.tech_stack})\BLOCK{endif}%
 \BLOCK{if proj.description}\\ \VAR{proj.description}\BLOCK{endif}%
@@ -80,15 +80,15 @@
 \BLOCK{endif}
 
 \BLOCK{if certificates or exams}
-\section*{Sertifikalar ve Sınavlar}
+\section*{\VAR{labels.certificates_and_exams}}
 \BLOCK{if certificates}
-\textbf{Sertifikalar:}
+\textbf{\VAR{labels.certificates_heading}:}
 \BLOCK{for cert in certificates}
 \VAR{cert.title}\BLOCK{if cert.issue_date} (\VAR{cert.issue_date})\BLOCK{endif}\BLOCK{if not loop.last}, \BLOCK{endif}
 \BLOCK{endfor}\\[4pt]
 \BLOCK{endif}
 \BLOCK{if exams}
-\textbf{Sınavlar:}
+\textbf{\VAR{labels.exams_heading}:}
 \BLOCK{for exam in exams}
 \VAR{exam.name}\BLOCK{if exam.score}: \VAR{exam.score}\BLOCK{endif}\BLOCK{if exam.exam_date} (\VAR{exam.exam_date})\BLOCK{endif}\BLOCK{if not loop.last}, \BLOCK{endif}
 \BLOCK{endfor}
@@ -96,12 +96,12 @@
 \BLOCK{endif}
 
 \BLOCK{if languages_line}
-\section*{Yabancı Dil}
+\section*{\VAR{labels.languages}}
 \noindent \VAR{languages_line}
 \BLOCK{endif}
 
 \BLOCK{if references}
-\section*{Referanslar}
+\section*{\VAR{labels.references}}
 \BLOCK{for ref in references}
 \textbf{\VAR{ref.name}}\BLOCK{if ref.title} -- \VAR{ref.title}\BLOCK{endif}\BLOCK{if ref.company}, \VAR{ref.company}\BLOCK{endif}\BLOCK{if ref.contact} \ \textbar\ \VAR{ref.contact}\BLOCK{endif}\\[4pt]
 \BLOCK{endfor}

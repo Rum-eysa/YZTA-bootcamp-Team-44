@@ -514,20 +514,22 @@ async def test_generate_raises_when_pdf_has_zero_pages():
 
 
 @pytest.mark.asyncio
-async def test_no_extra_prompt_never_calls_gemini():
-    """US-050: extra_prompt verilmezse CV üretimi tamamen deterministik kalmalı,
-    Gemini'ye hiç istek atılmamalı (kota/gecikme eklenmez)"""
-    fake_client = FakeGeminiClient()
+async def test_summary_always_uses_gemini_even_without_extra_prompt():
+    """Belge dilinde özet için Gemini her zaman çağrılır (profil özeti TR kalsa bile)."""
+    fake_client = FakeGeminiClient(fake_text="Experienced software engineer focused on backend systems.")
     agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
     agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
 
     with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
         await agent.generate(
             {"full_name": "Ayşe", "experience_summary": "Orijinal özet"},
-            {"position_title": "Dev"},
+            {"position_title": "Dev", "document_language": "en"},
         )
 
-    assert fake_client.call_count == 0
+    assert fake_client.call_count == 1
+    tex_source = agent._compile_with_tectonic.call_args[0][0]
+    assert "Experienced software engineer" in tex_source
+    assert "Orijinal özet" not in tex_source
 
 
 @pytest.mark.asyncio
@@ -753,6 +755,12 @@ def test_select_and_rewrite_applies_rewrite_to_selected_item():
     items = [{"title": "A", "description": "orijinal"}, {"title": "B", "description": "orijinal"}]
     result = _select_and_rewrite(items, [0], {0: "yeniden yazılmış"})
     assert result == [{"title": "A", "description": "yeniden yazılmış"}]
+
+
+def test_select_and_rewrite_applies_title_rewrite():
+    items = [{"title": "Yazılım Mühendisi", "description": "orijinal"}]
+    result = _select_and_rewrite(items, [0], {0: "Built APIs"}, {0: "Software Engineer"})
+    assert result == [{"title": "Software Engineer", "description": "Built APIs"}]
 
 
 def test_select_and_rewrite_keeps_original_when_no_rewrite_given():

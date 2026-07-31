@@ -13,8 +13,18 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
-from app.agents.prompt_safety import build_cv_content_edit_section, build_extra_prompt_section
+from app.agents.prompt_safety import (
+    build_cv_content_edit_section,
+    build_extra_prompt_section,
+    wrap_untrusted_block,
+)
 from app.agents.strategy import select_strategy
+from app.document_language import (
+    cv_labels_for,
+    language_instruction,
+    localize_profile_value,
+    normalize_document_language,
+)
 from app.exceptions import APIException, GeminiAPIException, ValidationException
 from app.logging_config import get_logger
 from app.models import Document
@@ -105,7 +115,11 @@ def normalize_cv_template_id(cv_template: Optional[str]) -> str:
 # tip adları bekler (büyük harf "OBJECT"/"ARRAY"/"INTEGER").
 _REWRITE_ITEM_SCHEMA: dict[str, Any] = {
     "type": "OBJECT",
-    "properties": {"index": {"type": "INTEGER"}, "description": {"type": "STRING"}},
+    "properties": {
+        "index": {"type": "INTEGER"},
+        "description": {"type": "STRING"},
+        "title": {"type": "STRING"},
+    },
     "required": ["index", "description"],
 }
 
@@ -190,14 +204,16 @@ def _clamp_description(text: Any) -> str:
 
 
 def _select_and_rewrite(
-    items: list[dict[str, Any]], indices: list[int], rewrites: dict[int, str]
+    items: list[dict[str, Any]],
+    indices: list[int],
+    rewrites: dict[int, str],
+    title_rewrites: Optional[dict[int, str]] = None,
 ) -> list[dict[str, Any]]:
     """_select_indices ile aynı fail-open seçim mantığı; ek olarak seçilen öğelerin
-    description alanını (varsa) ilana göre yeniden yazılmış/kısaltılmış metinle
-    değiştirir. Rewrite verilmemiş bir öğe orijinal metniyle kalır (fail-open).
-    Her durumda açıklama uzunluk tavanına (`_clamp_description`) çekilir."""
+    description (ve varsa title) alanını yeniden yazılmış metinle değiştirir."""
     if not items:
         return []
+    titles = title_rewrites or {}
     valid = {i for i in indices if isinstance(i, int) and 0 <= i < len(items)}
     chosen = valid if valid else set(range(len(items)))
     result = []
@@ -207,19 +223,24 @@ def _select_and_rewrite(
         rewritten = rewrites.get(i)
         raw = rewritten if rewritten else item.get("description")
         clamped = _clamp_description(raw) if raw else ""
-        if clamped != (item.get("description") or ""):
-            result.append({**item, "description": clamped})
-        else:
-            result.append(item)
+        updated = dict(item)
+        if clamped:
+            updated["description"] = clamped
+        new_title = (titles.get(i) or "").strip()
+        if new_title:
+            updated["title"] = new_title
+        result.append(updated)
     return result
 
 
-def _languages_line(languages: list[dict[str, Any]]) -> str:
-    """Örn. 'İngilizce (İleri) | Almanca (Orta)' — LaTeX-escaped."""
+def _languages_line(
+    languages: list[dict[str, Any]], document_language: Optional[str] = None
+) -> str:
+    """Örn. 'İngilizce (İleri) | Almanca (Orta)' — LaTeX-escaped; seviye belge diline çevrilir."""
     parts: list[str] = []
     for lang in languages or []:
-        name = latex_escape(lang.get("name") or "")
-        level = latex_escape(lang.get("level") or "")
+        name = latex_escape(localize_profile_value(lang.get("name"), document_language))
+        level = latex_escape(localize_profile_value(lang.get("level"), document_language))
         if name and level:
             parts.append(f"{name} ({level})")
         elif name:
@@ -242,6 +263,17 @@ def _rewrites_to_map(rewrite_items: list[dict[str, Any]]) -> dict[int, str]:
         item["index"]: item["description"]
         for item in rewrite_items or []
         if isinstance(item, dict) and isinstance(item.get("index"), int) and item.get("description")
+    }
+
+
+def _title_rewrites_to_map(rewrite_items: list[dict[str, Any]]) -> dict[int, str]:
+    return {
+        item["index"]: str(item["title"]).strip()
+        for item in rewrite_items or []
+        if isinstance(item, dict)
+        and isinstance(item.get("index"), int)
+        and item.get("title")
+        and str(item.get("title")).strip()
     }
 
 
@@ -373,18 +405,25 @@ class CVGenerationAgent:
         user_profile: dict[str, Any],
         job_analysis: dict[str, Any],
         matching_gaps: dict[str, Any],
-        extra_prompt: str,
+        extra_prompt: Optional[str] = None,
     ) -> str:
-        """US-050: extra_prompt verildiğinde 'Özet' bölümünü Gemini ile, ekstra
-        vurgu notunu ve düşük-skor stratejisini dikkate alarak yeniden yazdırır."""
+        """CV 'Özet' bölümünü belge dilinde Gemini ile üretir."""
         strategy = select_strategy(matching_gaps)
+        lang = normalize_document_language(job_analysis.get("document_language"))
         prompt = render_prompt(
             "cv_summary",
-            user_profile=json.dumps(user_profile, ensure_ascii=False),
-            job_analysis=json.dumps(job_analysis, ensure_ascii=False),
-            matching_gaps=json.dumps(matching_gaps, ensure_ascii=False),
+            user_profile=wrap_untrusted_block(
+                "user_profile", json.dumps(user_profile, ensure_ascii=False)
+            ),
+            job_analysis=wrap_untrusted_block(
+                "job_analysis", json.dumps(job_analysis, ensure_ascii=False)
+            ),
+            matching_gaps=wrap_untrusted_block(
+                "matching_gaps", json.dumps(matching_gaps, ensure_ascii=False)
+            ),
             strategy=strategy,
             extra_prompt_section=build_extra_prompt_section(extra_prompt),
+            language_instruction=language_instruction(lang),
         )
         raw_text = await self.client.generate_text(prompt, temperature=0.7)
         return _MARKDOWN_ARTIFACTS.sub("", raw_text).strip()
@@ -407,24 +446,28 @@ class CVGenerationAgent:
 
         Varsayılan: ilanla alakalı olanlar. extra_prompt varsa kullanıcı
         ekleme/çıkarma/kısaltma/yeniden yazma istekleri önceliklidir."""
+        lang = normalize_document_language(job_analysis.get("document_language"))
+        labels = cv_labels_for(lang)
         prompt = render_prompt(
             "cv_content_filter",
             experiences=_describe_experiences(user_profile.get("work_experiences") or []),
             projects=_describe_projects(user_profile.get("projects") or []),
             certificates=_describe_certificates(user_profile.get("certificates") or []),
-            position_title=job_analysis.get("position_title") or "belirtilmemiş",
-            required_skills=", ".join(job_analysis.get("required_skills") or []) or "belirtilmemiş",
-            nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "yok",
+            position_title=job_analysis.get("position_title") or labels["unspecified"],
+            required_skills=", ".join(job_analysis.get("required_skills") or [])
+            or labels["unspecified"],
+            nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "—",
             extra_prompt_section=build_cv_content_edit_section(extra_prompt),
+            language_instruction=language_instruction(lang),
         )
         result = await self.client.generate_json(prompt, response_schema=CV_CONTENT_FILTER_SCHEMA)
+        exp_items = result.get("experience_rewrites") or []
+        proj_items = result.get("project_rewrites") or []
         exp_rewrites = {
-            i: _clamp_description(text)
-            for i, text in _rewrites_to_map(result.get("experience_rewrites") or []).items()
+            i: _clamp_description(text) for i, text in _rewrites_to_map(exp_items).items()
         }
         proj_rewrites = {
-            i: _clamp_description(text)
-            for i, text in _rewrites_to_map(result.get("project_rewrites") or []).items()
+            i: _clamp_description(text) for i, text in _rewrites_to_map(proj_items).items()
         }
         return {
             "experience_indices": result.get("experience_indices") or [],
@@ -432,6 +475,8 @@ class CVGenerationAgent:
             "certificate_indices": result.get("certificate_indices") or [],
             "experience_rewrites": exp_rewrites,
             "project_rewrites": proj_rewrites,
+            "experience_title_rewrites": _title_rewrites_to_map(exp_items),
+            "project_title_rewrites": _title_rewrites_to_map(proj_items),
         }
 
     async def _shorten_overflowing_content(
@@ -469,14 +514,18 @@ class CVGenerationAgent:
             if 0 <= i < len(projects)
         ]
 
+        lang = normalize_document_language(job_analysis.get("document_language"))
+        labels = cv_labels_for(lang)
         prompt = render_prompt(
             "cv_shorten_content",
             experiences=_describe_experiences(current_experiences),
             projects=_describe_projects(current_projects),
-            position_title=job_analysis.get("position_title") or "belirtilmemiş",
-            required_skills=", ".join(job_analysis.get("required_skills") or []) or "belirtilmemiş",
-            nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "yok",
+            position_title=job_analysis.get("position_title") or labels["unspecified"],
+            required_skills=", ".join(job_analysis.get("required_skills") or [])
+            or labels["unspecified"],
+            nice_to_have_skills=", ".join(job_analysis.get("nice_to_have_skills") or []) or "—",
             extra_prompt_section=build_cv_content_edit_section(extra_prompt),
+            language_instruction=language_instruction(lang),
         )
         result = await self.client.generate_json(prompt, response_schema=CV_SHORTEN_SCHEMA)
 
@@ -639,11 +688,13 @@ class CVGenerationAgent:
             user_profile.get("projects") or [],
             selection.get("project_indices") or [],
             selection.get("project_rewrites") or {},
+            selection.get("project_title_rewrites") or {},
         )
         filtered_experiences = _select_and_rewrite(
             user_profile.get("work_experiences") or [],
             selection.get("experience_indices") or [],
             selection.get("experience_rewrites") or {},
+            selection.get("experience_title_rewrites") or {},
         )
         filtered_certificates = _select_indices(
             user_profile.get("certificates") or [],
@@ -657,17 +708,23 @@ class CVGenerationAgent:
         relevant_projects = _rank_projects(filtered_projects, job_analysis, limit=project_limit)
         experiences = _sorted_experiences(filtered_experiences)
         education = _sorted_education(user_profile.get("education") or [])
-        languages_line = _languages_line(user_profile.get("languages") or [])
 
-        # Kişisel bilgiler - TR CV geleneği (yalnızca doldurulmuşsa gösterilir)
+        lang = normalize_document_language(job_analysis.get("document_language"))
+        labels = cv_labels_for(lang)
+        languages_line = _languages_line(user_profile.get("languages") or [], lang)
+
+        # Kişisel bilgiler - yalnızca doldurulmuşsa; değerler belge diline çevrilir
         personal_info = [
-            (label, latex_escape(value))
-            for label, value in (
-                ("Cinsiyet", user_profile.get("gender")),
-                ("Uyruk", user_profile.get("nationality")),
-                ("Doğum Yılı", user_profile.get("birth_year")),
-                ("Askerlik Durumu", user_profile.get("military_status")),
-                ("Sürücü Belgesi", user_profile.get("driver_license")),
+            (
+                label,
+                latex_escape(localize_profile_value(value, lang) if key != "birth_year" else value),
+            )
+            for label, key, value in (
+                (labels["gender"], "gender", user_profile.get("gender")),
+                (labels["nationality"], "nationality", user_profile.get("nationality")),
+                (labels["birth_year"], "birth_year", user_profile.get("birth_year")),
+                (labels["military_status"], "military_status", user_profile.get("military_status")),
+                (labels["driver_license"], "driver_license", user_profile.get("driver_license")),
             )
             if value
         ]
@@ -675,8 +732,10 @@ class CVGenerationAgent:
         template_id = normalize_cv_template_id(cv_template)
         template = _jinja_env.get_template(f"cv/{template_id}.tex.jinja")
         summary_raw = ai_summary or user_profile.get("experience_summary") or ""
+        default_name = "Candidate" if lang == "en" else "Aday"
         return template.render(
-            full_name=latex_escape(user_profile.get("full_name") or "Aday"),
+            labels=labels,
+            full_name=latex_escape(user_profile.get("full_name") or default_name),
             target_position=latex_escape(
                 job_analysis.get("position_title") or user_profile.get("target_position") or ""
             ),
@@ -684,8 +743,12 @@ class CVGenerationAgent:
             phone=latex_escape(user_profile.get("phone") or ""),
             experience_summary=latex_escape(summary_raw),
             all_skills=[latex_escape(s) for s in skills],
-            experience_years=latex_escape(user_profile.get("experience_years") or "belirtilmemiş"),
-            seniority=latex_escape(user_profile.get("seniority") or "belirtilmemiş"),
+            experience_years=latex_escape(
+                user_profile.get("experience_years") or labels["unspecified"]
+            ),
+            seniority=latex_escape(
+                localize_profile_value(user_profile.get("seniority"), lang) or labels["unspecified"]
+            ),
             work_experiences=[
                 {
                     "company": latex_escape(exp.get("company")),
@@ -708,7 +771,7 @@ class CVGenerationAgent:
             education=[
                 {
                     "school": latex_escape(edu.get("school")),
-                    "degree": latex_escape(edu.get("degree")),
+                    "degree": latex_escape(localize_profile_value(edu.get("degree"), lang)),
                     "field_of_study": latex_escape(edu.get("field_of_study")),
                     "period": latex_escape(_format_period(edu)),
                     "description": latex_escape(edu.get("description")),
@@ -727,10 +790,10 @@ class CVGenerationAgent:
             ],
             languages=[
                 {
-                    "name": latex_escape(lang.get("name")),
-                    "level": latex_escape(lang.get("level")),
+                    "name": latex_escape(localize_profile_value(entry.get("name"), lang)),
+                    "level": latex_escape(localize_profile_value(entry.get("level"), lang)),
                 }
-                for lang in (user_profile.get("languages") or [])
+                for entry in (user_profile.get("languages") or [])
             ],
             languages_line=languages_line,
             has_photo=has_photo,
@@ -831,25 +894,21 @@ class CVGenerationAgent:
             "cv_generation",
             position=(job_analysis or {}).get("position_title"),
         ):
+            # Özet her zaman belge dilinde üretilir (profil özeti Türkçe kalsa bile).
             ai_summary = None
-            if extra_prompt:
-                # US-050: ekstra prompt verilmişse Özet bölümü Gemini ile yeniden
-                # yazılır; LLM çağrısı başarısız olursa CV üretimini bozmadan
-                # profildeki mevcut özete sessizce geri dönülür.
-                try:
-                    ai_summary = await self._generate_ai_summary(
-                        user_profile,
-                        job_analysis or {},
-                        matching_gaps or {},
-                        extra_prompt,
-                    )
-                except GeminiAPIException as exc:
-                    logger.warning("cv_ai_summary_failed", error=str(exc))
+            try:
+                ai_summary = await self._generate_ai_summary(
+                    user_profile,
+                    job_analysis or {},
+                    matching_gaps or {},
+                    extra_prompt,
+                )
+            except GeminiAPIException as exc:
+                logger.warning("cv_ai_summary_failed", error=str(exc))
 
             content_selection = None
             if self._has_filterable_content(user_profile):
-                # Varsayılan: ilanla alakalı içerik. extra_prompt ile kullanıcı
-                # ekleme/çıkarma/kısaltma isteyebilir. LLM fail → tüm içerik (fail-open).
+                # Seçim + belge dilinde unvan/açıklama rewrite. LLM fail → orijinal (fail-open).
                 try:
                     content_selection = await self._select_relevant_content(
                         user_profile, job_analysis or {}, extra_prompt=extra_prompt

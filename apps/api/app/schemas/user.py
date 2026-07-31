@@ -104,3 +104,9 @@ class TokenRefresh(BaseModel):
     """Schema for token refresh"""
 
     refresh_token: str = Field(..., description="Refresh token")
+
+
+class LogoutRequest(BaseModel):
+    """Optional refresh token to revoke alongside the access token."""
+
+    refresh_token: Optional[str] = Field(None, description="Refresh token to revoke")

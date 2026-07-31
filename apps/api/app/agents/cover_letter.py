@@ -9,8 +9,10 @@ import re
 from typing import Any, Optional
 
 from app.agents.prompt_safety import build_extra_prompt_section as _build_extra_prompt_section
+from app.agents.prompt_safety import wrap_untrusted_block
 from app.agents.strategy import STRATEGY_POTENTIAL as _STRATEGY_POTENTIAL
 from app.agents.strategy import select_strategy as _select_strategy
+from app.document_language import language_instruction, normalize_document_language
 from app.exceptions import ValidationException
 from app.logging_config import get_logger
 from app.models import Document
@@ -96,6 +98,7 @@ class CoverLetterAgent:
         company_name: Optional[str] = None,
         extra_prompt: Optional[str] = None,
         previous_cover_letter: Optional[str] = None,
+        document_language: Optional[str] = None,
     ) -> str:
         if not user_profile or not job_analysis:
             raise ValidationException("user_profile ve job_analysis zorunludur")
@@ -103,20 +106,30 @@ class CoverLetterAgent:
         tone = TONE_DISPLAY_NAMES.get(tone_preference, TONE_DISPLAY_NAMES["professional"])
         strategy = _select_strategy(matching_gaps)
         low_score = strategy is _STRATEGY_POTENTIAL
+        lang = normalize_document_language(
+            document_language or job_analysis.get("document_language")
+        )
 
         async with agent_run("cover_letter", tone=tone_preference):
             prompt = render_prompt(
                 "cover_letter",
                 tone=tone,
                 company_name=company_name or "belirtilen şirket",
-                user_profile=json.dumps(user_profile, ensure_ascii=False),
-                job_analysis=json.dumps(job_analysis, ensure_ascii=False),
-                matching_gaps=json.dumps(matching_gaps, ensure_ascii=False),
+                user_profile=wrap_untrusted_block(
+                    "user_profile", json.dumps(user_profile, ensure_ascii=False)
+                ),
+                job_analysis=wrap_untrusted_block(
+                    "job_analysis", json.dumps(job_analysis, ensure_ascii=False)
+                ),
+                matching_gaps=wrap_untrusted_block(
+                    "matching_gaps", json.dumps(matching_gaps, ensure_ascii=False)
+                ),
                 strategy=strategy,
                 previous_cover_letter_section=_build_previous_cover_letter_section(
                     previous_cover_letter
                 ),
                 extra_prompt_section=_build_extra_prompt_section(extra_prompt),
+                language_instruction=language_instruction(lang),
             )
 
             raw_text = await self.client.generate_text(prompt, temperature=0.7)
@@ -155,6 +168,7 @@ class CoverLetterAgent:
         company_name: Optional[str] = None,
         extra_prompt: Optional[str] = None,
         previous_cover_letter: Optional[str] = None,
+        document_language: Optional[str] = None,
     ) -> Document:
         """Önyazıyı üretir ve `documents` tablosuna kaydeder.
 
@@ -172,6 +186,7 @@ class CoverLetterAgent:
             company_name,
             extra_prompt=extra_prompt,
             previous_cover_letter=previous_cover_letter,
+            document_language=document_language,
         )
 
         document = Document(

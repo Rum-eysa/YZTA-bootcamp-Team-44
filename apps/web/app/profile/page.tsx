@@ -116,9 +116,28 @@ function ProfileContent() {
   useEffect(() => {
     if (!displayProfile?.id) return;
     if (displayProfile.avatar_url) {
-      setAvatarUrl(displayProfile.avatar_url);
+      // JWT korumalı API path → blob URL (img src Authorization gönderemez)
+      let revoked: string | undefined;
+      let cancelled = false;
+      void (async () => {
+        try {
+          const { fetchAuthedBlobUrl } = await import("@/lib/authedMedia");
+          const blobUrl = await fetchAuthedBlobUrl(displayProfile.avatar_url!);
+          if (cancelled) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+          revoked = blobUrl;
+          setAvatarUrl(blobUrl);
+        } catch {
+          if (!cancelled) setAvatarUrl(null);
+        }
+      })();
       localStorage.removeItem(`avatar-migrated:${displayProfile.id}`);
-      return;
+      return () => {
+        cancelled = true;
+        if (revoked) URL.revokeObjectURL(revoked);
+      };
     }
     const saved = localStorage.getItem(`avatar:${displayProfile.id}`);
     setAvatarUrl(saved);

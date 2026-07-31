@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { FormError } from "@/components/ui/FormError";
 import { Textarea } from "@/components/ui/Textarea";
+import { fetchAuthedBlobUrl } from "@/lib/authedMedia";
 import type { ListingDocument } from "@/types/listing";
 import { Download, ExternalLink, FileText } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StaleWarningIcon } from "./StaleWarningIcon";
 
 // US-050: extra_prompt karakter sınırı backend şeması ile hizalı
@@ -34,27 +35,72 @@ export function CvResultSection({
   const [downloadError, setDownloadError] = useState<string>();
   const [extraPrompt, setExtraPrompt] = useState("");
   const [showEditPrompt, setShowEditPrompt] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string>();
+  const [previewError, setPreviewError] = useState<string>();
+
+  useEffect(() => {
+    let revoked: string | undefined;
+    let cancelled = false;
+
+    async function loadPreview() {
+      if (!cv?.cv_url) {
+        setPreviewUrl(undefined);
+        setPreviewError(undefined);
+        return;
+      }
+      setPreviewError(undefined);
+      try {
+        const blobUrl = await fetchAuthedBlobUrl(cv.cv_url);
+        if (cancelled) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        revoked = blobUrl;
+        setPreviewUrl(blobUrl);
+      } catch {
+        if (!cancelled) {
+          setPreviewUrl(undefined);
+          setPreviewError("CV önizlemesi yüklenemedi. Oturumunuzu kontrol edin.");
+        }
+      }
+    }
+
+    void loadPreview();
+    return () => {
+      cancelled = true;
+      if (revoked) URL.revokeObjectURL(revoked);
+    };
+  }, [cv?.id, cv?.cv_url]);
 
   const handleDownload = async () => {
     if (!cv?.cv_url) return;
     setDownloadError(undefined);
 
     try {
-      const response = await fetch(cv.cv_url);
-      if (!response.ok) throw new Error("CV indirilemedi");
-
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const blobUrl = previewUrl ?? (await fetchAuthedBlobUrl(cv.cv_url));
       const anchor = document.createElement("a");
-      anchor.href = objectUrl;
+      anchor.href = blobUrl;
       anchor.download = "CareerTrack-CV.pdf";
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      URL.revokeObjectURL(objectUrl);
+      if (!previewUrl) URL.revokeObjectURL(blobUrl);
     } catch {
-      setDownloadError(
-        "PDF doğrudan indirilemedi. Dosyayı yeni sekmede açıp tarayıcınızdan indirebilirsiniz.",
-      );
+      setDownloadError("PDF indirilemedi. Lütfen tekrar giriş yapıp deneyin.");
+    }
+  };
+
+  const handleOpenTab = async () => {
+    if (!cv?.cv_url) return;
+    setDownloadError(undefined);
+    try {
+      const blobUrl = previewUrl ?? (await fetchAuthedBlobUrl(cv.cv_url));
+      window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!previewUrl) {
+        window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      }
+    } catch {
+      setDownloadError("PDF açılamadı. Lütfen tekrar giriş yapıp deneyin.");
     }
   };
 
@@ -131,19 +177,23 @@ export function CvResultSection({
       {cv?.cv_url ? (
         <div className="mt-4 space-y-3">
           <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
-            <iframe
-              src={cv.cv_url}
-              title="Oluşturulan CV PDF önizlemesi"
-              className="h-[520px] w-full"
-            />
+            {previewUrl ? (
+              <iframe
+                src={previewUrl}
+                title="Oluşturulan CV PDF önizlemesi"
+                className="h-[520px] w-full"
+              />
+            ) : (
+              <div className="flex h-[520px] items-center justify-center p-4 text-body-sm text-on-surface-variant">
+                {previewError || "Önizleme yükleniyor…"}
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               type="button"
               variant="outline"
-              onClick={() =>
-                window.open(cv.cv_url!, "_blank", "noopener,noreferrer")
-              }
+              onClick={() => void handleOpenTab()}
               className="shrink-0 sm:mr-auto"
             >
               <ExternalLink className="h-4 w-4" />
@@ -161,8 +211,8 @@ export function CvResultSection({
           </div>
           <FormError message={downloadError} />
           <p className="text-label-md text-on-surface-variant">
-            PDF tarayıcıda görüntülenemiyorsa yeni sekmede açabilir veya
-            indirebilirsiniz.
+            CV yalnızca oturumunuzla görüntülenir; link paylaşılsa bile JWT olmadan
+            açılamaz.
           </p>
         </div>
       ) : (

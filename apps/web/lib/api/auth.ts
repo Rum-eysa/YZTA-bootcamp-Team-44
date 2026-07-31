@@ -14,6 +14,25 @@ export async function register(userData: UserCreate): Promise<UserResponse> {
   return data;
 }
 
+export async function refreshTokens(refreshToken: string): Promise<TokenResponse> {
+  const { data } = await api.post<TokenResponse>("/api/auth/refresh", {
+    refresh_token: refreshToken,
+  });
+  return data;
+}
+
+export async function logoutApi(): Promise<void> {
+  const refreshToken =
+    typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
+  try {
+    await api.post("/api/auth/logout", {
+      refresh_token: refreshToken || undefined,
+    });
+  } catch {
+    // Sunucu tarafı revoke başarısız olsa bile yerel oturumu temizle
+  }
+}
+
 export function saveTokens(tokens: TokenResponse) {
   localStorage.setItem("access_token", tokens.access_token);
   localStorage.setItem("refresh_token", tokens.refresh_token);

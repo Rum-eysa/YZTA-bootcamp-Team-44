@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,6 +8,47 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken =
+    typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
+  if (!refreshToken) return null;
+
+  try {
+    const { data } = await axios.post(
+      `${API_URL}/api/auth/refresh`,
+      { refresh_token: refreshToken },
+      { headers: { "Content-Type": "application/json" } }
+    );
+    localStorage.setItem("access_token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
+    return data.access_token as string;
+  } catch {
+    return null;
+  }
+}
+
+function clearSessionAndRedirect(requestUrl: string) {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+
+  const isAuthPage =
+    window.location.pathname === "/login" || window.location.pathname === "/register";
+  const isPublicAuthRequest =
+    requestUrl.includes("/api/auth/login") ||
+    requestUrl.includes("/api/auth/register") ||
+    requestUrl.includes("/api/auth/refresh");
+
+  if (!isAuthPage && !isPublicAuthRequest) {
+    const currentTarget = `${window.location.pathname}${window.location.search}`;
+    window.location.assign(`/login?redirect=${encodeURIComponent(currentTarget)}`);
+  }
+}
 
 // Request interceptor to add auth token
 api.interceptors.request.use((config) => {
@@ -19,7 +60,6 @@ api.interceptors.request.use((config) => {
   if (typeof FormData !== "undefined" && config.data instanceof FormData) {
     const headers = config.headers;
     if (headers && typeof (headers as { set?: unknown }).set === "function") {
-      // axios AxiosHeaders: false = header'ı kaldır
       (headers as { set: (k: string, v: unknown) => void }).set("Content-Type", false);
     } else if (headers) {
       delete (headers as Record<string, unknown>)["Content-Type"];
@@ -29,29 +69,43 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor to handle errors
+// Response interceptor: 401 → refresh → retry once
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const requestUrl = error.config?.url ?? "";
+  async (error: AxiosError) => {
+    const original = error.config as RetryConfig | undefined;
+    const requestUrl = original?.url ?? "";
     const isPublicAuthRequest =
-      requestUrl.includes("/api/auth/login") || requestUrl.includes("/api/auth/register");
+      requestUrl.includes("/api/auth/login") ||
+      requestUrl.includes("/api/auth/register") ||
+      requestUrl.includes("/api/auth/refresh") ||
+      requestUrl.includes("/api/auth/logout");
 
     if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !isPublicAuthRequest &&
+      typeof window !== "undefined"
+    ) {
+      original._retry = true;
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => {
+          refreshPromise = null;
+        });
+      }
+      const newToken = await refreshPromise;
+      if (newToken) {
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
+      }
+      clearSessionAndRedirect(requestUrl);
+    } else if (
       error.response?.status === 401 &&
       !isPublicAuthRequest &&
       typeof window !== "undefined"
     ) {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-
-      const currentTarget = `${window.location.pathname}${window.location.search}`;
-      const isAuthPage =
-        window.location.pathname === "/login" || window.location.pathname === "/register";
-
-      if (!isAuthPage) {
-        window.location.assign(`/login?redirect=${encodeURIComponent(currentTarget)}`);
-      }
+      clearSessionAndRedirect(requestUrl);
     }
     return Promise.reject(error);
   }

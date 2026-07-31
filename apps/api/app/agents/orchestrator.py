@@ -243,7 +243,9 @@ class ApplicationOrchestrator:
                     ),
                     timeline,
                 )
-                result["cv_url"] = document.cv_url
+                from app.services.signed_urls import document_file_path
+
+                result["cv_url"] = document_file_path(document.id)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("orchestrator_cv_failed", error=str(exc))
                 errors.append(f"cv: {exc}")

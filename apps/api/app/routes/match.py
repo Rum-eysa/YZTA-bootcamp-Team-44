@@ -4,6 +4,8 @@ import json
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.observability import audit_event
+from app.rate_limit import enforce_rate_limit
 from app.repositories.job_listing import JobListingRepository
 from app.repositories.match import MatchRepository
 from app.schemas.match import MatchRequest, MatchResponse
@@ -12,7 +14,7 @@ from app.services.context import (
     job_analysis_from_context,
     user_profile_for_matching,
 )
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["Matching"])
@@ -21,6 +23,7 @@ router = APIRouter(tags=["Matching"])
 @router.post("/match", response_model=MatchResponse)
 async def match_listing(
     payload: MatchRequest,
+    request: Request,
     user_id: str = Depends(get_current_user_id),
     agent: MatchingAgent = Depends(get_matching_agent),
     db: AsyncSession = Depends(get_db),
@@ -30,6 +33,7 @@ async def match_listing(
     Yalnızca çağıran kullanıcının kendi oluşturduğu (created_by) ilanlarda çalışır -
     aksi halde başka bir kullanıcının özel ilan içeriğine karşı eşleştirme
     yapılabilir/kaydedilebilirdi (US-040)."""
+    await enforce_rate_limit(request, suffix="match", limit=20, window_seconds=60)
     listing_repo = JobListingRepository(db)
     listing = await listing_repo.get(payload.listing_id)
     if not listing or listing.created_by != user_id:
@@ -81,6 +85,7 @@ async def match_listing(
         user_profile=user_profile,
         job_analysis=job_analysis,
     )
+    audit_event("match", user_id=user_id, listing_id=payload.listing_id, match_id=match.id)
 
     return MatchResponse(
         match_id=match.id,

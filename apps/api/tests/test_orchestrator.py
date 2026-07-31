@@ -127,7 +127,8 @@ async def test_full_flow_from_listing_text(test_session):
     assert result["analysis"]["position_title"] == "Backend Developer"
     assert result["match"]["score"] == 75.0
     assert result["cover_letter_text"] == "Sayın Yetkili..."
-    assert result["cv_url"].endswith(".pdf")
+    assert result["cv_url"].startswith("/api/documents/")
+    assert result["cv_url"].endswith("/file")
     assert result["errors"] == []
     steps = {s["step"]: s["status"] for s in result["timeline"]}
     assert steps == {
@@ -212,7 +213,8 @@ async def test_cover_letter_failure_does_not_break_cv(test_session):
     result = await orch.process(db=test_session, user_id=user_id, listing_text=LISTING_TEXT)
 
     assert result["cover_letter_text"] is None
-    assert result["cv_url"].endswith(".pdf")
+    assert result["cv_url"].startswith("/api/documents/")
+    assert result["cv_url"].endswith("/file")
     assert len(result["errors"]) == 1
     assert result["errors"][0].startswith("cover_letter:")
     steps = {s["step"]: s["status"] for s in result["timeline"]}

@@ -174,7 +174,8 @@ async def test_full_application_flow(client: AsyncClient):
     # 4) CV üretimi
     cv = await client.post("/api/generate-cv", headers=headers, json={"listing_id": listing_id})
     assert cv.status_code == 200
-    assert cv.json()["cv_url"].endswith(".pdf")
+    assert cv.json()["cv_url"].startswith("/api/documents/")
+    assert cv.json()["cv_url"].endswith("/file")
 
     # 5) Önyazı üretimi - şirket adı ilan kaydından akmalı
     letter = await client.post(
@@ -291,6 +292,8 @@ async def test_full_journey_persists_all_records(client: AsyncClient, test_sessi
     assert len(documents) == 2
     by_type = {d.doc_type: d for d in documents}
     assert set(by_type) == {"cv", "cover_letter"}
+    # DB'de storage URL saklanır; istemciye API path route katmanında verilir
+    assert by_type["cv"].cv_url
     assert by_type["cv"].cv_url.endswith(".pdf")
     assert by_type["cv"].cover_letter_text is None
     assert "Acme Yazılım A.Ş." in by_type["cover_letter"].cover_letter_text

@@ -1,6 +1,6 @@
 "use client";
 
-import { clearTokens, isAuthenticated as checkAuth } from "@/lib/api/auth";
+import { clearTokens, isAuthenticated as checkAuth, logoutApi } from "@/lib/api/auth";
 import { getMe } from "@/lib/api/profiles";
 import type { UserResponse } from "@/types/user";
 import { useRouter } from "next/navigation";
@@ -18,7 +18,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   loading: boolean;
   refreshUser: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -54,7 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    await logoutApi();
     clearTokens();
     setUser(null);
     setAuthenticated(false);
