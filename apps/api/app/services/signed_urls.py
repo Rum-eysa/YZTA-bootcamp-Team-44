@@ -26,7 +26,9 @@ def user_response_with_signed_avatar(user: User) -> UserResponse:
     return data
 
 
-def sign_cv_url_in_dict(payload: dict[str, Any], document_id: Optional[str] = None) -> dict[str, Any]:
+def sign_cv_url_in_dict(
+    payload: dict[str, Any], document_id: Optional[str] = None
+) -> dict[str, Any]:
     if payload.get("cv_url") and document_id:
         payload = {**payload, "cv_url": document_file_path(document_id)}
     elif payload.get("cv_url"):

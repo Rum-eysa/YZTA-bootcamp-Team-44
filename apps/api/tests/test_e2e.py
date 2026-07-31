@@ -292,8 +292,9 @@ async def test_full_journey_persists_all_records(client: AsyncClient, test_sessi
     assert len(documents) == 2
     by_type = {d.doc_type: d for d in documents}
     assert set(by_type) == {"cv", "cover_letter"}
-    assert by_type["cv"].cv_url.startswith("/api/documents/")
-    assert by_type["cv"].cv_url.endswith("/file")
+    # DB'de storage URL saklanır; istemciye API path route katmanında verilir
+    assert by_type["cv"].cv_url
+    assert by_type["cv"].cv_url.endswith(".pdf")
     assert by_type["cv"].cover_letter_text is None
     assert "Acme Yazılım A.Ş." in by_type["cover_letter"].cover_letter_text
     assert by_type["cover_letter"].cv_url is None

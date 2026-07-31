@@ -73,15 +73,11 @@ async def fetch_listing_text_from_url(url: str) -> str:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=False) as client:
             for _ in range(_MAX_REDIRECTS + 1):
                 _assert_safe_url(current)
-                response = await client.get(
-                    current, headers={"User-Agent": "CareerTrackBot/1.0"}
-                )
+                response = await client.get(current, headers={"User-Agent": "CareerTrackBot/1.0"})
                 if response.is_redirect:
                     location = response.headers.get("location")
                     if not location:
-                        raise ValidationException(
-                            "URL içeriği alınamadı: redirect hedefi yok"
-                        )
+                        raise ValidationException("URL içeriği alınamadı: redirect hedefi yok")
                     current = urljoin(str(response.url), location)
                     continue
                 response.raise_for_status()

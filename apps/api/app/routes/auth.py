@@ -7,14 +7,7 @@ from app.database import get_db
 from app.logging_config import get_logger
 from app.rate_limit import enforce_rate_limit
 from app.schemas.base import SuccessResponse
-from app.schemas.user import (
-    LogoutRequest,
-    Token,
-    TokenRefresh,
-    UserCreate,
-    UserLogin,
-    UserResponse,
-)
+from app.schemas.user import LogoutRequest, Token, TokenRefresh, UserCreate, UserLogin, UserResponse
 from app.services.auth import (
     blacklist_token,
     create_access_token,

@@ -1,9 +1,8 @@
 """Redis tabanlı basit rate limit (auth + AI endpoint'leri)."""
 
-from fastapi import HTTPException, Request, status
-
 from app.config import settings
 from app.logging_config import get_logger
+from fastapi import HTTPException, Request, status
 
 logger = get_logger("rate_limit")
 

@@ -130,7 +130,7 @@ function ProfileContent() {
           revoked = blobUrl;
           setAvatarUrl(blobUrl);
         } catch {
-          if (!cancelled) setAvatarUrl(undefined);
+          if (!cancelled) setAvatarUrl(null);
         }
       })();
       localStorage.removeItem(`avatar-migrated:${displayProfile.id}`);

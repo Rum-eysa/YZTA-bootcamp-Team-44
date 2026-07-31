@@ -21,7 +21,9 @@ def _sanitize_note(extra_prompt: str) -> str:
     return extra_prompt.strip()[:EXTRA_PROMPT_MAX_LENGTH].replace(_FENCE, "'")
 
 
-def wrap_untrusted_block(label: str, text: Any, max_length: int = UNTRUSTED_BLOCK_MAX_LENGTH) -> str:
+def wrap_untrusted_block(
+    label: str, text: Any, max_length: int = UNTRUSTED_BLOCK_MAX_LENGTH
+) -> str:
     """Profil/ilan/JSON gibi kullanıcı kontrollü içeriği delimiter ile sarar."""
     if text is None:
         raw = ""

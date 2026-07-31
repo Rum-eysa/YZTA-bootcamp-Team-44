@@ -7,11 +7,11 @@ from datetime import datetime, timezone
 from typing import Any, List, Optional
 
 from app.agents.cv_generation import normalize_cv_template_id
-from app.document_language import normalize_document_language
 from app.agents.listing_analysis import AnalyzeListingAgent, get_listing_analysis_agent
 from app.agents.matching import MatchingAgent, get_matching_agent
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.document_language import normalize_document_language
 from app.models import Document, JobListing
 from app.repositories.job_listing import JobListingRepository
 from app.repositories.match import MatchRepository

@@ -162,9 +162,7 @@ class MatchingAgent:
             ),
             job_requirements=wrap_untrusted_block(
                 "job_requirements",
-                json.dumps(
-                    {**job_analysis, "missing_skills": missing_skills}, ensure_ascii=False
-                ),
+                json.dumps({**job_analysis, "missing_skills": missing_skills}, ensure_ascii=False),
             ),
         )
         await self.client.generate_with_tools(prompt, tools=[record_match_analysis])

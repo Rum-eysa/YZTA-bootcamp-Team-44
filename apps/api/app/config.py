@@ -55,6 +55,4 @@ def validate_security_settings() -> None:
         return
     secret = (settings.JWT_SECRET or "").strip()
     if not secret or secret == _DEFAULT_JWT_SECRET or len(secret) < 32:
-        raise RuntimeError(
-            "JWT_SECRET must be set to a strong value (>=32 chars) when DEBUG=false"
-        )
+        raise RuntimeError("JWT_SECRET must be set to a strong value (>=32 chars) when DEBUG=false")

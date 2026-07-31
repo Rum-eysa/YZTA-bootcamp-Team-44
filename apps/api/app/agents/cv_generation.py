@@ -715,7 +715,10 @@ class CVGenerationAgent:
 
         # Kişisel bilgiler - yalnızca doldurulmuşsa; değerler belge diline çevrilir
         personal_info = [
-            (label, latex_escape(localize_profile_value(value, lang) if key != "birth_year" else value))
+            (
+                label,
+                latex_escape(localize_profile_value(value, lang) if key != "birth_year" else value),
+            )
             for label, key, value in (
                 (labels["gender"], "gender", user_profile.get("gender")),
                 (labels["nationality"], "nationality", user_profile.get("nationality")),
@@ -744,8 +747,7 @@ class CVGenerationAgent:
                 user_profile.get("experience_years") or labels["unspecified"]
             ),
             seniority=latex_escape(
-                localize_profile_value(user_profile.get("seniority"), lang)
-                or labels["unspecified"]
+                localize_profile_value(user_profile.get("seniority"), lang) or labels["unspecified"]
             ),
             work_experiences=[
                 {
