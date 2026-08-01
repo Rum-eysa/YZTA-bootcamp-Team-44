@@ -110,9 +110,7 @@ async def test_me_with_token(client: AsyncClient):
     )
     token = login.json()["access_token"]
 
-    response = await client.get(
-        "/api/users/me", headers={"Authorization": f"Bearer {token}"}
-    )
+    response = await client.get("/api/users/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     assert response.json()["email"] == "me@example.com"
 

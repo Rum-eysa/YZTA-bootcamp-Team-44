@@ -3,11 +3,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from app.agents.cv_generation import (
+    _MAX_DESCRIPTION_CHARS,
     CV_TEMPLATE_IDS,
+    DEFAULT_CV_TEMPLATE,
     CVGenerationAgent,
     CVGenerationException,
-    DEFAULT_CV_TEMPLATE,
-    _MAX_DESCRIPTION_CHARS,
     _clamp_description,
     _format_month_year,
     _format_period,
@@ -491,7 +491,9 @@ async def test_render_latex_all_version_templates_load():
 async def test_generate_passes_cv_template_into_render():
     agent = CVGenerationAgent(storage=MagicMock())
     agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
-    agent._render_latex = MagicMock(return_value=r"\documentclass{article}\begin{document}x\end{document}")
+    agent._render_latex = MagicMock(
+        return_value=r"\documentclass{article}\begin{document}x\end{document}"
+    )
 
     with patch("app.agents.cv_generation._pdf_page_count", return_value=1):
         await agent.generate(
@@ -516,7 +518,9 @@ async def test_generate_raises_when_pdf_has_zero_pages():
 @pytest.mark.asyncio
 async def test_summary_always_uses_gemini_even_without_extra_prompt():
     """Belge dilinde özet için Gemini her zaman çağrılır (profil özeti TR kalsa bile)."""
-    fake_client = FakeGeminiClient(fake_text="Experienced software engineer focused on backend systems.")
+    fake_client = FakeGeminiClient(
+        fake_text="Experienced software engineer focused on backend systems."
+    )
     agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
     agent._compile_with_tectonic = AsyncMock(return_value=b"%PDF-fake")
 
@@ -859,9 +863,7 @@ async def test_overflow_triggers_shorten_and_recompiles_once():
         ]
     )
     agent = CVGenerationAgent(storage=MagicMock(), client=fake_client)
-    agent._compile_with_tectonic = AsyncMock(
-        side_effect=[b"%PDF-long", b"%PDF-short"]
-    )
+    agent._compile_with_tectonic = AsyncMock(side_effect=[b"%PDF-long", b"%PDF-short"])
     profile = {
         "full_name": "Ayşe",
         "work_experiences": [

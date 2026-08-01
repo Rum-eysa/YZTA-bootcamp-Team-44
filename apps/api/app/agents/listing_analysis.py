@@ -4,6 +4,7 @@ Gemini function calling kullanır - `extract_job_requirements` Python fonksiyonu
 olarak verilir, Gemini şemayı fonksiyon imzasından çıkarır ve argümanları belirleyip
 çağırır; biz çağrının argümanlarını yakalayıp sonucu döneriz.
 """
+import re
 from typing import Any, Optional
 
 from app.exceptions import GeminiAPIException, ValidationException
@@ -12,6 +13,40 @@ from app.observability import agent_run
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
 
 logger = get_logger("listing_analysis_agent")
+
+# Sayı + yıl/sene/year birimi ("5 yıl", "5+ yıl", "3 years", "2-4 yıl")
+_DURATION_RE = re.compile(r"\d+\s*\+?\s*[-–]?\s*\d*\s*(?:yıl|yil|sene|yr|years?)", re.IGNORECASE)
+# Deneyim/tecrübe/experience kelimeleri
+_EXPERIENCE_WORD_RE = re.compile(r"deneyim|tecrübe|tecrube|experience", re.IGNORECASE)
+# Süre/deneyim kalıbını temizleyip geriye somut beceri kalıp kalmadığına bakmak için
+_STRIP_NOISE_RE = re.compile(
+    r"\d+|\+|[-–]|yıl(?:lık)?|yil(?:lik)?|sene|yr|years?|deneyim\w*|tecrübe\w*|tecrube\w*"
+    r"|experience|en az|en fazla|min\.?|max\.?|of|and|\bve\b",
+    re.IGNORECASE,
+)
+
+
+def _is_experience_phrase(skill: str) -> bool:
+    """Bir 'beceri' aslında somut bir teknik yetenek değil, süre/deneyim gereksinimi mi?
+    (#99: Analiz Ajanı bazen '5+ yıl deneyim' gibi ifadeleri required_skills'e beceri
+    olarak koyuyor; bunlar seniority'ye ait, beceri listesini kirletiyor.)
+
+    Yalnızca geriye somut bir beceri kelimesi KALMAYAN saf süre/deneyim ifadelerini
+    ayıklar - ör. '3+ yıl React deneyimi' düşürülmez (React korunur), '5 yıl deneyim'
+    düşürülür."""
+    text = (skill or "").strip().lower()
+    if not text:
+        return True
+    if not (_DURATION_RE.search(text) or _EXPERIENCE_WORD_RE.search(text)):
+        return False
+    residual = _STRIP_NOISE_RE.sub(" ", text)
+    residual = re.sub(r"[^\wçğıöşü]+", "", residual, flags=re.IGNORECASE)
+    return len(residual) < 3
+
+
+def _clean_skill_list(skills: list[str]) -> list[str]:
+    """Süre/deneyim ifadelerini beceri listesinden ayıklar, kalanların sırasını korur."""
+    return [s for s in skills if not _is_experience_phrase(s)]
 
 
 class AnalyzeListingAgent:
@@ -37,19 +72,26 @@ class AnalyzeListingAgent:
             seviyesi ve pozisyon başlığını kaydeder.
 
             Args:
-                required_skills: İlanda zorunlu olarak istenen teknik beceriler.
-                nice_to_have_skills: Tercih sebebi olarak belirtilen beceriler.
-                seniority: junior, mid veya senior. Belirsizse en olası tahmini yap.
+                required_skills: İlanda zorunlu olarak istenen SOMUT teknik beceriler
+                    (ör. "Python", "React", "PostgreSQL"). Deneyim süresi ifadelerini
+                    (ör. "5+ yıl deneyim", "en az 3 yıl") buraya EKLEME - bunlar beceri
+                    değildir, seniority alanına yansır.
+                nice_to_have_skills: Tercih sebebi olarak belirtilen somut beceriler.
+                    Yine deneyim süresi/yıl ifadeleri buraya girmez.
+                seniority: junior, mid veya senior. İlandaki deneyim yılı/kıdem
+                    ifadelerini burada değerlendir. Belirsizse en olası tahmini yap.
                 position_title: İlandaki pozisyon başlığı.
                 confidence: Çıkarımın ne kadar güvenilir olduğu, 0.0-1.0 arası.
                     İlan eksik/dağınık/belirsizse düşük bir değer ver (ör. 0.3-0.5).
             """
+            # Gemini function calling argümanları protobuf RepeatedComposite tipinde
+            # gelir (JSON serialize edilemez) - düz listeye çeviriyoruz. Ayrıca ikinci
+            # bir savunma katmanı olarak süre/deneyim ifadelerini beceri listelerinden
+            # deterministik olarak ayıklıyoruz (#99: LLM bunları bazen kaçırıyor).
             captured.update(
                 {
-                    # Gemini function calling argümanları protobuf RepeatedComposite
-                    # tipinde gelir (JSON serialize edilemez) - düz listeye çeviriyoruz
-                    "required_skills": list(required_skills),
-                    "nice_to_have_skills": list(nice_to_have_skills),
+                    "required_skills": _clean_skill_list(list(required_skills)),
+                    "nice_to_have_skills": _clean_skill_list(list(nice_to_have_skills)),
                     "seniority": seniority,
                     "position_title": position_title,
                     "confidence": confidence,

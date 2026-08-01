@@ -114,14 +114,22 @@ app.include_router(orchestrator.router, prefix="/api")
 
 @app.exception_handler(APIException)
 async def api_exception_handler(request: Request, exc: APIException):
+    content = {
+        "detail": exc.detail,
+        "error_code": exc.error_code,
+        "request_id": getattr(request.state, "request_id", None),
+    }
+    headers = _cors_headers(request)
+    # Kota (429) hataları bir bekleme süresi taşıyabilir (#100): hem gövdede hem de
+    # standart Retry-After başlığında sunulur ki istemci "X saniye sonra dene" diyebilsin.
+    retry_after = getattr(exc, "retry_after", None)
+    if retry_after is not None:
+        content["retry_after"] = retry_after
+        headers = {**headers, "Retry-After": str(retry_after)}
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
-            "error_code": exc.error_code,
-            "request_id": getattr(request.state, "request_id", None),
-        },
-        headers=_cors_headers(request),
+        content=content,
+        headers=headers,
     )
 
 

@@ -76,9 +76,7 @@ async def test_public_user_by_id_requires_self(client: AsyncClient, test_session
 
 
 @pytest.mark.asyncio
-async def test_refresh_rotates_and_blacklists_old(
-    client: AsyncClient, monkeypatch
-):
+async def test_refresh_rotates_and_blacklists_old(client: AsyncClient, monkeypatch):
     store: dict[str, str] = {}
 
     class _FakeRedis:
@@ -94,17 +92,13 @@ async def test_refresh_rotates_and_blacklists_old(
     tokens = await _register_login(client, "refresh@example.com")
     old_refresh = tokens["refresh_token"]
 
-    refreshed = await client.post(
-        "/api/auth/refresh", json={"refresh_token": old_refresh}
-    )
+    refreshed = await client.post("/api/auth/refresh", json={"refresh_token": old_refresh})
     assert refreshed.status_code == 200
     new_tokens = refreshed.json()
     assert new_tokens["refresh_token"] != old_refresh
 
     # Eski refresh artık geçersiz
-    reused = await client.post(
-        "/api/auth/refresh", json={"refresh_token": old_refresh}
-    )
+    reused = await client.post("/api/auth/refresh", json={"refresh_token": old_refresh})
     assert reused.status_code == 401
 
 
@@ -145,9 +139,7 @@ async def test_listing_document_language_persisted(
             "confidence": 0.9,
         }
 
-    monkeypatch.setattr(
-        "app.agents.listing_analysis.AnalyzeListingAgent.analyze", fake_analyze
-    )
+    monkeypatch.setattr("app.agents.listing_analysis.AnalyzeListingAgent.analyze", fake_analyze)
 
     response = await client.post(
         "/api/analyze",

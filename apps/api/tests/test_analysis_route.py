@@ -3,14 +3,13 @@
 import uuid
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-
 from app.agents.listing_analysis import get_listing_analysis_agent
 from app.dependencies import get_current_user_id
-from app.exceptions import GeminiAPIException
+from app.exceptions import GeminiAPIException, GeminiQuotaException
 from app.main import app
 from app.models import JobListing, User
+from httpx import AsyncClient
+from sqlalchemy import select
 
 LISTING_TEXT = (
     "Python ve SQL bilen backend stajyeri arıyoruz. Takım çalışmasına yatkın, "
@@ -56,13 +55,9 @@ async def test_analyze_happy_path(client: AsyncClient, test_session):
         "position_title": "Backend Intern",
         "confidence": 0.9,
     }
-    app.dependency_overrides[get_listing_analysis_agent] = lambda: _StubAgent(
-        result=fake_result
-    )
+    app.dependency_overrides[get_listing_analysis_agent] = lambda: _StubAgent(result=fake_result)
 
-    response = await client.post(
-        "/api/analyze", json={"listing_text": LISTING_TEXT}
-    )
+    response = await client.post("/api/analyze", json={"listing_text": LISTING_TEXT})
 
     assert response.status_code == 200
     data = response.json()
@@ -84,9 +79,7 @@ async def test_analyze_saves_to_job_listings(client: AsyncClient, test_session):
         "position_title": "Dev",
         "confidence": 0.8,
     }
-    app.dependency_overrides[get_listing_analysis_agent] = lambda: _StubAgent(
-        result=fake_result
-    )
+    app.dependency_overrides[get_listing_analysis_agent] = lambda: _StubAgent(result=fake_result)
 
     response = await client.post(
         "/api/analyze",
@@ -94,9 +87,7 @@ async def test_analyze_saves_to_job_listings(client: AsyncClient, test_session):
     )
     listing_id = response.json()["listing_id"]
 
-    result = await test_session.execute(
-        select(JobListing).where(JobListing.id == listing_id)
-    )
+    result = await test_session.execute(select(JobListing).where(JobListing.id == listing_id))
     listing = result.scalar_one_or_none()
 
     assert listing is not None
@@ -143,9 +134,25 @@ async def test_analyze_agent_error_returns_503(client: AsyncClient):
         error=GeminiAPIException("Gemini failed")
     )
 
-    response = await client.post(
-        "/api/analyze", json={"listing_text": LISTING_TEXT}
-    )
+    response = await client.post("/api/analyze", json={"listing_text": LISTING_TEXT})
 
     assert response.status_code == 503
     assert response.json()["error_code"] == "GEMINI_API_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_analyze_quota_error_returns_429_with_retry_after(client: AsyncClient):
+    """#100: Gemini kota (429) hatası kullanıcıya genel 503 yerine net kota mesajı +
+    Retry-After başlığı ile dönmeli"""
+    app.dependency_overrides[get_current_user_id] = lambda: "u"
+    app.dependency_overrides[get_listing_analysis_agent] = lambda: _StubAgent(
+        error=GeminiQuotaException("Kota doldu, 30 saniye sonra tekrar deneyin", retry_after=30)
+    )
+
+    response = await client.post("/api/analyze", json={"listing_text": LISTING_TEXT})
+
+    assert response.status_code == 429
+    body = response.json()
+    assert body["error_code"] == "GEMINI_QUOTA_ERROR"
+    assert body["retry_after"] == 30
+    assert response.headers["retry-after"] == "30"
