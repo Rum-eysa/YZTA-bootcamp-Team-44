@@ -2,13 +2,15 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from app.exceptions import GeminiAPIException
+from app.exceptions import GeminiAPIException, GeminiQuotaException
 from app.services import gemini_client as gemini_client_module
 from app.services.gemini_client import (
     FREE_TIER_RPD,
     FREE_TIER_RPM,
     MAX_CONTEXT_TOKENS,
     GeminiClient,
+    _classify_exhausted_error,
+    _extract_retry_after,
     estimate_tokens,
 )
 from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
@@ -131,6 +133,23 @@ async def test_generate_with_retry_exhausts_and_raises(client):
 
 
 @pytest.mark.asyncio
+async def test_generate_with_retry_exhausts_quota_raises_quota_exception(client):
+    """#100: retry'lar tükendiğinde son hata ResourceExhausted (429) ise kullanıcıya
+    genel 503 değil, net kota mesajlı GeminiQuotaException (429) dönmeli"""
+    client.model.generate_content = MagicMock(
+        side_effect=ResourceExhausted("limit: 20, model: gemini-3.5-flash")
+    )
+
+    with patch("app.services.gemini_client.asyncio.sleep", new=AsyncMock()):
+        with pytest.raises(GeminiQuotaException) as exc_info:
+            await client._generate_with_retry("prompt", generation_config={}, max_retries=2)
+
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.error_code == "GEMINI_QUOTA_ERROR"
+    assert "limit" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
 async def test_generate_with_retry_wraps_non_retryable_error(client):
     client.model.generate_content = MagicMock(side_effect=ValueError("boom"))
 
@@ -213,6 +232,59 @@ async def test_generate_with_tools_wraps_retryable_error(client):
     with patch("app.services.gemini_client.genai.GenerativeModel", return_value=fake_model):
         with pytest.raises(GeminiAPIException, match="temporarily unavailable"):
             await client.generate_with_tools("prompt", tools=[])
+
+
+@pytest.mark.asyncio
+async def test_generate_with_tools_wraps_quota_error_as_quota_exception(client):
+    """#100: function-calling çağrısı kota (429) hatasıyla tükendiğinde de genel
+    503 değil, net kota mesajlı GeminiQuotaException dönmeli"""
+    fake_chat = MagicMock()
+    fake_chat.send_message = MagicMock(side_effect=ResourceExhausted("limit: 20"))
+    fake_model = MagicMock()
+    fake_model.start_chat = MagicMock(return_value=fake_chat)
+
+    with patch("app.services.gemini_client.genai.GenerativeModel", return_value=fake_model):
+        with pytest.raises(GeminiQuotaException) as exc_info:
+            await client.generate_with_tools("prompt", tools=[])
+
+    assert exc_info.value.status_code == 429
+
+
+# --- #100: kota hatası sınıflandırma -----------------------------------------
+
+
+def test_extract_retry_after_parses_seconds_pattern():
+    err = Exception("429 Resource exhausted. Please retry in 42s.")
+    assert _extract_retry_after(err) == 42
+
+
+def test_extract_retry_after_parses_retry_delay_seconds_pattern():
+    err = Exception("retry_delay { seconds: 17 }")
+    assert _extract_retry_after(err) == 17
+
+
+def test_extract_retry_after_returns_none_when_no_pattern():
+    assert _extract_retry_after(Exception("some unrelated error")) is None
+    assert _extract_retry_after(None) is None
+
+
+def test_classify_exhausted_error_resource_exhausted_returns_quota_exception():
+    exc = _classify_exhausted_error(ResourceExhausted("retry in 30s"))
+    assert isinstance(exc, GeminiQuotaException)
+    assert exc.status_code == 429
+    assert exc.retry_after == 30
+    assert "30" in exc.detail
+
+
+def test_classify_exhausted_error_non_quota_returns_generic_exception():
+    exc = _classify_exhausted_error(ServiceUnavailable("down"), default_message="custom message")
+    assert type(exc) is GeminiAPIException
+    assert exc.detail == "custom message"
+
+
+def test_classify_exhausted_error_none_returns_generic_exception():
+    exc = _classify_exhausted_error(None)
+    assert type(exc) is GeminiAPIException
 
 
 # --- render_prompt / get_gemini_client -------------------------------------------
