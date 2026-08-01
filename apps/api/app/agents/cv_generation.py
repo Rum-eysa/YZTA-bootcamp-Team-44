@@ -29,6 +29,7 @@ from app.exceptions import APIException, GeminiAPIException, ValidationException
 from app.logging_config import get_logger
 from app.models import Document
 from app.observability import agent_run
+from app.services.careertrack_pdf import stamp_careertrack_pdf
 from app.services.gemini_client import GeminiClient, get_gemini_client, render_prompt
 from app.services.storage import StorageService, get_storage_service
 from jinja2 import Environment, FileSystemLoader
@@ -946,7 +947,8 @@ class CVGenerationAgent:
                     avatar_bytes=avatar_bytes,
                     extra_prompt=extra_prompt,
                 )
-            return pdf_bytes
+            # ATS check'te tasarım/düzen için tanınsın diye CareerTrack damgası
+            return stamp_careertrack_pdf(pdf_bytes)
 
     async def generate_and_save(
         self,
