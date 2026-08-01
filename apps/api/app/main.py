@@ -13,6 +13,7 @@ from app.observability import capture_exception, init_sentry
 from app.routes import (
     agents,
     analysis,
+    ats_check,
     auth,
     cover_letter,
     cv_generation,
@@ -104,6 +105,7 @@ app.include_router(users.router, prefix="/api")
 app.include_router(profiles.router, prefix="/api/profiles")
 app.include_router(agents.router, prefix="/api")
 app.include_router(analysis.router, prefix="/api")
+app.include_router(ats_check.router, prefix="/api")
 app.include_router(listings.router, prefix="/api/listings")
 app.include_router(cover_letter.router, prefix="/api")
 app.include_router(cv_generation.router, prefix="/api")
