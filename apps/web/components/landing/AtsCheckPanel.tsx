@@ -187,10 +187,7 @@ export function AtsCheckPanel() {
                       {ATS_RATING_LABELS[cat.rating]}
                     </span>
                   </div>
-                  <p className="mt-2 text-2xl font-bold" style={{ color }}>
-                    {cat.score}
-                  </p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high">
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-container-high">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{ width: `${cat.score}%`, backgroundColor: color }}

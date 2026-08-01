@@ -44,30 +44,22 @@ export function AtsHero({ onCtaClick }: AtsHeroProps) {
               <div className="mt-3 h-2 rounded bg-primary-container/50 w-2/3" />
               <div className="h-2 rounded bg-surface-container-high w-3/4" />
             </div>
-            <div className="mt-4 flex gap-2">
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
-                75
-              </span>
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-700">
-                50
-              </span>
-            </div>
           </div>
 
           <div className="card !p-5 shadow-xl">
             <p className="text-sm font-semibold text-on-surface mb-3">ATS CV Skorun</p>
             <div className="flex items-center gap-4">
-              <AtsScoreGauge score={100} label="" size="md" />
+              <AtsScoreGauge score={100} label="ATS Skor" size="md" />
               <div className="space-y-2 text-sm flex-1">
                 {[
-                  ["Tasarım", 100],
-                  ["Düzen", 100],
-                  ["İçerik", 100],
-                ].map(([label, score]) => (
+                  ["Tasarım", "Mükemmel"],
+                  ["Düzen", "Mükemmel"],
+                  ["İçerik", "Mükemmel"],
+                ].map(([label, rating]) => (
                   <div key={String(label)}>
                     <div className="flex justify-between text-xs text-on-surface-variant mb-1">
                       <span>{label}</span>
-                      <span className="font-semibold text-primary">{score}</span>
+                      <span className="font-semibold text-primary">{rating}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-surface-container-high overflow-hidden">
                       <div className="h-full w-full rounded-full bg-primary-container" />
