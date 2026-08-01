@@ -10,13 +10,11 @@
 
 **Yapay zeka destekli kişiselleştirilmiş CV ile önyazı oluşturma ve başvuru takip platformu**
 
-[Ürün Özellikleri](#ürün-özellikleri) • [Sprint Planı](#sprint-planı) • [Mimari](#mimari) • [Hızlı Başlangıç](#hızlı-başlangıç) • [API Dokümantasyonu](#api-dokümantasyonu) • [Katkıda Bulunma](#katkıda-bulunma)
+[Ürün Özellikleri](#ürün-özellikleri) • [Sprint Planı](#sprint-planı) • [Mimari](#mimari) • [Hızlı Başlangıç](#hızlı-başlangıç) • [API Endpoint'leri](#api-endpointleri) • [Agent Sistemi](#agent-sistemi) • [Katkıda Bulunma](#katkıda-bulunma)
 
 </div>
 
 ---
-
-Projede, birden fazla iş ilanına başvuran adaylar için yapay zeka destekli bir kariyer platformudur. Her ilanın farklı beklentilerini analiz ederek kullanıcının CV'sini o ilana göre günceller, önyazısını oluşturur ve tüm başvurularını tek bir yerden takip etmesini sağlar.
 
 ## Takım İsmi
 
@@ -33,35 +31,39 @@ Takım 44
 
 ## Ürün İsmi
 
-CareerTrack - AI destekli kişiselleştirilmiş CV ile önyazı oluşturma ve başvuru takip platformu
+CareerTrack 
 
 ## Ürün Açıklaması
 
-Kullanıcılar farklı şirketlere ve pozisyonlara aynı anda başvurabilir; ancak her iş ilanı farklı beceri ve deneyim beklentisi içerir. Platform, ilan metnini yapay zeka ile inceleyerek hangi özelliklerin arandığını çıkarır, kullanıcının o ilanda öne çıkması için CV'sini ilana özel şekilde günceller ve önyazısını oluşturur. Başvurulan tüm ilanlar da platform üzerinden takip edilebilir.
+CareerTrack, iş ve staj arayan adaylar için yapay zeka destekli bir kariyer takip platformudur. İlan metnini analiz ederek aranan becerileri çıkarır, profil ile ilan arasındaki uygunluğu puanlar ve her başvuru için ATS uyumlu CV ile önyazı üretir. Adaylar belge dilini ve CV şablonunu ilana göre seçebilir; ister kayıt olmadan kullandıkları CV için ATS skorunu öğrenebilir, ister tüm başvurularını tek yerden yönetebilir.
 
 ## Problem Tanımı
 
-Birçok iş ilanına başvuran adaylar, her pozisyonun farklı gereksinimleri nedeniyle CV ve önyazılarını tek tek uyarlamak zorunda kalır. Bu süreç zaman alıcıdır ve başvuruların takibi dağınık hale gelebilir. Platform, ilanlardaki beklentileri otomatik analiz ederek adayın her başvuruya uygun dokümanları hazırlamasına ve tüm süreci merkezi olarak yönetmesine yardımcı olur.
+Aynı dönemde birçok ilana başvuran adaylar, her pozisyonun farklı beklentilerine CV ve önyazıyı elle uyarlamak zorunda kalır. Bu iş hem zaman alır hem de hangi başvuruya öncelik verileceğini belirsizleştirir; süreç dosyalar, e-postalar ve notlar arasında dağılır. Sonuçta adaylar çoğu zaman genel bir CV ile ilerler veya başvurularını takip etmekte güçlük çeker.
 
 ## İş Değeri
 
 - Her iş ilanı için CV ve önyazıyı kişiselleştirir.
 - İlanda aranan beceri ve deneyimleri net şekilde ortaya çıkarır.
 - Adayın ilana uygunluğunu puanlayarak hangi başvurulara öncelik verileceğini gösterir.
+- Kayıt olmadan ATS uyumluluğunu ölçerek CV’nin ilk filtreyi geçme şansını artırır.
 - Tüm başvuruları tek platformda takip ederek süreci düzenli hale getirir.
 
 ## Ürün Özellikleri
 
 - **AI Destekli İlan Analizi** - Google Gemini ile iş ilanındaki beceri ve deneyim beklentilerini çıkarma.
-- **Kişiselleştirilmiş CV Üretimi** - Her ilana özel, öne çıkmayı hedefleyen CV güncellemesi.
-- **Otomatik Önyazı** - İlan ve profil bilgisine göre önyazı oluşturma.
-- **Başvuru Takibi** - Başvurulan tüm iş ilanlarını aşama ve durum bazında izleme.
+- **Uygunluk Skoru** - Zorunlu, tercih, kıdem ve anlamsal boyutlarda ilan–profil eşleşme puanı.
+- **Misafir ATS Kontrolü** - Kayıt olmadan PDF CV yükleyip Tasarım / Düzen / İçerik ATS skoru alma.
+- **Kişiselleştirilmiş CV Üretimi** - Her ilana özel ATS uyumlu LaTeX CV; çoklu şablon, avatar ve edit prompt.
+- **Belge Dili (TR/EN)** - İlan bazında CV ve önyazı dilini seçme.
+- **Otomatik Önyazı** - İlan ve profil bilgisine göre önyazı; ekstra prompt ve yeniden üretim desteği.
+- **Başvuru Takibi** - Başvurulan tüm iş ilanlarını tek yerden izleme ve yeniden analiz etme.
 - **Güvenli Kimlik Doğrulama** - JWT tabanlı kimlik doğrulama ve bcrypt şifreleme.
 - **Yüksek Performans** - Redis önbellekleme katmanı ile asenkron işleme.
 - **İzlenebilirlik** - Yapılandırılmış loglama ve istek takibi.
 - **Kurumsal Güvenlik** - CORS, hız sınırlama, güvenlik başlıkları ve giriş doğrulama.
 - **Kapsamlı Testler** - Yüksek kapsamlı birim ve entegrasyon testleri.
-- **Sürekli Entegrasyon / Dağıtım** - GitHub Actions ile otomatik test ve dağıtım.
+- **Sürekli Entegrasyon / Dağıtım** - GitHub Actions ile otomatik test ve dağıtım; Railway + Vercel deploy.
 - **Veritabanı Göçleri** - Alembic ile versiyon kontrollü şema değişiklikleri.
 - **Modern Arayüz** - TailwindCSS ve Next.js ile duyarlı kullanıcı arayüzü.
 
@@ -69,7 +71,6 @@ Birçok iş ilanına başvuran adaylar, her pozisyonun farklı gereksinimleri ne
 
 - Staj ve iş arayan öğrenciler
 - Birden fazla pozisyona eş zamanlı başvuran adaylar
-- Bootcamp ve kariyer geliştirme programı katılımcıları
 - CV ve önyazısını her ilana göre uyarlamak isteyen kullanıcılar
 
 ## Ürün Backlog'u
@@ -78,8 +79,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 - [GitHub Projects Backlog](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553)
 - Sprint planları ve görev takibi burada güncellenmektedir
-- Sprint 1 detayları için [Sprint 1](#sprint-1), Sprint 2 için [Sprint 2](#sprint-2) bölümüne bakınız
-- Sprint 2 yapılan/eksik listesi: [`docs/Sprint-2-Yapilanlar-ve-Eksikler.md`](docs/Sprint-2-Yapilanlar-ve-Eksikler.md)
+- Sprint 1 detayları için [Sprint 1](#sprint-1), Sprint 2 için [Sprint 2](#sprint-2), Sprint 3 için [Sprint 3](#sprint-3) bölümüne bakınız
 
 ## Sprint Planı
 
@@ -525,7 +525,7 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
   - Backend: iş deneyimi/proje şeması + CRUD; ContextManager; Orchestrator (`POST /api/process`); `POST /api/match`, `generate-cv`, `generate-cover-letter`; ilan sahipliği; reanalyze/rematch + `analyzed_at`
   - Frontend: tek sayfa `/listings/:id` (US-039); skor gauge, beceri tablosu, CV önizleme, önyazı view; landing fark vurgusu
   - Kalite: agent unit testleri + CI `%80` gate, E2E entegrasyon testleri, Sentry/observability
-  - Deploy: Railway backend + Vercel frontend; `docs/deploy.md` / `docs/DEPLOY_STAGING.md`
+  - Deploy: Railway backend + Vercel frontend; [`docs/deploy.md`](docs/deploy.md)
 
   **Alınan kararlar:**
   - `/results` tamamen kaldırıldı; kanonik rota `/listings/:id`
@@ -543,6 +543,193 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 
 ### Sprint 3
 
+<details id="sprint-3">
+<summary><strong>Sprint 3 detayları için tıklayın</strong></summary>
+
+<br>
+
+- **Product Backlog:** Sprint 3 görevleri [GitHub Projects](https://github.com/users/Rum-eysa/projects/6/views/1?groupedBy%5BcolumnId%5D=364119553) üzerinden yönetilmiştir. Sprint 2’den taşınan CV/deploy kartları (`US-043`…`US-046`), önyazı ve ATS story’leri (`US-049`, `US-054`…`US-061`) ile Sprint 2 borç kapanışı (`US-036†`) bu sprintte takip edilmiştir.
+
+- **Sprint Puanlaması:** Sprint 3 planı toplam **~51 story point** (14 user story: CV pipeline + ATS landing + önyazı/analiz iyileştirmeleri). Kod denetimi sonucu: **14 story tamamlandı** — kazanılan **~51 / 51 SP (%100)**.
+
+<table width="100%">
+<thead>
+<tr>
+<th width="12%">Story</th>
+<th width="40%">Başlık</th>
+<th width="8%">SP</th>
+<th width="12%">Öncelik</th>
+<th width="18%">Durum</th>
+<th width="10%">Kazanılan</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-036†</td>
+<td>Sticky Kaydet (Sprint 2 borç)</td>
+<td>1</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>1</td>
+</tr>
+<tr>
+<td>US-043</td>
+<td>ATS-Uyumlu LaTeX CV Şablonu</td>
+<td>5</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-044</td>
+<td>CV Üretiminde Tam Profil Verisi</td>
+<td>5</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-045</td>
+<td>Landing Page Yenileme</td>
+<td>3</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-046</td>
+<td>Staging / Production Deploy</td>
+<td>5</td>
+<td>must-have</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-049</td>
+<td>Önyazı: Ekstra Prompt + Motivasyon</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-054</td>
+<td>Misafir ATS CV Kontrolü + Landing</td>
+<td>5</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-055</td>
+<td>Çoklu CV Şablonu, Avatar, Edit Prompt</td>
+<td>5</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-056</td>
+<td>İlan Bazlı Belge Dili (TR/EN)</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-057</td>
+<td>Önyazı Regenerate’de Önceki Metin</td>
+<td>2</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>2</td>
+</tr>
+<tr>
+<td>US-058</td>
+<td>CV İçerik Alaka Filtresi</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-059</td>
+<td>CV İlana Göre Rewrite + 1 Sayfa</td>
+<td>5</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>5</td>
+</tr>
+<tr>
+<td>US-060</td>
+<td>CV Özeti: Ekstra Prompt</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td>US-061</td>
+<td>Analiz: Süre≠Beceri + Kota Hatası</td>
+<td>3</td>
+<td>high</td>
+<td>✅ Tamamlandı</td>
+<td>3</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Toplam</strong></td>
+<td><strong>~51</strong></td>
+<td></td>
+<td><strong>14 tamamlandı</strong></td>
+<td><strong>~51</strong></td>
+</tr>
+</tbody>
+</table>
+
+  **Özet:** Planlanan ~51 SP’nin tamamı kazanıldı (**~51 / 51, %100**). Sprint 2 sonrası öne çıkanlar: ATS uyumlu çoklu CV şablonları, tam profil → CV, misafir ATS skoru landing’i, ilan bazlı belge dili, CV alaka/rewrite/kısaltma ve önyazı ekstra prompt akışı.
+
+- **Daily Scrum:** Ekip Slack Huddle üzerinden senkron toplantı yapmıştır.
+
+  *Deploy ve PR durumu — Rumeysa’nın GitHub Deployments ekran paylaşımı:*
+
+  ![Daily Scrum — Deployments](docs/sprint-3/daily-scrum-deployments.png)
+
+- **Ürün Geliştirme Durumu:** CareerTrack artık misafir ATS kontrolünden ilana özel CV/önyazı üretimine kadar uçtan uca çalışır. Landing’de kayıt olmadan ATS skoru alınır; `/apply` üzerinde belge dili, önyazı tonu ve CV tercihi seçilir; `/listings/:id` üzerinde uygunluk skoru (zorunlu / tercih / kıdem / anlamsal), yeniden analiz ve ilana özel doküman üretimi sunulur.
+
+  *Landing — ATS CV skoru ve “Neden CareerTrack?”:*
+
+  ![Ürün durumu — Landing ATS](docs/sprint-3/urun-durumu-landing-ats.png)
+
+  *İlan ekleme — şirket/pozisyon, belge dili, önyazı ve CV tercihi:*
+
+  ![Ürün durumu — İlan Ekle](docs/sprint-3/urun-durumu-ilan-ekle.png)
+
+  *İlan detay — düzenleme, Yeniden Analiz Et ve eşleşme skoru:*
+
+  ![Ürün durumu — İlan detay](docs/sprint-3/urun-durumu-ilan-detay.png)
+
+- **Sprint Review:** Sprint 3 hedeflerinin tamamı kapanmıştır (**~51 / 51 SP, %100**).
+
+  **Tamamlananlar:**
+  - CV pipeline: ATS LaTeX şablonları; tam profil alanlarının CV’ye aktarımı; Version1–5 şablon seçimi, avatar ve edit prompt
+  - Backend / agent: belge dili TR/EN; CV alaka filtresi, ilana göre rewrite + 1 sayfa kısaltma; özet ekstra prompt; analiz süre≠beceri ayrımı ve kota hatası netliği
+  - Önyazı: kullanıcı ekstra prompt / motivasyon stratejisi; yeniden üretimde önceki metni kullanma
+  - Frontend: misafir ATS landing (skor gauge + Tasarım/Düzen/İçerik); ilan ekleme tercihler UI; sticky kaydet
+  - Deploy: Railway staging/production dağıtımlarının sprint boyunca sürdürülmesi
+
+  **Alınan kararlar:**
+  - Misafir kullanıcılar kayıt olmadan günlük 1 ATS skoru alabilir
+  - CV ve önyazı dili ilan bazında seçilir (`tr` / `en`)
+  - Tek şablon yerine ilan bazlı çoklu CV şablon tercihi kullanılır
+  - İlan metni değişince skor otomatik güncellenmez; kullanıcı **Yeniden Analiz Et** ile tetikler
+
+- **Sprint Retrospective:**
+
+  - **İyi giden:** CV pipeline ile misafir ATS aynı sprintte ürünleşti; deploy’lar huddle’da görünür takip edildi.
+  - **İyileştirme:** Landing ve ilan formu tercihlerinin (dil, ton, şablon) erken hizalanması demo akışını hızlandırdı.
+
+</details>
 
 ## Mimari
 
@@ -560,11 +747,13 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │   │   │   ├── users.py         # User management (/api/users)
 │   │   │   │   ├── profiles.py      # Profile update (/api/profiles)
 │   │   │   │   ├── analysis.py      # İlan analizi (/api/analyze)
+│   │   │   │   ├── ats_check.py     # Misafir ATS kontrolü (/api/ats-check)
 │   │   │   │   ├── listings.py      # İlan CRUD (/api/listings)
 │   │   │   │   ├── match.py         # Eşleştirme (/api/match)
 │   │   │   │   ├── cv_generation.py # CV üretimi (/api/generate-cv)
 │   │   │   │   ├── cover_letter.py  # Önyazı üretimi (/api/generate-cover-letter)
-│   │   │   │   ├── orchestrator.py  # Orkestratör (/api/orchestrator)
+│   │   │   │   ├── documents.py     # Korumalı CV indirme (/api/documents)
+│   │   │   │   ├── orchestrator.py  # Orkestratör (POST /api/process)
 │   │   │   │   ├── agents.py        # Agent task API (/api/agents)
 │   │   │   │   └── health.py        # Health checks (/health)
 │   │   │   ├── services/            # Business logic layer
@@ -580,9 +769,11 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │   │   │   ├── matching.py
 │   │   │   │   ├── cv_generation.py
 │   │   │   │   ├── cover_letter.py
+│   │   │   │   ├── ats_check.py     # Misafir ATS CV skoru
 │   │   │   │   ├── orchestrator.py  # Ajanları zincirleyen orkestratör
 │   │   │   │   ├── strategy.py      # Düşük-skor / ekstra-prompt stratejisi
 │   │   │   │   └── prompt_safety.py # Prompt injection savunması (extra_prompt delimiting)
+│   │   │   ├── templates/cv/        # Çoklu LaTeX CV şablonları (Version1–5)
 │   │   │   ├── repositories/        # Veritabanı erişim katmanı
 │   │   │   └── schemas/             # Pydantic request/response modelleri
 │   │   ├── scripts/
@@ -593,26 +784,22 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 │   │
 │   └── web/                         # Next.js Frontend Service
 │       ├── app/                     # App Router
-│       │   ├── page.tsx             # Landing page
+│       │   ├── page.tsx             # Landing + misafir ATS
 │       │   ├── login/               # Giriş
 │       │   ├── register/            # Kayıt
 │       │   ├── profile/             # Profil formu
-│       │   ├── apply/               # İlan girişi
-│       │   ├── results/             # Eşleştirme sonuç ekranı
-│       │   └── listings/[listingId]/ # Kalıcı ilan ve analiz detayları
-│       ├── components/              # UI ve layout bileşenleri
+│       │   ├── apply/               # İlan girişi (dil / şablon / ton)
+│       │   ├── listings/            # Başvurulan ilanlar listesi
+│       │   └── listings/[listingId]/ # Kanonik ilan, skor, CV, önyazı
+│       ├── components/              # UI, landing ve listing bileşenleri
 │       ├── lib/api/                 # Endpoint bazlı API istemcileri
 │       ├── components/providers/    # Auth ve React Query sağlayıcıları
 │       └── Dockerfile
 │
 ├── docs/sprint-1/                   # Sprint 1 dokümantasyon görselleri
 ├── docs/sprint-2/                   # Sprint 2 dokümantasyon görselleri
-├── docs/sprints/                    # Sprint review/retro/UAT raporları
-├── docs/deploy.md                   # Go-live checklist + canlı URL'ler
-├── docs/DEPLOY_STAGING.md           # Staging kurulum rehberi (Railway + Vercel)
-├── docs/Sprint-2-Yapilanlar-ve-Eksikler.md  # Sprint 2 yapılan / eksik listesi
-├── ARCHITECTURE.md                  # Sistem tasarımı dokümanı
-├── CHANGELOG.md                     # Sürüm geçmişi
+├── docs/sprint-3/                   # Sprint 3 dokümantasyon görselleri
+├── docs/deploy.md                   # Canlı URL'ler + Railway/Vercel deploy
 ├── CONTRIBUTING.md                  # Katkı rehberi
 ├── railway.json                     # Railway deploy config (Dockerfile/start/healthcheck)
 ├── .github/workflows/ci.yml         # CI/CD pipeline
@@ -631,21 +818,13 @@ Proje backlog bilgileri GitHub Projects üzerinden yönetilmektedir:
 | **Veritabanı** | PostgreSQL 15 / Supabase | Ana veri depolama |
 | **Önbellek** | Redis 7 | Token blacklist ve önbellekleme |
 | **Depolama** | MinIO (S3 uyumlu) | CV PDF dosya depolama |
-| **AI/ML** | Google Gemini | İlan analizi, eşleştirme, CV ve önyazı üretimi |
+| **AI/ML** | Google Gemini | İlan analizi, eşleştirme, ATS kontrolü, CV ve önyazı üretimi |
 | **PDF** | Tectonic (API image içinde) | LaTeX → PDF derleme |
 | **Altyapı** | Docker, Docker Compose | Konteyner orkestrasyonu |
 | **Test** | Pytest, pytest-asyncio, Coverage | Birim ve entegrasyon testleri |
 | **CI/CD** | GitHub Actions | Otomatik test ve build |
 | **Kod Kalitesi** | Black, isort, flake8, mypy, pre-commit | Linting ve formatlama |
 
-### Frontend veri akışı
-
-`POST /api/analyze` başarılı olduğunda arayüz doğrudan
-`/listings/{listing_id}` rotasına gider. Bu kanonik sayfa ilanı
-`GET /api/listings/{listing_id}` ile veritabanından yükler; eşleştirme, yeniden analiz,
-CV ve önyazı mutasyonları React Query önbelleğini güncelledikten sonra aynı ilan
-sorgusunu geçersiz kılar. Böylece sayfa yenilendiğinde tüm kalıcı veriler API'den
-yeniden alınır.
 
 ## Hızlı Başlangıç
 
@@ -689,14 +868,11 @@ make seed
 
 Her hesapta iş deneyimi, proje, eğitim ve sertifika kayıtları önceden dolu gelir; diğer seed kullanıcıları için bkz. `apps/api/scripts/seed_database.py`.
 
-### Staging / Canlı Ortam
-
-Staging kurulum rehberi için [`docs/DEPLOY_STAGING.md`](docs/DEPLOY_STAGING.md), canlı URL'ler ve go-live kontrol listesi için [`docs/deploy.md`](docs/deploy.md).
-
-### Erişim Noktaları
+### Canlı Ortam
 
 - **Frontend**: https://yzta-bootcamp-team-44.vercel.app
 - **Backend API**: https://yzta-bootcamp-team-44-production.up.railway.app/docs
+- Kurulum, ortam değişkenleri ve sorun giderme: [`docs/deploy.md`](docs/deploy.md)
 
 ## Geliştirme
 
@@ -811,15 +987,40 @@ Tüm API route'ları `/api` prefix'i altında tanımlıdır (health hariç).
 - `GET /api/users/{user_id}` - Kullanıcı bilgisi
 
 ### Profiles
-- `PATCH /api/profiles/me` - Profil güncelleme (US-008)
+- `PATCH /api/profiles/me` - Profil güncelleme
+- `POST /api/profiles/me/avatar` - Avatar yükleme
+- `GET /api/profiles/me/avatar/file` - Avatar dosyası
+- `DELETE /api/profiles/me/avatar` - Avatar silme
+- `GET|POST /api/profiles/me/experiences` · `PATCH|DELETE .../experiences/{id}` - İş deneyimi CRUD
+- `GET|POST /api/profiles/me/projects` · `PATCH|DELETE .../projects/{id}` - Proje CRUD
+- `GET|POST /api/profiles/me/education` · `PATCH|DELETE .../education/{id}` - Eğitim CRUD
+- `GET|POST /api/profiles/me/certificates` · `PATCH|DELETE .../certificates/{id}` - Sertifika CRUD
+- `GET|POST /api/profiles/me/exams` · `PATCH|DELETE .../exams/{id}` - Sınav CRUD
+- `GET|POST /api/profiles/me/languages` · `PATCH|DELETE .../languages/{id}` - Dil CRUD
+- `GET|POST /api/profiles/me/social-links` · `PATCH|DELETE .../social-links/{id}` - Sosyal link CRUD
+- `GET|POST /api/profiles/me/references` · `PATCH|DELETE .../references/{id}` - Referans CRUD
+
+### Listings
+- `GET /api/listings` - Kullanıcının ilan listesi
+- `GET /api/listings/{listing_id}` - İlan detayı (analiz, eşleşme, dokümanlar)
+- `PATCH /api/listings/{listing_id}` - İlan güncelleme (şirket, metin, şablon, belge dili vb.)
+- `POST /api/listings/{listing_id}/reanalyze` - İlanı yeniden analiz et
+- `POST /api/listings/{listing_id}/rematch` - Eşleşmeyi yeniden hesapla
 
 ### Analysis
 - `POST /api/analyze` - İlan metni veya URL analizi (AI)
 
-### Matching & Documents (Sprint 2)
+### ATS Check
+- `POST /api/ats-check` - Misafir PDF CV ATS skoru (auth yok; IP başına günlük 1)
+
+### Matching & Documents
 - `POST /api/match` - Profil ↔ ilan eşleştirme skoru (cache'li)
-- `POST /api/generate-cover-letter` - Şirkete özel önyazı üretimi (AI)
-- `POST /api/generate-cv` - İlana özel PDF CV üretimi (LaTeX/Tectonic)
+- `POST /api/generate-cover-letter` - Şirkete özel önyazı üretimi (AI; ekstra prompt / regenerate)
+- `POST /api/generate-cv` - İlana özel PDF CV üretimi (LaTeX/Tectonic; şablon + belge dili)
+- `GET /api/documents/{document_id}/file` - Korumalı CV PDF indirme / önizleme
+
+### Orchestrator
+- `POST /api/process` - Analiz → eşleşme → CV → önyazı zincirini çalıştır
 
 ### Agents
 - `POST /api/agents/tasks` - Agent görevi oluşturma
@@ -832,18 +1033,26 @@ Tüm API route'ları `/api` prefix'i altında tanımlıdır (health hariç).
 
 ## Agent Sistemi
 
-Sprint 1'de temel agent altyapısı ve dört AI modülü devreye alınmıştır:
+Platformda beş ana AI modülü çalışır:
 
 - **İlan Analizi** — İş ilanındaki beceri ve deneyim beklentilerini çıkarır
-- **Eşleştirme** — Aday profili ile ilan arasında uygunluk puanı hesaplar
-- **CV Üretimi** — İlana özel CV oluşturur ve PDF olarak MinIO'ya kaydeder
-- **Önyazı Üretimi** — Profil ve ilan bilgisine göre önyazı metni üretir
-
-Agent görevleri `POST /api/agents/tasks` üzerinden tetiklenebilir; Gemini client rate limiting ve token tracking ile çalışır.
+- **Eşleştirme** — Aday profili ile ilan arasında uygunluk puanı hesaplar (zorunlu / tercih / kıdem / anlamsal)
+- **CV Üretimi** — İlana özel ATS uyumlu CV oluşturur; alaka filtresi, rewrite, şablon ve dil seçimi destekler
+- **Önyazı Üretimi** — Profil ve ilan bilgisine göre önyazı üretir; ekstra prompt ve önceki metinle regenerate
+- **ATS Kontrolü** — Misafir CV yüklemelerinde Tasarım / Düzen / İçerik skorunu hesaplar
 
 ## Katkıda Bulunma
 
-Katkılarınızı bekliyoruz! Lütfen yönergeler için [CONTRIBUTING.md](./CONTRIBUTING.md) dosyasını okuyun.
+Katkı sağlamak için repoyu fork’layın (veya clone’layın), `main` üzerinden bir feature branch açın, değişikliği test edip Pull Request gönderin.
+
+```bash
+git clone https://github.com/Rum-eysa/YZTA-bootcamp-Team-44
+cd YZTA-bootcamp-Team-44
+cp .env.example .env
+make build && make up && make migrate
+```
+
+Commit mesajı, kod stili, test ve PR kontrol listesi için [`CONTRIBUTING.md`](CONTRIBUTING.md) dosyasına bakın. Sorular ve hata bildirimleri için GitHub Issues kullanabilirsiniz.
 
 ## Lisans
 

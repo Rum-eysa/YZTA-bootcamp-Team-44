@@ -1,234 +1,109 @@
-# Contributing Guide
+# Katkı Rehberi — CareerTrack
 
-Projeye katkı sağladığınız için teşekkürler! Aşağıdaki kuralları lütfen takip edin.
+Katkılarınız için teşekkürler. Bu rehber, lokal kurulumdan pull request’e kadar izlenecek adımları özetler.
 
-## 🎯 Pull Request Process
-
-1. **Fork & Branch**: `main` 'den yeni branch oluştur
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Commit**: Clear ve descriptive messages kullan
-   ```bash
-   git commit -m "feat: add authentication endpoints"
-   git commit -m "fix: handle database connection errors"
-   git commit -m "docs: update API documentation"
-   ```
-
-3. **Push & PR**: 
-   - Branch'i push et
-   - Detailed PR description yaz
-   - Self-review yap
-
-4. **Review & Merge**: Minimum 1 approval gerekli
-
-## 📝 Commit Message Format
-
-```
-<type>: <subject>
-
-<body (opsiyonel)>
-
-<footer (opsiyonel)>
-```
-
-**Types:**
-- `feat`: Yeni feature
-- `fix`: Bug fix
-- `docs`: Dokumentasyon
-- `style`: Code style (formatting, semicolons, etc.)
-- `refactor`: Code refactoring
-- `test`: Test ekle/düzenle
-- `chore`: Build, dependencies, etc.
-
-**Örnek:**
-```
-feat: implement user authentication with JWT
-
-- Add login endpoint
-- Add token refresh mechanism
-- Add authentication middleware
-
-Closes #123
-```
-
-## 🏗️ Code Style
-
-### Backend (Python)
+## Hızlı başlangıç
 
 ```bash
-# Format
-black apps/api/
-
-# Lint
-flake8 apps/api/
-
-# Type check
-mypy apps/api/app/
-
-# Sort imports
-isort apps/api/
-```
-
-### Frontend (TypeScript)
-
-```bash
-# Lint
-pnpm lint
-
-# Format
-pnpm format  # (kurulması gerekirse Prettier)
-```
-
-## 🧪 Testing Requirements
-
-- Backend: `make test` hepsini pass etmeli
-- Yeni feature için yeni test ekle
-- Coverage minimum %80 olmalı
-
-```bash
-# Local test
-make test
-
-# Specific test
-docker-compose exec api pytest tests/test_api.py::test_health -v
-```
-
-## 📋 PR Checklist
-
-PR açmadan önce kontrol et:
-
-- [ ] Branch adı descriptive (`feature/x`, `fix/x`)
-- [ ] Commits clear ve logically organized
-- [ ] Code formatı doğru (`black`, `flake8`)
-- [ ] Tests yazıldı ve hepsi pass ediyor
-- [ ] Documentation güncellenmiş
-- [ ] No hardcoded secrets veya sensitive data
-- [ ] `.env.example` güncellenmiş (gerekirse)
-
-## 🔒 Security Guidelines
-
-1. **Never commit secrets**: `.env.local` hiçbir zaman git'e girmesin
-2. **Validate inputs**: Tüm external inputs validate et
-3. **Use prepared statements**: SQL injection'ı önle
-4. **HTTPS in production**: Always use HTTPS
-5. **Rate limiting**: API endpoints'e rate limiting ekle
-
-## 🐛 Bug Reports
-
-Issues açarken şunları include et:
-
-```markdown
-## Açıklama
-Ne olması gerekiyordu ve ne oldu?
-
-## Reproduce Steps
-1. Step 1
-2. Step 2
-3. Step 3
-
-## Expected vs Actual
-- Expected: X
-- Actual: Y
-
-## Environment
-- OS: Windows/Mac/Linux
-- Docker version: X.X.X
-- Git commit: abc123
-```
-
-## 💡 Feature Requests
-
-```markdown
-## Açıklama
-Yeni feature'ın açıklaması
-
-## Use Case
-Bu feature neden gerekli?
-
-## İmplementasyon önerisi
-Nasıl implement edilebilir? (opsiyonel)
-```
-
-## 🚀 Development Workflow
-
-```bash
-# 1. Clone
 git clone https://github.com/Rum-eysa/YZTA-bootcamp-Team-44
 cd YZTA-bootcamp-Team-44
+cp .env.example .env
 
-# 2. Setup
-cp .env.example .env.local
-make build
+make build && make up
+make migrate
+make seed          # isteğe bağlı demo verisi
+```
 
-# 3. Develop
-make up
-make logs
+- Frontend: http://localhost:3000  
+- API docs: http://localhost:8000/docs  
+- Detaylı komutlar: [Makefile](./Makefile) · canlı ortam: [docs/deploy.md](./docs/deploy.md)
 
-# 4. Test
+## Branch ve PR akışı
+
+1. `main`’den güncel branch açın:
+   ```bash
+   git checkout main && git pull
+   git checkout -b feat/kisa-aciklama
+   ```
+2. Değişikliği yapın, test edin, commit atın.
+3. Branch’i push edip GitHub’da Pull Request açın.
+4. En az **1 onay** sonrası merge edilir.
+
+Branch adı örnekleri: `feat/...`, `fix/...`, `docs/...`
+
+## Commit mesajı
+
+```
+<type>: <kısa açıklama>
+```
+
+| Type | Kullanım |
+| --- | --- |
+| `feat` | Yeni özellik |
+| `fix` | Hata düzeltme |
+| `docs` | Dokümantasyon |
+| `refactor` | Davranış değiştirmeyen yeniden yazım |
+| `test` | Test ekleme / güncelleme |
+| `chore` | Build, bağımlılık, CI |
+
+Örnek: `feat: add guest ATS check endpoint`
+
+## Kod stili
+
+**Backend (`apps/api`):**
+
+```bash
+cd apps/api
+black app/
+isort app/
+flake8 app/
+mypy app/
+```
+
+**Frontend (`apps/web`):**
+
+```bash
+cd apps/web
+npm run lint
+```
+
+## Test
+
+```bash
 make test
-
-# 5. Format & Lint
-cd apps/api && black . && flake8 . && mypy app/
-cd ../web && pnpm lint
-
-# 6. Commit & Push
-git add .
-git commit -m "type: description"
-git push origin feature/your-feature
-
-# 7. Create PR on GitHub
+# veya tek dosya:
+docker-compose exec -e PYTHONPATH=/app api pytest tests/test_ats_check.py -v
 ```
 
-## 📚 Project Structure Best Practices
+- Yeni davranış için mümkünse test ekleyin.
+- Agent / güvenlik değişikliklerinde mevcut CI coverage gate’ini bozmayın.
 
-### Backend (apps/api/)
+## PR kontrol listesi
 
-```
-app/
-├── routes/          # API endpoints (organize by domain)
-│   ├── auth.py
-│   ├── users.py
-│   └── applications.py
-├── schemas/         # Pydantic models (requests/responses)
-├── services/        # Business logic
-├── models.py        # Database models
-├── database.py      # Connection setup
-└── config.py        # Settings
-```
+- [ ] Branch adı ve commit mesajları anlaşılır
+- [ ] Lint / format geçiyor
+- [ ] İlgili testler çalışıyor (`make test`)
+- [ ] Gerekirse README veya `docs/deploy.md` güncellendi
+- [ ] `.env` / secret commit edilmedi; yeni env varsa `.env.example` güncellendi
 
-### Frontend (apps/web/)
+## Proje yapısı (kısa)
 
 ```
-app/
-├── (routes)/        # Next.js route groups
-│   ├── dashboard/
-│   ├── auth/
-│   └── applications/
-├── components/      # Reusable components
-├── hooks/          # Custom React hooks
-├── lib/            # Utilities
-└── types/          # TypeScript types
+apps/api/app/     # FastAPI: routes, agents, services, schemas
+apps/web/app/     # Next.js App Router: landing, profile, apply, listings
+docs/             # Deploy ve sprint görselleri
 ```
 
-## 🤝 Code Review Standards
+Kanonik ilan sayfası: `/listings/{listingId}`. Misafir ATS: landing → `POST /api/ats-check`.
 
-Reviewing sırasında:
+## Güvenlik
 
-1. **Functionality**: Kod intended behavior'ı implement ediyor mu?
-2. **Code Quality**: Clean, readable, maintainable mi?
-3. **Performance**: N+1 queries, unnecessary loops, memory leaks var mı?
-4. **Security**: Input validation, SQL injection, XSS var mı?
-5. **Tests**: Adequate coverage var mı?
-6. **Documentation**: Comments ve docs gerekli mi?
+- `.env` asla commit edilmez
+- Kullanıcı girdisini doğrulayın; sahiplik kontrollerini atlamayın
+- Production’da güçlü `JWT_SECRET`, `DEBUG=false`
 
-## 📞 Questions?
+## Sorun / özellik bildirimi
 
-- GitHub Issues'de soru aç
-- Pull request'te discussion başlat
-- Team'le iletişime geç
+GitHub Issues kullanın. Bug için: beklenen / gerçekleşen davranış, adımlar, ortam (lokal veya canlı URL).
 
----
-
-**Happy contributing! 🚀**
+Sorular için issue veya PR discussion açabilirsiniz.

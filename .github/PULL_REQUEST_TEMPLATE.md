@@ -23,6 +23,6 @@ Closes #
 ## Checklist
 
 - [ ] Kod kendi standartlarima uygun (lint/format gecti)
-- [ ] Gerekliyse README/SETUP_QUICK guncellendi
+- [ ] Gerekliyse README / docs/deploy.md guncellendi
 - [ ] Gerekliyse .env.example guncellendi
 - [ ] Yeni bagimlilik eklendiyse requirements.txt / package.json guncellendi

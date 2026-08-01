@@ -1,66 +1,86 @@
-# Go-Live Checklist (US-046)
+# Deploy — CareerTrack
 
-Kurulum adımları için bkz. [`DEPLOY_STAGING.md`](./DEPLOY_STAGING.md) (US-035, değiştirilmedi).
-Bu doküman US-046 kapsamında yapılan **fiili deploy**'un durumunu ve demo öncesi
-son kontrol listesini içerir.
+Backend **Railway**, frontend **Vercel**, veritabanı **Supabase PostgreSQL**.
+`main`’e her merge otomatik deploy tetikler.
 
-## Canlı URL'ler
+## Canlı URL’ler
 
-| Servis | URL | Durum |
-|---|---|---|
-| Backend (Railway) | `https://yzta-bootcamp-team-44-production.up.railway.app` | ✅ `/health` ve `/health/ready` → 200 |
-| Frontend (Vercel) | `https://yzta-bootcamp-team-44.vercel.app` | ✅ 200 (kalıcı production alias) |
-| API Docs | `https://yzta-bootcamp-team-44-production.up.railway.app/docs` | `DEBUG=true` iken açık |
+| Servis | URL |
+| --- | --- |
+| Frontend | https://yzta-bootcamp-team-44.vercel.app |
+| Backend API | https://yzta-bootcamp-team-44-production.up.railway.app |
+| API Docs | https://yzta-bootcamp-team-44-production.up.railway.app/docs (`DEBUG=true` iken) |
 
-> Not: Vercel'in deployment-hash'li URL'i (`...-<hash>-zmd1.vercel.app`) Vercel SSO
-> koruması arkasındadır ve demoda kullanılmamalı — her zaman yukarıdaki kalıcı
-> `yzta-bootcamp-team-44.vercel.app` alias'ı paylaşılmalı.
+Demo ve paylaşım için her zaman bu kalıcı Vercel alias’ını kullanın (hash’li preview URL’ler SSO arkasında olabilir).
 
-## Go-Live Kontrol Listesi
+## Mimari
 
-- [x] Backend Railway'de ayakta, `/health` → `{"status":"healthy",...}` (200)
-- [x] Backend Railway'de ayakta, `/health/ready` → DB+Redis dahil (200)
-- [x] Frontend Vercel production alias'ında ayakta (200)
-- [x] Staging DB migration güncel: her deploy başlangıcında `alembic upgrade head`
-      çalışıyor (`railway.json` start command), deploy log'unda doğrulandı
-- [x] Ortam değişkenleri senkron: `DATABASE_URL` (Supabase session pooler),
-      `GEMINI_API_KEY`, `GEMINI_MODEL`, `JWT_SECRET`, `REDIS_URL`,
-      `STORAGE_*` (MinIO), `CORS_ORIGINS` (Vercel domain'iyle eşleşiyor)
-- [x] `make seed` staging'de çalıştırıldı (bkz. "Seed nasıl çalıştırılır")
-      — 5 kullanıcı, 6 ilan, 6 iş deneyimi, 9 proje, 6 eğitim, 4 sertifika,
-      1 eşleştirme, 1 doküman
-- [ ] Demo öncesi Gemini kotası kontrol edildi (paylaşımlı anahtar, ~18 istek/gün
-      free tier — bkz. [[project_yzta_bootcamp]] risk notu)
-- [ ] Demo senaryosu uçtan uca prova edildi (login → ilan yapıştır → analiz →
-      eşleştirme → CV/önyazı üret)
+```
+Vercel (Next.js, apps/web)
+    │ HTTPS
+    ▼
+Railway: api (FastAPI — apps/api/Dockerfile)
+    ├── Railway Redis          # JWT blacklist, rate limit, Gemini kota
+    ├── Railway MinIO          # CV / avatar dosyaları
+    └── Supabase PostgreSQL    # paylaşılan DB (session pooler, port 5432)
+```
 
-## Seed nasıl çalıştırılır (staging, Railway SSH ile)
+Her API deploy’unda `railway.json` start komutu `alembic upgrade head` çalıştırır, ardından uvicorn ayağa kalkar. Healthcheck: `/health`.
+
+## Ortam değişkenleri (API)
+
+| Değişken | Açıklama |
+| --- | --- |
+| `DATABASE_URL` | Supabase session-pooler URL (port **5432**; transaction pooler 6543 kullanmayın) |
+| `REDIS_URL` | Railway Redis referansı |
+| `JWT_SECRET` | Güçlü gizli anahtar (`openssl rand -base64 32`) |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | AI anahtarı ve model |
+| `STORAGE_ENDPOINT` | MinIO private URL (`http://<servis>.railway.internal:9000`) |
+| `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` | MinIO kimlik bilgileri |
+| `STORAGE_BUCKET` | `cv-documents` |
+| `STORAGE_PUBLIC_URL` | MinIO public domain |
+| `CORS_ORIGINS` | Vercel origin (sonda `/` olmasın) |
+| `ALLOWED_HOSTS` | API’nin kendi Railway domain’i |
+| `ENVIRONMENT` | `staging` veya `production` |
+| `DEBUG` | Prod’da `false` |
+
+Frontend (Vercel): `NEXT_PUBLIC_API_URL=https://<api-domain>` · Root Directory: `apps/web`.
+
+## İlk kurulum (özet)
+
+1. Railway’de repo’yu bağla (`railway.json` + `apps/api/Dockerfile` algılanır).
+2. Aynı projeye Redis ve MinIO (`minio/minio`, public domain port 9000) ekle.
+3. API değişkenlerini yukarıdaki tabloya göre doldur; domain üret; healthcheck’i doğrula.
+4. Vercel’de projeyi ekle (`apps/web`), `NEXT_PUBLIC_API_URL` ver, deploy et.
+5. Railway `CORS_ORIGINS` içine Vercel domain’ini yazıp API’yi yeniden deploy et.
+
+## Seed (dikkatli kullan)
+
+Seed, paylaşılan Supabase tablolarını temizleyip yeniden doldurur. Ekibe haber vermeden çalıştırmayın.
 
 ```bash
-railway link -p e0e35eb0-c53e-4139-897f-88f179ebd9ea \
-  -e 3a5f8d15-d69c-4fb3-ad1c-917498fe521a \
-  -s 58041834-2ebc-47da-aabc-f21777251900
+railway link   # ilgili proje / servis
 railway ssh "python scripts/seed_database.py"
 ```
 
-> `railway run` **yerel makinede** çalışır, sadece env değişkenlerini Railway'den
-> enjekte eder — Python bağımlılıkları yerelde kurulu değilse (bu repoda öyle)
-> çalışmaz. Container **içinde** çalıştırmak için `railway ssh` kullanılmalı.
-> SSH ilk kullanımda `railway ssh keys add` ile bir anahtar kaydı gerektirir.
+> `railway run` yalnızca env enjekte eder; bağımlılıklar yerelde yoksa script çalışmaz. Container içinde çalıştırmak için `railway ssh` kullanın.
 
-**Dikkat:** Supabase paylaşılan DB'dir, seed script'i `users/job_listings/matches/
-documents/work_experiences/education_records/projects/certificates` tablolarını
-TEMİZLEYİP yeniden doldurur. Ekiple haber vermeden çalıştırmayın.
+## Doğrulama
 
-## Deploy akışı
+```bash
+curl https://<api-domain>/health
+curl https://<api-domain>/health/ready
+```
 
-Railway, `main` branch'ine push'ta otomatik build+deploy tetikler (kökteki
-`railway.json`, Dockerfile: `apps/api/Dockerfile`). Feature branch'lerdeki
-değişiklikler staging'e yansımaz — önce main'e merge edilmeli.
-
-Vercel, aynı repoyu (`apps/web` root directory) izler; `main`'e her push'ta
-production deploy tetiklenir.
+- Frontend açılıyor; login / register çalışıyor
+- Landing’de misafir ATS veya girişli ilan analizi çalışıyor
+- İlan detayında eşleşme, CV ve önyazı üretimi tamamlanıyor
 
 ## Sorun giderme
 
-Bkz. [`DEPLOY_STAGING.md`](./DEPLOY_STAGING.md#sorun-giderme).
+| Belirti | Olası neden |
+| --- | --- |
+| Tüm istekler 400 Invalid host | `ALLOWED_HOSTS`’a API domain’i yazılmamış |
+| CORS hatası | `CORS_ORIGINS` eksik veya sonda `/` var |
+| asyncpg prepared statement | `DATABASE_URL` transaction pooler (6543); session pooler (5432) kullanın |
+| Feature branch yansımaz | Deploy yalnızca `main` merge sonrası tetiklenir |
