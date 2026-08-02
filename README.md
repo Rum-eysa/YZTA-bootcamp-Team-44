@@ -24,10 +24,10 @@ Takım 44
 
 | Rol | Kişi | GitHub | LinkedIn |
 |-----|------|--------|----------|
-| Product Owner | Rumeysa AĞIL | [@Rum-eysa](https://github.com/Rum-eysa) | [@rumeysaagil](https://www.linkedin.com/in/rumeysaagil/) |
-| Scrum Master | Serkan YILDIZ | [@Serkan0YLDZ](https://github.com/Serkan0YLDZ) | [@serkan0yldz](https://www.linkedin.com/in/serkan0yldz/) |
-| Developer | Zeynep Maide DEMİR | [@zeynepmaidedemir](https://github.com/zeynepmaidedemir) | [@zeynep-maide-demir](https://www.linkedin.com/in/zeynep-maide-demir/) |
-| Developer | Filiz Buzkıran | [@lizlavigne](https://github.com/lizlavigne) | [@filizbuzkiran](https://www.linkedin.com/in/filizbuzkiran) |
+| Product Owner | Rumeysa AĞIL | [![GitHub](https://img.shields.io/badge/GitHub-@Rum-eysa-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Rum-eysa) | [![LinkedIn](https://img.shields.io/badge/LinkedIn-rumeysaagil-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/rumeysaagil/) |
+| Scrum Master | Serkan YILDIZ | [![GitHub](https://img.shields.io/badge/GitHub-@Serkan0YLDZ-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/Serkan0YLDZ) | [![LinkedIn](https://img.shields.io/badge/LinkedIn-serkan0yldz-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/serkan0yldz/) |
+| Developer | Zeynep Maide DEMİR | [![GitHub](https://img.shields.io/badge/GitHub-@zeynepmaidedemir-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/zeynepmaidedemir) | [![LinkedIn](https://img.shields.io/badge/LinkedIn-zeynep-maide-demir-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/zeynep-maide-demir/) |
+| Developer | Filiz Buzkıran | [![GitHub](https://img.shields.io/badge/GitHub-@lizlavigne-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/lizlavigne) | [![LinkedIn](https://img.shields.io/badge/LinkedIn-filizbuzkiran-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/filizbuzkiran) |
 
 ## Ürün İsmi
 
