@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { AppFooter } from "@/components/layout/AppFooter";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +61,7 @@ export function AppLayout({ children, guard = true }: AppLayoutProps) {
 
         <main className="flex-1 min-w-0">{inner}</main>
       </div>
+      <AppFooter />
     </div>
   );
 }

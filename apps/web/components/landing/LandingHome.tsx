@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { AtsHero } from "./AtsHero";
@@ -13,6 +14,15 @@ export function LandingHome() {
     <div className="px-margin-mobile md:px-lg py-12 md:py-16">
       <AtsHero onCtaClick={() => setAtsOpen(true)} />
       <ValueProps />
+
+      <div className="mt-10 text-center">
+        <Link
+          href="/kvkk"
+          className="text-body-md font-semibold text-primary hover:underline"
+        >
+          KVKK Aydınlatma Metni'ni okuyun
+        </Link>
+      </div>
 
       <Modal
         open={atsOpen}

@@ -379,7 +379,11 @@ async def test_sensitive_audit_events_are_logged_for_profile_match_cv_and_cover_
         )
         assert profile_resp.status_code == 200
 
-        match_resp = await client.post(f"/api/match/{listing_id}", headers=headers)
+        match_resp = await client.post(
+            "/api/match",
+            headers=headers,
+            json={"listing_id": listing_id},
+        )
         assert match_resp.status_code == 200
 
         cv_resp = await client.post(
@@ -396,10 +400,10 @@ async def test_sensitive_audit_events_are_logged_for_profile_match_cv_and_cover_
         )
         assert cover_resp.status_code == 200
 
-        event_names = {event for event, _ in events}
-        assert "profile_patch" in event_names
-        assert "match" in event_names
-        assert "generate_cv" in event_names
-        assert "generate_cover_letter" in event_names
+        event_actions = {kwargs.get("action") for _, kwargs in events}
+        assert "profile_patch" in event_actions
+        assert "match" in event_actions
+        assert "generate_cv" in event_actions
+        assert "generate_cover_letter" in event_actions
     finally:
         app.dependency_overrides.clear()
