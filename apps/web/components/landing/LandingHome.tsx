@@ -20,7 +20,7 @@ export function LandingHome() {
           href="/kvkk"
           className="text-body-md font-semibold text-primary hover:underline"
         >
-          KVKK Aydınlatma Metni'ni okuyun
+          KVKK Aydınlatma Metni&apos;ni okuyun
         </Link>
       </div>
 
